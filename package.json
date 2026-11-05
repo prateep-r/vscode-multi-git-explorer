@@ -1,0 +1,438 @@
+{
+  "name": "multi-repo-git-status",
+  "displayName": "Multi-Repo Git Status",
+  "description": "See the branch and status of every git repository in your workspace at a glance, even with hundreds of repos.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prateep-r/vscode-multi-repo-git-status.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "multi-repo",
+    "branch",
+    "status",
+    "polyrepo"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "multiRepoGit",
+          "title": "Multi-Repo Git Status",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "multiRepoGit": [
+        {
+          "id": "multiRepoGit.explorer",
+          "name": "Repo Explorer"
+        },
+        {
+          "id": "multiRepoGit.repos",
+          "name": "Git Repos"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "multiRepoGit.repos",
+        "contents": "No git repositories found in this workspace yet.\n[Scan Again](command:multiRepoGit.refresh)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "multiRepoGit.refresh",
+        "title": "Refresh",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multiRepoGit.fetchAll",
+        "title": "Fetch All Repos",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "multiRepoGit.filter",
+        "title": "Filter Repos",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "multiRepoGit.clearFilter",
+        "title": "Clear Filter",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "multiRepoGit.openInScm",
+        "title": "Open in Source Control",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(source-control)"
+      },
+      {
+        "command": "multiRepoGit.openChanges",
+        "title": "View All Changes",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(diff-multiple)"
+      },
+      {
+        "command": "multiRepoGit.switchBranch",
+        "title": "Switch Branch...",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "multiRepoGit.fetch",
+        "title": "Fetch",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.pull",
+        "title": "Pull",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.push",
+        "title": "Push",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.openTerminal",
+        "title": "Open Terminal Here",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "multiRepoGit.openInNewWindow",
+        "title": "Open Repo in New Window",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(empty-window)"
+      },
+      {
+        "command": "multiRepoGit.copyBranch",
+        "title": "Copy Branch Name",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.scanFolder",
+        "title": "Scan This Folder",
+        "category": "Multi-Repo Git Status"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "multiRepoGit.repoMenu",
+        "label": "Git Repo"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "multiRepoGit.fetchAll",
+          "when": "view == multiRepoGit.repos",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multiRepoGit.filter",
+          "when": "view == multiRepoGit.repos",
+          "group": "navigation@2"
+        },
+        {
+          "command": "multiRepoGit.clearFilter",
+          "when": "view == multiRepoGit.repos && multiRepoGit.filtered",
+          "group": "navigation@3"
+        },
+        {
+          "command": "multiRepoGit.refresh",
+          "when": "view == multiRepoGit.repos || view == multiRepoGit.explorer",
+          "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "multiRepoGit.openInScm",
+          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "multiRepoGit.openTerminal",
+          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/",
+          "group": "inline@2"
+        },
+        {
+          "command": "multiRepoGit.openInScm",
+          "when": "viewItem =~ /\\brepo\\b/",
+          "group": "1_scm@1"
+        },
+        {
+          "command": "multiRepoGit.openChanges",
+          "when": "viewItem =~ /\\brepo\\b/",
+          "group": "1_scm@2"
+        },
+        {
+          "command": "multiRepoGit.switchBranch",
+          "when": "viewItem =~ /\\brepo\\b/",
+          "group": "1_scm@3"
+        },
+        {
+          "command": "multiRepoGit.fetch",
+          "when": "viewItem =~ /\\bremote\\b/",
+          "group": "2_sync@1"
+        },
+        {
+          "command": "multiRepoGit.pull",
+          "when": "viewItem =~ /\\bupstream\\b/",
+          "group": "2_sync@2"
+        },
+        {
+          "command": "multiRepoGit.push",
+          "when": "viewItem =~ /\\bcanPush\\b/",
+          "group": "2_sync@3"
+        },
+        {
+          "command": "multiRepoGit.openTerminal",
+          "when": "viewItem =~ /\\brepo\\b/",
+          "group": "3_open@1"
+        },
+        {
+          "command": "multiRepoGit.openInNewWindow",
+          "when": "viewItem =~ /\\brepo\\b/",
+          "group": "3_open@2"
+        },
+        {
+          "command": "multiRepoGit.copyBranch",
+          "when": "viewItem =~ /\\brepo\\b/",
+          "group": "3_open@3"
+        },
+        {
+          "command": "multiRepoGit.scanFolder",
+          "when": "viewItem =~ /\\bunscanned\\b/",
+          "group": "1_scan@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "multiRepoGit.repoMenu",
+          "when": "explorerResourceIsFolder && resourcePath in multiRepoGit.repoPaths",
+          "group": "7_multiRepoGit@1"
+        }
+      ],
+      "multiRepoGit.repoMenu": [
+        {
+          "command": "multiRepoGit.openInScm",
+          "group": "1_scm@1"
+        },
+        {
+          "command": "multiRepoGit.openChanges",
+          "group": "1_scm@2"
+        },
+        {
+          "command": "multiRepoGit.switchBranch",
+          "group": "1_scm@3"
+        },
+        {
+          "command": "multiRepoGit.fetch",
+          "group": "2_sync@1"
+        },
+        {
+          "command": "multiRepoGit.pull",
+          "group": "2_sync@2"
+        },
+        {
+          "command": "multiRepoGit.push",
+          "group": "2_sync@3"
+        },
+        {
+          "command": "multiRepoGit.openTerminal",
+          "group": "3_open@1"
+        },
+        {
+          "command": "multiRepoGit.openInNewWindow",
+          "group": "3_open@2"
+        },
+        {
+          "command": "multiRepoGit.copyBranch",
+          "group": "3_open@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "multiRepoGit.openChanges",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.fetch",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.pull",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.push",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.openInNewWindow",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.copyBranch",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.scanFolder",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.clearFilter",
+          "when": "multiRepoGit.filtered"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "multiRepoGit.conflictForeground",
+        "description": "Color of repos with conflicts or an unfinished merge, rebase, or cherry-pick.",
+        "defaults": {
+          "dark": "gitDecoration.conflictingResourceForeground",
+          "light": "gitDecoration.conflictingResourceForeground",
+          "highContrast": "gitDecoration.conflictingResourceForeground",
+          "highContrastLight": "gitDecoration.conflictingResourceForeground"
+        }
+      },
+      {
+        "id": "multiRepoGit.dirtyForeground",
+        "description": "Color of repos with uncommitted changes or a detached HEAD.",
+        "defaults": {
+          "dark": "gitDecoration.modifiedResourceForeground",
+          "light": "gitDecoration.modifiedResourceForeground",
+          "highContrast": "gitDecoration.modifiedResourceForeground",
+          "highContrastLight": "gitDecoration.modifiedResourceForeground"
+        }
+      },
+      {
+        "id": "multiRepoGit.aheadForeground",
+        "description": "Color of repos with commits that are not pushed yet.",
+        "defaults": {
+          "dark": "#75BEFF",
+          "light": "#1A6FD1",
+          "highContrast": "#75BEFF",
+          "highContrastLight": "#0F4A85"
+        }
+      },
+      {
+        "id": "multiRepoGit.behindForeground",
+        "description": "Color of repos that are behind or diverged from their upstream.",
+        "defaults": {
+          "dark": "#C586C0",
+          "light": "#A31BA3",
+          "highContrast": "#C586C0",
+          "highContrastLight": "#7A1A7A"
+        }
+      },
+      {
+        "id": "multiRepoGit.pendingForeground",
+        "description": "Color of repos that are still being checked.",
+        "defaults": {
+          "dark": "gitDecoration.ignoredResourceForeground",
+          "light": "gitDecoration.ignoredResourceForeground",
+          "highContrast": "gitDecoration.ignoredResourceForeground",
+          "highContrastLight": "gitDecoration.ignoredResourceForeground"
+        }
+      },
+      {
+        "id": "multiRepoGit.errorForeground",
+        "description": "Color of repos whose status could not be read.",
+        "defaults": {
+          "dark": "list.errorForeground",
+          "light": "list.errorForeground",
+          "highContrast": "list.errorForeground",
+          "highContrastLight": "list.errorForeground"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Multi-Repo Git Status",
+      "properties": {
+        "multiRepoGit.scanDepth": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "How many folder levels below each workspace folder to search for git repositories."
+        },
+        "multiRepoGit.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "vendor",
+            "dist",
+            "build",
+            "out",
+            "target",
+            "bower_components",
+            "__pycache__"
+          ],
+          "description": "Folder names that are never searched for repositories."
+        },
+        "multiRepoGit.maxConcurrency": {
+          "type": "number",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 32,
+          "description": "Maximum number of git processes to run at the same time."
+        },
+        "multiRepoGit.countUntracked": {
+          "type": "boolean",
+          "default": true,
+          "description": "Count untracked files. Turning this off makes status checks faster in large repos."
+        },
+        "multiRepoGit.refreshOnFocus": {
+          "type": "boolean",
+          "default": true,
+          "description": "Re-check repos when the VS Code window gets focus, to pick up changes made outside VS Code."
+        },
+        "multiRepoGit.backgroundRefreshMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "description": "Re-check every repo in the background this often. 0 turns it off. This never fetches from remotes."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "tsc -p . && node --test \"out/test/**/*.test.js\"",
+    "vscode:prepublish": "npm run compile",
+    "test:integration": "tsc -p . && node out/integration/run.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/test-electron": "^3.1.0",
+    "typescript": "^5.6.0"
+  }
+}
