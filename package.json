@@ -40,20 +40,12 @@
     "views": {
       "multiRepoGit": [
         {
-          "type": "webview",
-          "id": "multiRepoGit.filterInput",
-          "name": "Filter",
-          "initialSize": 1
-        },
-        {
           "id": "multiRepoGit.explorer",
-          "name": "Repo Explorer",
-          "initialSize": 12
+          "name": "Repo Explorer"
         },
         {
           "id": "multiRepoGit.repos",
-          "name": "Git Repos",
-          "initialSize": 8
+          "name": "Git Repos"
         }
       ]
     },
@@ -131,12 +123,7 @@
       },
       {
         "command": "multiRepoGit.clearExplorerFilter",
-        "title": "Clear Repo Explorer Filter",
-        "category": "Multi-Repo Git Status"
-      },
-      {
-        "command": "multiRepoGit.focusFilterInput",
-        "title": "Focus Filter Box",
+        "title": "Show All Files",
         "category": "Multi-Repo Git Status"
       },
       {
@@ -530,15 +517,7 @@
           "description": "Re-check every repo in the background this often. 0 turns it off. This never fetches from remotes."
         }
       }
-    },
-    "keybindings": [
-      {
-        "command": "multiRepoGit.focusFilterInput",
-        "key": "ctrl+alt+f",
-        "mac": "cmd+alt+f",
-        "when": "focusedView == multiRepoGit.explorer"
-      }
-    ]
+    }
   },
   "scripts": {
     "compile": "tsc -p .",

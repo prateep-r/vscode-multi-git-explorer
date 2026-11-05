@@ -25,36 +25,6 @@ export function matchesFilter(
   );
 }
 
-export interface RepoMatch {
-  /** Changed files to list under the repo. Undefined means list its folder normally. */
-  files?: readonly ChangedFile[];
-}
-
-/**
- * Whether a repo stays in the filtered Repo Explorer, and which files it lists.
- * The buttons narrow down which repos qualify; typed text then has to match
- * the repo's path (`label`) or the path of one of its changed files.
- */
-export function matchRepo(
-  label: string,
-  status: StatusSummary | undefined,
-  hasRemote: boolean,
-  filters: ReadonlySet<ExplorerFilter>,
-  text: string,
-): RepoMatch | undefined {
-  const buttons = filters.size > 0;
-  if (buttons && !matchesFilter(status, filters, hasRemote)) return undefined;
-  const needle = text.trim().toLowerCase();
-  const showChanges = filters.has('changes') && (status?.changedFiles ?? 0) > 0;
-
-  if (!needle || label.toLowerCase().includes(needle)) {
-    if (!buttons) return {};
-    return { files: showChanges ? status!.files : [] };
-  }
-  const hits = (status?.files ?? []).filter(file => file.path.toLowerCase().includes(needle));
-  return hits.length ? { files: hits } : undefined;
-}
-
 export interface FilteredEntry {
   name: string;
   isDir: boolean;

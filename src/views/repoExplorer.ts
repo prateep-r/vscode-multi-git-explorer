@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { FILTER_LABELS, describeChange, filteredEntries, matchRepo, type ExplorerFilter, type RepoMatch } from '../core/filter';
+import { FILTER_LABELS, describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
 import type { ChangedFile } from '../core/porcelain';
 import type { GroupKey } from '../core/state';
 import type { RepoEntry, RepoStore } from '../store';
@@ -23,7 +23,6 @@ const SUMMARY_SYMBOLS: [GroupKey[], string][] = [
 ];
 
 const FILTER_STATE_KEY = 'multiRepoGit.explorerFilter';
-const TEXT_STATE_KEY = 'multiRepoGit.explorerFilterText';
 const FILTER_ORDER: ExplorerFilter[] = ['changes', 'unpushed', 'behind'];
 const FILTERED_REFRESH_MS = 300;
 
@@ -41,11 +40,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   /** Folder nodes handed out so far, so updates can target them. */
   private readonly dirNodes = new Map<string, ExplorerNode>();
   private filters: Set<ExplorerFilter>;
-  private text: string;
   private treeView?: vscode.TreeView<ExplorerNode>;
   private refreshTimer?: NodeJS.Timeout;
-  /** Computed once per refresh; asked for by every row. */
-  private matchCache?: Map<string, RepoMatch>;
   private readonly disposables: vscode.Disposable[];
 
   constructor(
@@ -53,7 +49,6 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     private readonly state: vscode.Memento,
   ) {
     this.filters = new Set(state.get<ExplorerFilter[]>(FILTER_STATE_KEY, []));
-    this.text = state.get(TEXT_STATE_KEY, '');
     this.disposables = [
       store.onDidChangeRepos(roots => this.onReposChanged(roots)),
       store.onDidDiscover(() => this.refreshAll()),
@@ -88,18 +83,6 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     this.refreshAll();
   }
 
-  get filterText(): string {
-    return this.text;
-  }
-
-  setFilterText(text: string): void {
-    if (text === this.text) return;
-    this.text = text;
-    void this.state.update(TEXT_STATE_KEY, text);
-    this.updateContextKeys();
-    this.refreshAll();
-  }
-
   toggleFilter(filter: ExplorerFilter): void {
     const next = new Set(this.filters);
     if (next.has(filter)) next.delete(filter);
@@ -116,20 +99,18 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   private get filtering(): boolean {
-    return this.filters.size > 0 || this.text.trim() !== '';
+    return this.filters.size > 0;
   }
 
   async getChildren(node?: ExplorerNode): Promise<ExplorerNode[]> {
     const folders = (vscode.workspace.workspaceFolders ?? []).filter(f => f.uri.scheme === 'file');
     if (!node && folders.length !== 1) {
       const nodes = folders.map(f => this.dirNode(f.uri));
-      if (!this.filtering) return nodes;
-      const matches = this.matches();
-      return nodes.filter(n => [...matches.keys()].some(root => isAtOrBelow(root, n.uri.fsPath)));
+      return this.filtering ? nodes.filter(n => this.matchingRepos().some(r => isAtOrBelow(r.root, n.uri.fsPath))) : nodes;
     }
     const uri = node?.uri ?? folders[0]?.uri;
     if (!uri) return [];
-    if (!this.filtering || this.insideBrowsedRepo(uri.fsPath)) return this.readDir(uri);
+    if (!this.filtering) return this.readDir(uri);
     if (node?.change) {
       // An untracked folder is new as a whole, so everything inside it is a change.
       return (await this.readDir(uri)).map(child => ({ ...child, change: node.change }));
@@ -149,7 +130,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     const fsPath = node.uri.fsPath;
     // Separate ids per mode, so filtered folders open expanded without
     // changing what the user expanded in the unfiltered tree.
-    const id = `${this.filtering ? `f:${this.activeFilters.join(',')}:${this.text}` : 'all'}:${fsPath}`;
+    const id = `${this.filtering ? `f:${this.activeFilters.join(',')}` : 'all'}:${fsPath}`;
 
     if (!node.isDir) {
       const item = new vscode.TreeItem(toViewUri(fsPath), vscode.TreeItemCollapsibleState.None);
@@ -160,7 +141,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       return item;
     }
 
-    const expanded = this.filtering && !node.change && !this.insideBrowsedRepo(fsPath, true);
+    const expanded = this.filtering && !node.change;
     const item = new vscode.TreeItem(
       toViewUri(fsPath),
       expanded ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
@@ -171,11 +152,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       item.description = repo.view.description;
       item.tooltip = repo.view.tooltip;
       item.contextValue = repo.view.contextValue;
-      const match = this.filtering ? this.matches().get(repo.root) : undefined;
-      // Matched by its path with no buttons on: listed in full, so start it collapsed like the normal tree.
-      if (match && !match.files) item.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
-      const files = match?.files;
-      if (files?.length === 0 && ![...this.matches().keys()].some(root => isBelow(root, fsPath))) {
+      if (this.filtering && !this.showsFilesOf(repo) && !this.matchingRepos().some(r => isBelow(r.root, fsPath))) {
         item.collapsibleState = vscode.TreeItemCollapsibleState.None;
       }
       return item;
@@ -185,9 +162,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (node.change) item.description = 'untracked';
     if (this.store.repoContaining(fsPath)) return item;
 
-    const below = this.filtering
-      ? this.store.reposUnder(fsPath).filter(r => this.matches().has(r.root))
-      : this.store.reposUnder(fsPath);
+    const below = this.filtering ? this.matchingRepos().filter(r => isBelow(r.root, fsPath)) : this.store.reposUnder(fsPath);
     if (below.length > 0) {
       item.description = summarize(below);
     } else if (this.store.isScanned(fsPath)) {
@@ -202,34 +177,23 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return item;
   }
 
-  /** Repos that stay in the filtered tree, by root. */
-  private matches(): Map<string, RepoMatch> {
-    if (this.matchCache) return this.matchCache;
-    const result = new Map<string, RepoMatch>();
-    for (const repo of this.store.all()) {
-      const label = vscode.workspace.asRelativePath(repo.root, false);
-      const match = matchRepo(label, repo.status, repo.cheap?.hasRemote ?? true, this.filters, this.text);
-      if (match) result.set(repo.root, match);
-    }
-    this.matchCache = result;
-    return result;
+  private matchingRepos(): RepoEntry[] {
+    return this.store.all().filter(r => matchesFilter(r.status, this.filters, r.cheap?.hasRemote));
   }
 
-  /**
-   * Whether `fsPath` is inside a repo that matched by its path with no
-   * buttons on, which is listed in full like the unfiltered tree.
-   */
-  private insideBrowsedRepo(fsPath: string, strictlyInside = false): boolean {
-    const repo = this.store.repoContaining(fsPath);
-    if (!repo || (strictlyInside && repo.root === fsPath)) return false;
-    const match = this.matches().get(repo.root);
-    return match !== undefined && match.files === undefined;
+  /** Whether a repo's changed files are listed under it while filtering. */
+  private showsFilesOf(repo: RepoEntry): boolean {
+    return this.filters.has('changes') && (repo.status?.changedFiles ?? 0) > 0;
   }
 
   private filteredChildren(uri: vscode.Uri): ExplorerNode[] {
-    const matches = this.matches();
-    const changes = [...matches].filter(([, m]) => m.files?.length).map(([root, m]) => ({ root, files: m.files! }));
-    return filteredEntries(uri.fsPath, [...matches.keys()], changes).map(entry => {
+    const matching = this.matchingRepos();
+    const changes = matching.filter(r => this.showsFilesOf(r)).map(r => ({ root: r.root, files: r.status!.files }));
+    return filteredEntries(
+      uri.fsPath,
+      matching.map(r => r.root),
+      changes,
+    ).map(entry => {
       const child = vscode.Uri.joinPath(uri, entry.name);
       if (!entry.isDir) return { uri: child, isDir: false, change: entry.change };
       return entry.change ? { uri: child, isDir: true, change: entry.change } : this.dirNode(child);
@@ -281,7 +245,6 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   private refreshAll(): void {
-    this.matchCache = undefined;
     clearTimeout(this.refreshTimer);
     this.refreshTimer = undefined;
     this._onDidChangeTreeData.fire(undefined);
@@ -320,11 +283,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       this.treeView.message = undefined;
       return;
     }
-    const shown = this.matches().size;
-    const labels = [
-      ...this.activeFilters.map(f => FILTER_LABELS[f].toLowerCase()),
-      ...(this.text.trim() ? [`"${this.text.trim()}"`] : []),
-    ].join(', ');
+    const shown = this.matchingRepos().length;
+    const labels = this.activeFilters.map(f => FILTER_LABELS[f].toLowerCase()).join(', ');
     this.treeView.message =
       shown === 0
         ? `No repos match the filter (${labels}).`
