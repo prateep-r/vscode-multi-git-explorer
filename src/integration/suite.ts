@@ -155,6 +155,37 @@ test('title-bar buttons turn each filter on and off with one click', async ({ ex
   assert.deepEqual(explorer.activeFilters, []);
 });
 
+test('clicking a changed file while filtered opens a diff against HEAD', async ({ explorer }) => {
+  const child = async (node: ExplorerNode | undefined, name: string) =>
+    (await explorer.getChildren(node)).find(n => path.basename(n.uri.fsPath) === name)!;
+  const activeDiff = () => {
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    assert.ok(input instanceof vscode.TabInputTextDiff, 'a diff editor is open');
+    return input;
+  };
+  try {
+    explorer.setFilters(['changes']);
+    const api = await child(await child(undefined, 'services'), 'api-gateway');
+
+    const readme = await child(api, 'README.md');
+    const item = explorer.getTreeItem(readme);
+    assert.equal(item.command?.command, 'multiRepoGit.openChange');
+    await vscode.commands.executeCommand(item.command!.command, ...item.command!.arguments!);
+    let diff = activeDiff();
+    assert.equal(diff.modified.fsPath, at('services/api-gateway/README.md'));
+    const head = execFileSync('git', ['show', 'HEAD:README.md'], { cwd: at('services/api-gateway'), encoding: 'utf8' });
+    assert.equal((await vscode.workspace.openTextDocument(diff.original)).getText(), head);
+
+    const routes = await child(await child(api, 'src'), 'routes.ts');
+    await vscode.commands.executeCommand('multiRepoGit.openChange', routes);
+    diff = activeDiff();
+    assert.equal((await vscode.workspace.openTextDocument(diff.original)).getText(), '', 'new file: empty left side');
+  } finally {
+    explorer.setFilters([]);
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+  }
+});
+
 test('Git Repos view groups problems first and filters', async ({ reposView }) => {
   const groups = reposView.getChildren().map(n => (n.type === 'group' ? n.key : ''));
   assert.deepEqual(groups, ['conflict', 'dirty', 'unpushed', 'behind', 'clean']);

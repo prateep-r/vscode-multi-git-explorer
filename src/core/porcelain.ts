@@ -29,6 +29,8 @@ export type ChangeLetter = 'M' | 'A' | 'D' | 'R' | 'U' | '!';
 export interface ChangedFile {
   /** Relative to the repo root, with forward slashes. Untracked folders end with "/". */
   path: string;
+  /** Path before a rename. */
+  origPath?: string;
   letter: ChangeLetter;
   staged: boolean;
   /** Has changes in the working tree that are not staged. */
@@ -66,12 +68,13 @@ export function parseStatusV2(output: string): StatusSummary {
         const x = record[2];
         const y = record[3];
         const path = fieldsAfter(record, record[0] === '1' ? 8 : 9);
-        if (record[0] === '2') i++;
+        const origPath = record[0] === '2' ? records[++i] : undefined;
         if (x !== '.') summary.staged++;
         if (y !== '.') summary.modified++;
         summary.changedFiles++;
         summary.files.push({
           path,
+          ...(origPath !== undefined && { origPath }),
           letter: x === 'D' || y === 'D' ? 'D' : x === 'A' ? 'A' : record[0] === '2' ? 'R' : 'M',
           staged: x !== '.',
           unstaged: y !== '.',

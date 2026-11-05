@@ -31,7 +31,9 @@ The **Repo Explorer** title bar has three filter buttons. Click one to turn it o
 
 ![Repo Explorer filtered to changed files](docs/images/filter.png)
 
-Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Click a file to open it. The filter is remembered per workspace.
+Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. The filter is remembered per workspace.
+
+**Click a changed file to review it.** It opens a diff of the last commit (`HEAD`) against your working copy, so you see staged and unstaged changes together. New files show as fully added, and deleted files as fully removed. Files with conflicts open as normal files so you can resolve them. To open the file itself, use the **Open File** button on its row.
 
 ### Badges in the built-in Explorer (optional)
 

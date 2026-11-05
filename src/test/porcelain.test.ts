@@ -38,6 +38,7 @@ test('parses branch headers, counts changes by kind and lists changed files', ()
   assert.equal(status.untracked, 2);
   assert.equal(status.conflicted, 1);
   assert.equal(status.changedFiles, 9);
+  assert.equal(status.files.find(f => f.letter === 'R')?.origPath, 'old.ts');
   assert.deepEqual(
     status.files.map(f => `${f.letter} ${f.path}${f.staged ? ' staged' : ''}${f.unstaged ? ' unstaged' : ''}`),
     [

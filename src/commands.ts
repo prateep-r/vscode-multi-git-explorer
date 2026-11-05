@@ -1,9 +1,11 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { GitError, runGit } from './core/git';
 import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
 import { Priority, runPool } from './core/queue';
 import type { RepoEntry, RepoStore } from './store';
 import { GitStatus, type GitAPI, type GitChange, type GitExtension, type GitRepository } from './typings/git';
+import { headUri } from './views/headContent';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import type { ReposNode, ReposViewProvider } from './views/reposView';
 
@@ -78,6 +80,12 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand('multiRepoGit.clearExplorerFilter', () => explorer.setFilters([])),
+
+    vscode.commands.registerCommand('multiRepoGit.openChange', (node: ExplorerNode) => openChange(store, node)),
+
+    vscode.commands.registerCommand('multiRepoGit.openChangedFile', (node: ExplorerNode) =>
+      vscode.commands.executeCommand('vscode.open', node.uri),
+    ),
 
     vscode.commands.registerCommand(
       'multiRepoGit.openInScm',
@@ -237,6 +245,31 @@ async function pickExplorerFilters(explorer: RepoExplorerProvider): Promise<void
     canPickMany: true,
   });
   if (picked) explorer.setFilters(picked.map(item => item.filter));
+}
+
+const DIFF_LABELS: Record<string, string> = {
+  M: 'Working Tree',
+  R: 'Renamed',
+  A: 'Added',
+  U: 'Untracked',
+  D: 'Deleted',
+};
+
+/** Shows a changed file as a diff against HEAD; conflicted files open as-is so they can be resolved. */
+async function openChange(store: RepoStore, node: ExplorerNode): Promise<void> {
+  const repo = store.repoContaining(node.uri.fsPath);
+  const change = node.change;
+  if (!repo || !change || change.letter === '!') {
+    await vscode.commands.executeCommand('vscode.open', node.uri);
+    return;
+  }
+  const relPath = path.relative(repo.root, node.uri.fsPath).split(path.sep).join('/');
+  // A file inside an untracked folder carries the folder's change, so it's new too.
+  const isNew = change.letter === 'A' || change.letter === 'U';
+  const left = headUri(node.uri, repo.root, isNew ? undefined : (change.origPath ?? relPath));
+  const right = change.letter === 'D' ? headUri(node.uri, repo.root, undefined) : node.uri;
+  const title = `${path.basename(node.uri.fsPath)} (${DIFF_LABELS[change.letter]})`;
+  await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true });
 }
 
 async function fetchAll(store: RepoStore): Promise<void> {

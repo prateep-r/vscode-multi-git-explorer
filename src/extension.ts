@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { RepoStore } from './store';
 import { RepoDecorationProvider } from './views/decorations';
+import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
 import { RepoExplorerProvider } from './views/repoExplorer';
 import { ReposViewProvider } from './views/reposView';
 import { StatusBar } from './views/statusBar';
@@ -34,6 +35,7 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
     explorerTree,
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
+    vscode.workspace.registerTextDocumentContentProvider(HEAD_SCHEME, new HeadContentProvider()),
     new StatusBar(store),
     ...registerCommands(store, reposView, explorer),
   );

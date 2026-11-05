@@ -136,8 +136,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       const item = new vscode.TreeItem(toViewUri(fsPath), vscode.TreeItemCollapsibleState.None);
       item.id = id;
       item.contextValue = 'file';
-      if (node.change?.letter !== 'D') item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri] };
-      if (node.change) item.description = describeChange(node.change);
+      if (node.change) {
+        // Listed because it changed: clicking shows what changed, like Source Control.
+        item.description = describeChange(node.change);
+        item.contextValue = node.change.letter === 'D' ? 'file change deleted' : 'file change';
+        item.command = { command: 'multiRepoGit.openChange', title: 'Open Changes', arguments: [node] };
+      } else {
+        item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri] };
+      }
       return item;
     }
 
