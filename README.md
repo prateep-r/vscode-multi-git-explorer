@@ -35,6 +35,10 @@ Changed files get the same letters as VS Code's Source Control: `M` modified, `A
 
 **Click a changed file to review it.** It opens a diff of the last commit (`HEAD`) against your working copy, so you see staged and unstaged changes together. New files show as fully added, and deleted files as fully removed. Files with conflicts open as normal files so you can resolve them. To open the file itself, use the **Open File** button on its row.
 
+![Diff of a changed file, opened from the Repo Explorer](docs/images/diff.png)
+
+Added lines are green and removed lines are red. Within a changed line, the exact part that changed is highlighted. The diff opens as a preview tab, so clicking the next file replaces it instead of piling up tabs. To review every changed file of a repo in one tab, right-click the repo and choose **View All Changes**.
+
 ### Badges in the built-in Explorer (optional)
 
 The built-in Explorer is left unchanged by default. Turn on `multiRepoGit.decorateExplorer` to also give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu.
