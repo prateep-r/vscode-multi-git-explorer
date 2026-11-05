@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { registerChatTargets } from './chatTargets';
 import { registerCommands } from './commands';
 import { RepoStore } from './store';
 import { RepoDecorationProvider } from './views/decorations';
@@ -21,9 +22,13 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
   const explorer = new RepoExplorerProvider(store, context.workspaceState);
   const reposView = new ReposViewProvider(store);
   const decorations = new RepoDecorationProvider(store);
-  const reposTree = vscode.window.createTreeView('multiRepoGit.repos', { treeDataProvider: reposView, showCollapseAll: true });
+  const reposTree = vscode.window.createTreeView('multiRepoGit.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
   reposView.attach(reposTree);
-  const explorerTree = vscode.window.createTreeView('multiRepoGit.explorer', { treeDataProvider: explorer, showCollapseAll: true });
+  const explorerTree = vscode.window.createTreeView('multiRepoGit.explorer', {
+    treeDataProvider: explorer,
+    showCollapseAll: true,
+    canSelectMany: true,
+  });
   explorer.attach(explorerTree);
 
   context.subscriptions.push(
@@ -38,6 +43,7 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
     vscode.workspace.registerTextDocumentContentProvider(HEAD_SCHEME, new HeadContentProvider()),
     new StatusBar(store),
     ...registerCommands(store, reposView, explorer),
+    ...registerChatTargets(),
   );
 
   void store.discover();

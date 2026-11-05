@@ -65,6 +65,21 @@ With `multiRepoGit.decorateExplorer` on, the same commands are also in the built
 
 The toolbar of the **Git Repos** view also has **Fetch All Repos**, **Filter Repos**, and **Refresh**.
 
+### Send files to Claude Code or Codex
+
+If you have [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code) or [Codex](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt) installed, right-click in the Repo Explorer to hand files to its chat. Select several rows first (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click or <kbd>Shift</kbd>+click) to send them all at once. Combined with the **Changed files** button, this makes it quick to ask for a review of what you're about to push.
+
+![Adding changed files to the chat](docs/images/chat.png)
+
+| Right-click on | Menu | What happens |
+| --- | --- | --- |
+| A file | **Add to Claude Chat** / **Add to Codex Chat** | The file is added to the chat's message box |
+| A folder or repo | **Copy to Claude Chat** / **Copy to Codex Chat** | `@path/` is copied and the chat is opened. Paste it with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>V</kbd> |
+
+Nothing is sent until you press <kbd>Enter</kbd> in the chat. Folders are copied rather than added because neither extension offers a way to add a folder for you. Each menu item only appears when that extension is installed.
+
+> Claude Code can only mention the file open in the editor, so **Add to Claude Chat** briefly opens each file in a preview tab first. If a chat extension refuses a file, its `@path` is copied instead.
+
 ## What the symbols mean
 
 | Badge | Color | Meaning |

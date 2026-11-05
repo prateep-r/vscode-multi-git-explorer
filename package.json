@@ -192,6 +192,26 @@
         "command": "multiRepoGit.scanFolder",
         "title": "Scan This Folder",
         "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.addTo.claude",
+        "title": "Add to Claude Chat",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.copyTo.claude",
+        "title": "Copy to Claude Chat",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.addTo.codex",
+        "title": "Add to Codex Chat",
+        "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.copyTo.codex",
+        "title": "Copy to Codex Chat",
+        "category": "Multi-Repo Git Status"
       }
     ],
     "submenus": [
@@ -254,6 +274,36 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "multiRepoGit.addTo.claude",
+          "when": "view == multiRepoGit.explorer && viewItem =~ /^file/ && multiRepoGit.has.claude",
+          "group": "0_chat@1"
+        },
+        {
+          "command": "multiRepoGit.copyTo.claude",
+          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/ && multiRepoGit.has.claude",
+          "group": "0_chat@2"
+        },
+        {
+          "command": "multiRepoGit.copyTo.claude",
+          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/ && multiRepoGit.has.claude",
+          "group": "0_chat@2"
+        },
+        {
+          "command": "multiRepoGit.addTo.codex",
+          "when": "view == multiRepoGit.explorer && viewItem =~ /^file/ && multiRepoGit.has.codex",
+          "group": "0_chat@1"
+        },
+        {
+          "command": "multiRepoGit.copyTo.codex",
+          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/ && multiRepoGit.has.codex",
+          "group": "0_chat@2"
+        },
+        {
+          "command": "multiRepoGit.copyTo.codex",
+          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/ && multiRepoGit.has.codex",
+          "group": "0_chat@2"
+        },
         {
           "command": "multiRepoGit.openChangedFile",
           "when": "view == multiRepoGit.explorer && viewItem =~ /\\bchange\\b(?! deleted)/",
@@ -430,6 +480,22 @@
         },
         {
           "command": "multiRepoGit.openChangedFile",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.addTo.claude",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.copyTo.claude",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.addTo.codex",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.copyTo.codex",
           "when": "false"
         }
       ]
