@@ -48,12 +48,15 @@ interface Picked {
 
 /** The rows a command applies to: every selected row when the clicked one is part of the selection. */
 function pickedRows(clicked: Row | undefined, selected: readonly Row[] | undefined): Picked[] {
-  const rows = selected?.length && clicked && selected.includes(clicked) ? selected : clicked ? [clicked] : [];
-  return rows.flatMap(row => {
+  const toPicked = (row: Row): Picked[] => {
     if ('uri' in row) return [{ uri: row.uri, isDir: row.isDir }];
     if (row.type === 'repo') return [{ uri: vscode.Uri.file(row.root), isDir: true }];
     return [];
-  });
+  };
+  const target = clicked ? toPicked(clicked) : [];
+  const all = (selected ?? []).flatMap(toPicked);
+  // Right-clicking outside the selection acts on the clicked row only, like the built-in Explorer.
+  return target.length && all.some(p => p.uri.fsPath === target[0].uri.fsPath) ? all : target;
 }
 
 async function copyMentions(target: ChatTarget, rows: Picked[]): Promise<void> {

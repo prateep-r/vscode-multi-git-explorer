@@ -2,6 +2,11 @@
 // scripts/make-sample-repos.sh:
 //
 //   npm run test:integration -- <sample-workspace>
+//   npm run test:integration -- <sample-workspace> --chat <extensions-dir>
+//
+// With --chat, the chat suite runs instead, with the extensions found in
+// <extensions-dir> enabled (Claude Code and Codex, typically copied from
+// ~/.vscode/extensions).
 //
 // Uses the installed VS Code when VSCODE_PATH is set, otherwise downloads one.
 import { mkdtempSync } from 'fs';
@@ -10,21 +15,23 @@ import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
 
 async function main(): Promise<void> {
-  const workspace = process.argv[2];
-  if (!workspace) throw new Error('usage: run.js <sample-workspace>');
+  const [workspace, flag, chatExtensions] = process.argv.slice(2);
+  if (!workspace || (flag && (flag !== '--chat' || !chatExtensions))) {
+    throw new Error('usage: run.js <sample-workspace> [--chat <extensions-dir>]');
+  }
   const profile = mkdtempSync(path.join(tmpdir(), 'multi-repo-git-status-vscode-'));
 
   await runTests({
     vscodeExecutablePath: process.env.VSCODE_PATH,
     extensionDevelopmentPath: path.resolve(__dirname, '../..'),
-    extensionTestsPath: path.resolve(__dirname, 'suite'),
+    extensionTestsPath: path.resolve(__dirname, chatExtensions ? 'chatSuite' : 'suite'),
     extensionTestsEnv: { SAMPLE_WORKSPACE: path.resolve(workspace) },
     launchArgs: [
       path.resolve(workspace),
-      '--disable-extensions',
+      ...(chatExtensions ? [] : ['--disable-extensions']),
       '--disable-workspace-trust',
       `--user-data-dir=${path.join(profile, 'user')}`,
-      `--extensions-dir=${path.join(profile, 'extensions')}`,
+      `--extensions-dir=${chatExtensions ? path.resolve(chatExtensions) : path.join(profile, 'extensions')}`,
     ],
   });
 }
