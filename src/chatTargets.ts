@@ -71,7 +71,7 @@ export function registerChatTargets(): vscode.Disposable[] {
   const updateAvailability = () => {
     for (const target of TARGETS) {
       const installed = vscode.extensions.getExtension(target.extensionId) !== undefined;
-      void vscode.commands.executeCommand('setContext', `multiRepoGit.has.${target.key}`, installed);
+      void vscode.commands.executeCommand('setContext', `multiRepoExplorer.has.${target.key}`, installed);
     }
   };
   updateAvailability();
@@ -79,7 +79,7 @@ export function registerChatTargets(): vscode.Disposable[] {
   return [
     vscode.extensions.onDidChange(updateAvailability),
     ...TARGETS.flatMap(target => [
-      vscode.commands.registerCommand(`multiRepoGit.addTo.${target.key}`, async (clicked?: Row, selected?: Row[]) => {
+      vscode.commands.registerCommand(`multiRepoExplorer.addTo.${target.key}`, async (clicked?: Row, selected?: Row[]) => {
         const rows = pickedRows(clicked, selected);
         const folders = rows.filter(r => r.isDir);
         const failed: Picked[] = [];
@@ -93,7 +93,7 @@ export function registerChatTargets(): vscode.Disposable[] {
         // Folders can't be added, and files the chat refused are better copied than lost.
         if (folders.length || failed.length) await copyMentions(target, [...failed, ...folders]);
       }),
-      vscode.commands.registerCommand(`multiRepoGit.copyTo.${target.key}`, (clicked?: Row, selected?: Row[]) =>
+      vscode.commands.registerCommand(`multiRepoExplorer.copyTo.${target.key}`, (clicked?: Row, selected?: Row[]) =>
         copyMentions(target, pickedRows(clicked, selected)),
       ),
     ]),

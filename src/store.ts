@@ -29,7 +29,7 @@ const FOCUS_THROTTLE_MS = 10_000;
 const RELEVANT_GIT_FILES = /^(HEAD|index|FETCH_HEAD|MERGE_HEAD|CHERRY_PICK_HEAD|REVERT_HEAD|ORIG_HEAD|config|packed-refs|refs|logs|rebase-merge|rebase-apply)$/;
 
 function config() {
-  return vscode.workspace.getConfiguration('multiRepoGit');
+  return vscode.workspace.getConfiguration('multiRepoExplorer');
 }
 
 /**
@@ -196,7 +196,7 @@ export class RepoStore implements vscode.Disposable {
     this.rootsByLength = [...this.repos.keys()].sort((a, b) => b.length - a.length);
     void vscode.commands.executeCommand(
       'setContext',
-      'multiRepoGit.repoPaths',
+      'multiRepoExplorer.repoPaths',
       Object.fromEntries([...this.repos.keys()].map(root => [root, true])),
     );
   }
@@ -334,14 +334,14 @@ export class RepoStore implements vscode.Disposable {
   }
 
   private onConfigChange(e: vscode.ConfigurationChangeEvent): void {
-    if (e.affectsConfiguration('multiRepoGit.maxConcurrency')) {
+    if (e.affectsConfiguration('multiRepoExplorer.maxConcurrency')) {
       this.queue.setConcurrency(config().get('maxConcurrency', 6));
     }
-    if (e.affectsConfiguration('multiRepoGit.scanDepth') || e.affectsConfiguration('multiRepoGit.exclude')) {
+    if (e.affectsConfiguration('multiRepoExplorer.scanDepth') || e.affectsConfiguration('multiRepoExplorer.exclude')) {
       void this.discover();
     }
-    if (e.affectsConfiguration('multiRepoGit.countUntracked')) this.refreshAll();
-    if (e.affectsConfiguration('multiRepoGit.backgroundRefreshMinutes')) this.startBackgroundRefresh();
+    if (e.affectsConfiguration('multiRepoExplorer.countUntracked')) this.refreshAll();
+    if (e.affectsConfiguration('multiRepoExplorer.backgroundRefreshMinutes')) this.startBackgroundRefresh();
   }
 
   private startBackgroundRefresh(): void {

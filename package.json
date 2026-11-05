@@ -2,8 +2,8 @@
   "name": "multi-repo-explorer",
   "displayName": "Multi-Repo Explorer",
   "description": "See the branch and status of every git repository in your workspace at a glance, even with hundreds of repos.",
-  "version": "0.0.1",
-  "publisher": "local",
+  "version": "1.0.0",
+  "publisher": "prateep-r",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -31,196 +31,196 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "multiRepoGit",
+          "id": "multiRepoExplorer",
           "title": "Repo Explorer",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "multiRepoGit": [
+      "multiRepoExplorer": [
         {
-          "id": "multiRepoGit.explorer",
+          "id": "multiRepoExplorer.explorer",
           "name": "Files"
         },
         {
-          "id": "multiRepoGit.repos",
+          "id": "multiRepoExplorer.repos",
           "name": "Git Repos"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "multiRepoGit.repos",
-        "contents": "No git repositories found in this workspace yet.\n[Scan Again](command:multiRepoGit.refresh)"
+        "view": "multiRepoExplorer.repos",
+        "contents": "No git repositories found in this workspace yet.\n[Scan Again](command:multiRepoExplorer.refresh)"
       }
     ],
     "commands": [
       {
-        "command": "multiRepoGit.refresh",
+        "command": "multiRepoExplorer.refresh",
         "title": "Refresh",
         "category": "Multi-Repo Explorer",
         "icon": "$(refresh)"
       },
       {
-        "command": "multiRepoGit.fetchAll",
+        "command": "multiRepoExplorer.fetchAll",
         "title": "Fetch All Repos",
         "category": "Multi-Repo Explorer",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "multiRepoGit.filter",
+        "command": "multiRepoExplorer.filter",
         "title": "Filter Repos",
         "category": "Multi-Repo Explorer",
         "icon": "$(filter)"
       },
       {
-        "command": "multiRepoGit.clearFilter",
+        "command": "multiRepoExplorer.clearFilter",
         "title": "Clear Filter",
         "category": "Multi-Repo Explorer",
         "icon": "$(clear-all)"
       },
       {
-        "command": "multiRepoGit.filterExplorer",
+        "command": "multiRepoExplorer.filterExplorer",
         "title": "Filter Repo Explorer...",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.filterChanges",
+        "command": "multiRepoExplorer.filterChanges",
         "title": "Show Only Changed Files",
         "category": "Multi-Repo Explorer",
         "icon": "$(circle-outline)"
       },
       {
-        "command": "multiRepoGit.filterChangesOn",
+        "command": "multiRepoExplorer.filterChangesOn",
         "title": "Showing Only Changed Files (Click to Turn Off)",
         "category": "Multi-Repo Explorer",
         "icon": "$(circle-filled)"
       },
       {
-        "command": "multiRepoGit.filterUnpushed",
+        "command": "multiRepoExplorer.filterUnpushed",
         "title": "Show Only Repos Not Pushed",
         "category": "Multi-Repo Explorer",
         "icon": "$(arrow-up)"
       },
       {
-        "command": "multiRepoGit.filterUnpushedOn",
+        "command": "multiRepoExplorer.filterUnpushedOn",
         "title": "Showing Only Repos Not Pushed (Click to Turn Off)",
         "category": "Multi-Repo Explorer",
         "icon": "$(arrow-circle-up)"
       },
       {
-        "command": "multiRepoGit.filterBehind",
+        "command": "multiRepoExplorer.filterBehind",
         "title": "Show Only Repos Behind Remote",
         "category": "Multi-Repo Explorer",
         "icon": "$(arrow-down)"
       },
       {
-        "command": "multiRepoGit.filterBehindOn",
+        "command": "multiRepoExplorer.filterBehindOn",
         "title": "Showing Only Repos Behind Remote (Click to Turn Off)",
         "category": "Multi-Repo Explorer",
         "icon": "$(arrow-circle-down)"
       },
       {
-        "command": "multiRepoGit.clearExplorerFilter",
+        "command": "multiRepoExplorer.clearExplorerFilter",
         "title": "Show All Files",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.openInScm",
+        "command": "multiRepoExplorer.openInScm",
         "title": "Open in Source Control",
         "category": "Multi-Repo Explorer",
         "icon": "$(source-control)"
       },
       {
-        "command": "multiRepoGit.openChanges",
+        "command": "multiRepoExplorer.openChanges",
         "title": "View All Changes",
         "category": "Multi-Repo Explorer",
         "icon": "$(diff-multiple)"
       },
       {
-        "command": "multiRepoGit.openChange",
+        "command": "multiRepoExplorer.openChange",
         "title": "Open Changes",
         "category": "Multi-Repo Explorer",
         "icon": "$(git-compare)"
       },
       {
-        "command": "multiRepoGit.openChangedFile",
+        "command": "multiRepoExplorer.openChangedFile",
         "title": "Open File",
         "category": "Multi-Repo Explorer",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "multiRepoGit.switchBranch",
+        "command": "multiRepoExplorer.switchBranch",
         "title": "Switch Branch...",
         "category": "Multi-Repo Explorer",
         "icon": "$(git-branch)"
       },
       {
-        "command": "multiRepoGit.fetch",
+        "command": "multiRepoExplorer.fetch",
         "title": "Fetch",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.pull",
+        "command": "multiRepoExplorer.pull",
         "title": "Pull",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.push",
+        "command": "multiRepoExplorer.push",
         "title": "Push",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.openTerminal",
+        "command": "multiRepoExplorer.openTerminal",
         "title": "Open Terminal Here",
         "category": "Multi-Repo Explorer",
         "icon": "$(terminal)"
       },
       {
-        "command": "multiRepoGit.openInNewWindow",
+        "command": "multiRepoExplorer.openInNewWindow",
         "title": "Open Repo in New Window",
         "category": "Multi-Repo Explorer",
         "icon": "$(empty-window)"
       },
       {
-        "command": "multiRepoGit.copyBranch",
+        "command": "multiRepoExplorer.copyBranch",
         "title": "Copy Branch Name",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.scanFolder",
+        "command": "multiRepoExplorer.scanFolder",
         "title": "Scan This Folder",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.addTo.claude",
+        "command": "multiRepoExplorer.addTo.claude",
         "title": "Add to Claude Chat",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.copyTo.claude",
+        "command": "multiRepoExplorer.copyTo.claude",
         "title": "Copy to Claude Chat",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.addTo.codex",
+        "command": "multiRepoExplorer.addTo.codex",
         "title": "Add to Codex Chat",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.copyTo.codex",
+        "command": "multiRepoExplorer.copyTo.codex",
         "title": "Copy to Codex Chat",
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoGit.newFile",
+        "command": "multiRepoExplorer.newFile",
         "title": "New File...",
         "category": "Multi-Repo Explorer",
         "icon": "$(new-file)"
       },
       {
-        "command": "multiRepoGit.newFolder",
+        "command": "multiRepoExplorer.newFolder",
         "title": "New Folder...",
         "category": "Multi-Repo Explorer",
         "icon": "$(new-folder)"
@@ -228,313 +228,313 @@
     ],
     "submenus": [
       {
-        "id": "multiRepoGit.repoMenu",
+        "id": "multiRepoExplorer.repoMenu",
         "label": "Git Repo"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "multiRepoGit.newFile",
-          "when": "view == multiRepoGit.explorer",
+          "command": "multiRepoExplorer.newFile",
+          "when": "view == multiRepoExplorer.explorer",
           "group": "navigation@1"
         },
         {
-          "command": "multiRepoGit.newFolder",
-          "when": "view == multiRepoGit.explorer",
+          "command": "multiRepoExplorer.newFolder",
+          "when": "view == multiRepoExplorer.explorer",
           "group": "navigation@2"
         },
         {
-          "command": "multiRepoGit.filterChanges",
-          "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.changes",
+          "command": "multiRepoExplorer.filterChanges",
+          "when": "view == multiRepoExplorer.explorer && !multiRepoExplorer.filter.changes",
           "group": "navigation@3"
         },
         {
-          "command": "multiRepoGit.filterChangesOn",
-          "when": "view == multiRepoGit.explorer && multiRepoGit.filter.changes",
+          "command": "multiRepoExplorer.filterChangesOn",
+          "when": "view == multiRepoExplorer.explorer && multiRepoExplorer.filter.changes",
           "group": "navigation@3"
         },
         {
-          "command": "multiRepoGit.filterUnpushed",
-          "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.unpushed",
+          "command": "multiRepoExplorer.filterUnpushed",
+          "when": "view == multiRepoExplorer.explorer && !multiRepoExplorer.filter.unpushed",
           "group": "navigation@4"
         },
         {
-          "command": "multiRepoGit.filterUnpushedOn",
-          "when": "view == multiRepoGit.explorer && multiRepoGit.filter.unpushed",
+          "command": "multiRepoExplorer.filterUnpushedOn",
+          "when": "view == multiRepoExplorer.explorer && multiRepoExplorer.filter.unpushed",
           "group": "navigation@4"
         },
         {
-          "command": "multiRepoGit.filterBehind",
-          "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.behind",
+          "command": "multiRepoExplorer.filterBehind",
+          "when": "view == multiRepoExplorer.explorer && !multiRepoExplorer.filter.behind",
           "group": "navigation@5"
         },
         {
-          "command": "multiRepoGit.filterBehindOn",
-          "when": "view == multiRepoGit.explorer && multiRepoGit.filter.behind",
+          "command": "multiRepoExplorer.filterBehindOn",
+          "when": "view == multiRepoExplorer.explorer && multiRepoExplorer.filter.behind",
           "group": "navigation@5"
         },
         {
-          "command": "multiRepoGit.fetchAll",
-          "when": "view == multiRepoGit.repos",
+          "command": "multiRepoExplorer.fetchAll",
+          "when": "view == multiRepoExplorer.repos",
           "group": "navigation@1"
         },
         {
-          "command": "multiRepoGit.filter",
-          "when": "view == multiRepoGit.repos",
+          "command": "multiRepoExplorer.filter",
+          "when": "view == multiRepoExplorer.repos",
           "group": "navigation@2"
         },
         {
-          "command": "multiRepoGit.clearFilter",
-          "when": "view == multiRepoGit.repos && multiRepoGit.filtered",
+          "command": "multiRepoExplorer.clearFilter",
+          "when": "view == multiRepoExplorer.repos && multiRepoExplorer.filtered",
           "group": "navigation@3"
         },
         {
-          "command": "multiRepoGit.refresh",
-          "when": "view == multiRepoGit.repos || view == multiRepoGit.explorer",
+          "command": "multiRepoExplorer.refresh",
+          "when": "view == multiRepoExplorer.repos || view == multiRepoExplorer.explorer",
           "group": "navigation@9"
         }
       ],
       "view/item/context": [
         {
-          "command": "multiRepoGit.addTo.claude",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /^file/ && multiRepoGit.has.claude",
+          "command": "multiRepoExplorer.addTo.claude",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file/ && multiRepoExplorer.has.claude",
           "group": "0_chat@1"
         },
         {
-          "command": "multiRepoGit.copyTo.claude",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/ && multiRepoGit.has.claude",
+          "command": "multiRepoExplorer.copyTo.claude",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/ && multiRepoExplorer.has.claude",
           "group": "0_chat@2"
         },
         {
-          "command": "multiRepoGit.copyTo.claude",
-          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/ && multiRepoGit.has.claude",
+          "command": "multiRepoExplorer.copyTo.claude",
+          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/ && multiRepoExplorer.has.claude",
           "group": "0_chat@2"
         },
         {
-          "command": "multiRepoGit.addTo.codex",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /^file/ && multiRepoGit.has.codex",
+          "command": "multiRepoExplorer.addTo.codex",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file/ && multiRepoExplorer.has.codex",
           "group": "0_chat@1"
         },
         {
-          "command": "multiRepoGit.copyTo.codex",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/ && multiRepoGit.has.codex",
+          "command": "multiRepoExplorer.copyTo.codex",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/ && multiRepoExplorer.has.codex",
           "group": "0_chat@2"
         },
         {
-          "command": "multiRepoGit.copyTo.codex",
-          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/ && multiRepoGit.has.codex",
+          "command": "multiRepoExplorer.copyTo.codex",
+          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/ && multiRepoExplorer.has.codex",
           "group": "0_chat@2"
         },
         {
-          "command": "multiRepoGit.openChangedFile",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /\\bchange\\b(?! deleted)/",
+          "command": "multiRepoExplorer.openChangedFile",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /\\bchange\\b(?! deleted)/",
           "group": "inline@1"
         },
         {
-          "command": "multiRepoGit.openChange",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /\\bchange\\b/",
+          "command": "multiRepoExplorer.openChange",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /\\bchange\\b/",
           "group": "1_open@1"
         },
         {
-          "command": "multiRepoGit.openChangedFile",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /\\bchange\\b(?! deleted)/",
+          "command": "multiRepoExplorer.openChangedFile",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /\\bchange\\b(?! deleted)/",
           "group": "1_open@2"
         },
         {
-          "command": "multiRepoGit.openInScm",
-          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/",
+          "command": "multiRepoExplorer.openInScm",
+          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/",
           "group": "inline@1"
         },
         {
-          "command": "multiRepoGit.openTerminal",
-          "when": "view == multiRepoGit.repos && viewItem =~ /\\brepo\\b/",
+          "command": "multiRepoExplorer.openTerminal",
+          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/",
           "group": "inline@2"
         },
         {
-          "command": "multiRepoGit.openInScm",
+          "command": "multiRepoExplorer.openInScm",
           "when": "viewItem =~ /\\brepo\\b/",
           "group": "1_scm@1"
         },
         {
-          "command": "multiRepoGit.openChanges",
+          "command": "multiRepoExplorer.openChanges",
           "when": "viewItem =~ /\\brepo\\b/",
           "group": "1_scm@2"
         },
         {
-          "command": "multiRepoGit.switchBranch",
+          "command": "multiRepoExplorer.switchBranch",
           "when": "viewItem =~ /\\brepo\\b/",
           "group": "0_branch@1"
         },
         {
-          "command": "multiRepoGit.fetch",
+          "command": "multiRepoExplorer.fetch",
           "when": "viewItem =~ /\\bremote\\b/",
           "group": "2_sync@1"
         },
         {
-          "command": "multiRepoGit.pull",
+          "command": "multiRepoExplorer.pull",
           "when": "viewItem =~ /\\bupstream\\b/",
           "group": "2_sync@2"
         },
         {
-          "command": "multiRepoGit.push",
+          "command": "multiRepoExplorer.push",
           "when": "viewItem =~ /\\bcanPush\\b/",
           "group": "2_sync@3"
         },
         {
-          "command": "multiRepoGit.openTerminal",
+          "command": "multiRepoExplorer.openTerminal",
           "when": "viewItem =~ /\\brepo\\b/",
           "group": "3_open@1"
         },
         {
-          "command": "multiRepoGit.openInNewWindow",
+          "command": "multiRepoExplorer.openInNewWindow",
           "when": "viewItem =~ /\\brepo\\b/",
           "group": "3_open@2"
         },
         {
-          "command": "multiRepoGit.copyBranch",
+          "command": "multiRepoExplorer.copyBranch",
           "when": "viewItem =~ /\\brepo\\b/",
           "group": "3_open@3"
         },
         {
-          "command": "multiRepoGit.scanFolder",
+          "command": "multiRepoExplorer.scanFolder",
           "when": "viewItem =~ /\\bunscanned\\b/",
           "group": "1_scan@1"
         },
         {
-          "command": "multiRepoGit.newFile",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/",
+          "command": "multiRepoExplorer.newFile",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/",
           "group": "4_new@1"
         },
         {
-          "command": "multiRepoGit.newFolder",
-          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/",
+          "command": "multiRepoExplorer.newFolder",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/",
           "group": "4_new@2"
         }
       ],
       "explorer/context": [
         {
-          "submenu": "multiRepoGit.repoMenu",
-          "when": "explorerResourceIsFolder && config.multiRepoGit.decorateExplorer && resourcePath in multiRepoGit.repoPaths",
-          "group": "7_multiRepoGit@1"
+          "submenu": "multiRepoExplorer.repoMenu",
+          "when": "explorerResourceIsFolder && config.multiRepoExplorer.decorateExplorer && resourcePath in multiRepoExplorer.repoPaths",
+          "group": "7_multiRepoExplorer@1"
         }
       ],
-      "multiRepoGit.repoMenu": [
+      "multiRepoExplorer.repoMenu": [
         {
-          "command": "multiRepoGit.openInScm",
+          "command": "multiRepoExplorer.openInScm",
           "group": "1_scm@1"
         },
         {
-          "command": "multiRepoGit.openChanges",
+          "command": "multiRepoExplorer.openChanges",
           "group": "1_scm@2"
         },
         {
-          "command": "multiRepoGit.switchBranch",
+          "command": "multiRepoExplorer.switchBranch",
           "group": "0_branch@1"
         },
         {
-          "command": "multiRepoGit.fetch",
+          "command": "multiRepoExplorer.fetch",
           "group": "2_sync@1"
         },
         {
-          "command": "multiRepoGit.pull",
+          "command": "multiRepoExplorer.pull",
           "group": "2_sync@2"
         },
         {
-          "command": "multiRepoGit.push",
+          "command": "multiRepoExplorer.push",
           "group": "2_sync@3"
         },
         {
-          "command": "multiRepoGit.openTerminal",
+          "command": "multiRepoExplorer.openTerminal",
           "group": "3_open@1"
         },
         {
-          "command": "multiRepoGit.openInNewWindow",
+          "command": "multiRepoExplorer.openInNewWindow",
           "group": "3_open@2"
         },
         {
-          "command": "multiRepoGit.copyBranch",
+          "command": "multiRepoExplorer.copyBranch",
           "group": "3_open@3"
         }
       ],
       "commandPalette": [
         {
-          "command": "multiRepoGit.openChanges",
+          "command": "multiRepoExplorer.openChanges",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.fetch",
+          "command": "multiRepoExplorer.fetch",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.pull",
+          "command": "multiRepoExplorer.pull",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.push",
+          "command": "multiRepoExplorer.push",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.openInNewWindow",
+          "command": "multiRepoExplorer.openInNewWindow",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.copyBranch",
+          "command": "multiRepoExplorer.copyBranch",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.scanFolder",
+          "command": "multiRepoExplorer.scanFolder",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.clearFilter",
-          "when": "multiRepoGit.filtered"
+          "command": "multiRepoExplorer.clearFilter",
+          "when": "multiRepoExplorer.filtered"
         },
         {
-          "command": "multiRepoGit.clearExplorerFilter",
-          "when": "multiRepoGit.explorerFiltered"
+          "command": "multiRepoExplorer.clearExplorerFilter",
+          "when": "multiRepoExplorer.explorerFiltered"
         },
         {
-          "command": "multiRepoGit.filterChangesOn",
+          "command": "multiRepoExplorer.filterChangesOn",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.filterUnpushedOn",
+          "command": "multiRepoExplorer.filterUnpushedOn",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.filterBehindOn",
+          "command": "multiRepoExplorer.filterBehindOn",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.openChange",
+          "command": "multiRepoExplorer.openChange",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.openChangedFile",
+          "command": "multiRepoExplorer.openChangedFile",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.addTo.claude",
+          "command": "multiRepoExplorer.addTo.claude",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.copyTo.claude",
+          "command": "multiRepoExplorer.copyTo.claude",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.addTo.codex",
+          "command": "multiRepoExplorer.addTo.codex",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.copyTo.codex",
+          "command": "multiRepoExplorer.copyTo.codex",
           "when": "false"
         }
       ]
     },
     "colors": [
       {
-        "id": "multiRepoGit.conflictForeground",
+        "id": "multiRepoExplorer.conflictForeground",
         "description": "Color of repos with conflicts or an unfinished merge, rebase, or cherry-pick.",
         "defaults": {
           "dark": "gitDecoration.conflictingResourceForeground",
@@ -544,7 +544,7 @@
         }
       },
       {
-        "id": "multiRepoGit.dirtyForeground",
+        "id": "multiRepoExplorer.dirtyForeground",
         "description": "Color of repos with uncommitted changes or a detached HEAD.",
         "defaults": {
           "dark": "gitDecoration.modifiedResourceForeground",
@@ -554,7 +554,7 @@
         }
       },
       {
-        "id": "multiRepoGit.aheadForeground",
+        "id": "multiRepoExplorer.aheadForeground",
         "description": "Color of repos with commits that are not pushed yet.",
         "defaults": {
           "dark": "#75BEFF",
@@ -564,7 +564,7 @@
         }
       },
       {
-        "id": "multiRepoGit.behindForeground",
+        "id": "multiRepoExplorer.behindForeground",
         "description": "Color of repos that are behind or diverged from their upstream.",
         "defaults": {
           "dark": "#C586C0",
@@ -574,7 +574,7 @@
         }
       },
       {
-        "id": "multiRepoGit.pendingForeground",
+        "id": "multiRepoExplorer.pendingForeground",
         "description": "Color of repos that are still being checked.",
         "defaults": {
           "dark": "gitDecoration.ignoredResourceForeground",
@@ -584,7 +584,7 @@
         }
       },
       {
-        "id": "multiRepoGit.errorForeground",
+        "id": "multiRepoExplorer.errorForeground",
         "description": "Color of repos whose status could not be read.",
         "defaults": {
           "dark": "list.errorForeground",
@@ -597,14 +597,14 @@
     "configuration": {
       "title": "Multi-Repo Explorer",
       "properties": {
-        "multiRepoGit.scanDepth": {
+        "multiRepoExplorer.scanDepth": {
           "type": "number",
           "default": 3,
           "minimum": 1,
           "maximum": 10,
           "description": "How many folder levels below each workspace folder to search for git repositories."
         },
-        "multiRepoGit.exclude": {
+        "multiRepoExplorer.exclude": {
           "type": "array",
           "items": {
             "type": "string"
@@ -621,29 +621,29 @@
           ],
           "description": "Folder names that are never searched for repositories, and are hidden while the Repo Explorer is filtered."
         },
-        "multiRepoGit.decorateExplorer": {
+        "multiRepoExplorer.decorateExplorer": {
           "type": "boolean",
           "default": false,
           "description": "Also show repo colors, badges, and the Git Repo right-click menu in the built-in Explorer. Off by default, so the built-in Explorer stays unchanged."
         },
-        "multiRepoGit.maxConcurrency": {
+        "multiRepoExplorer.maxConcurrency": {
           "type": "number",
           "default": 6,
           "minimum": 1,
           "maximum": 32,
           "description": "Maximum number of git processes to run at the same time."
         },
-        "multiRepoGit.countUntracked": {
+        "multiRepoExplorer.countUntracked": {
           "type": "boolean",
           "default": true,
           "description": "Count untracked files. Turning this off makes status checks faster in large repos."
         },
-        "multiRepoGit.refreshOnFocus": {
+        "multiRepoExplorer.refreshOnFocus": {
           "type": "boolean",
           "default": true,
           "description": "Re-check repos when the VS Code window gets focus, to pick up changes made outside VS Code."
         },
-        "multiRepoGit.backgroundRefreshMinutes": {
+        "multiRepoExplorer.backgroundRefreshMinutes": {
           "type": "number",
           "default": 5,
           "minimum": 0,

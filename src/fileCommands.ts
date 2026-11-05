@@ -45,8 +45,8 @@ export function registerFileCommands(explorer: RepoExplorerProvider): vscode.Dis
   };
 
   return [
-    vscode.commands.registerCommand('multiRepoGit.newFile', (target?: ExplorerNode, name?: unknown) => create('file', target, name)),
-    vscode.commands.registerCommand('multiRepoGit.newFolder', (target?: ExplorerNode, name?: unknown) => create('folder', target, name)),
+    vscode.commands.registerCommand('multiRepoExplorer.newFile', (target?: ExplorerNode, name?: unknown) => create('file', target, name)),
+    vscode.commands.registerCommand('multiRepoExplorer.newFolder', (target?: ExplorerNode, name?: unknown) => create('folder', target, name)),
   ];
 }
 

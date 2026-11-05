@@ -10,22 +10,22 @@ import { ReposViewProvider } from './views/reposView';
 import { StatusBar } from './views/statusBar';
 
 /** Returned from `activate` so integration tests can look inside. */
-export interface MultiRepoGitApi {
+export interface MultiRepoExplorerApi {
   store: RepoStore;
   explorer: RepoExplorerProvider;
   reposView: ReposViewProvider;
   decorations: RepoDecorationProvider;
 }
 
-export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
+export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi {
   const log = vscode.window.createOutputChannel('Multi-Repo Explorer');
   const store = new RepoStore(log);
   const explorer = new RepoExplorerProvider(store, context.workspaceState);
   const reposView = new ReposViewProvider(store);
   const decorations = new RepoDecorationProvider(store);
-  const reposTree = vscode.window.createTreeView('multiRepoGit.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
+  const reposTree = vscode.window.createTreeView('multiRepoExplorer.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
   reposView.attach(reposTree);
-  const explorerTree = vscode.window.createTreeView('multiRepoGit.explorer', {
+  const explorerTree = vscode.window.createTreeView('multiRepoExplorer.explorer', {
     treeDataProvider: explorer,
     showCollapseAll: true,
     canSelectMany: true,

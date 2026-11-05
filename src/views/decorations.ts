@@ -7,16 +7,16 @@ import type { RepoEntry, RepoStore } from '../store';
 import { VIEW_SCHEME, toViewUri } from './viewUri';
 
 const KIND_COLOR: Partial<Record<StateKind, string>> = {
-  error: 'multiRepoGit.errorForeground',
-  conflict: 'multiRepoGit.conflictForeground',
-  operation: 'multiRepoGit.conflictForeground',
-  dirty: 'multiRepoGit.dirtyForeground',
-  detached: 'multiRepoGit.dirtyForeground',
-  diverged: 'multiRepoGit.behindForeground',
-  behind: 'multiRepoGit.behindForeground',
-  ahead: 'multiRepoGit.aheadForeground',
-  noUpstream: 'multiRepoGit.aheadForeground',
-  pending: 'multiRepoGit.pendingForeground',
+  error: 'multiRepoExplorer.errorForeground',
+  conflict: 'multiRepoExplorer.conflictForeground',
+  operation: 'multiRepoExplorer.conflictForeground',
+  dirty: 'multiRepoExplorer.dirtyForeground',
+  detached: 'multiRepoExplorer.dirtyForeground',
+  diverged: 'multiRepoExplorer.behindForeground',
+  behind: 'multiRepoExplorer.behindForeground',
+  ahead: 'multiRepoExplorer.aheadForeground',
+  noUpstream: 'multiRepoExplorer.aheadForeground',
+  pending: 'multiRepoExplorer.pendingForeground',
 };
 
 /** Kinds whose color should also tint the parent folders, like git does for changed files. */
@@ -41,12 +41,12 @@ const LETTER_TOOLTIP: Record<ChangeLetter, string> = {
 };
 
 function decorateExplorer(): boolean {
-  return vscode.workspace.getConfiguration('multiRepoGit').get('decorateExplorer', false);
+  return vscode.workspace.getConfiguration('multiRepoExplorer').get('decorateExplorer', false);
 }
 
 /**
  * Colors, short badges and tooltips for repos and changed files in our views,
- * and, when `multiRepoGit.decorateExplorer` is on, for repo folders in the
+ * and, when `multiRepoExplorer.decorateExplorer` is on, for repo folders in the
  * built-in Explorer. VS Code only asks for rows that are on screen, so this is
  * also how visible repos get checked first.
  */
@@ -62,7 +62,7 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
       store.onDidChangeRepos(roots => this._onDidChange.fire(roots.flatMap(root => this.urisFor(root)))),
       store.onDidDiscover(() => this._onDidChange.fire(undefined)),
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('multiRepoGit.decorateExplorer')) this._onDidChange.fire(undefined);
+        if (e.affectsConfiguration('multiRepoExplorer.decorateExplorer')) this._onDidChange.fire(undefined);
       }),
       this._onDidChange,
     ];

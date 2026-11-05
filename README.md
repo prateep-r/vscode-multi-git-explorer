@@ -6,7 +6,7 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 
 ![Repo Explorer and Git Repos views](assets/images/overview.png)
 
-1. **Repo Explorer**: your files, with each repo's branch and status written after its name. Like the built-in Explorer, the tree is titled with your project's folder name.
+1. **Repo Explorer**: your files, with each repo's branch and status written after its name. The tree is titled **Files**, with your project's folder name beside it.
 2. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
 3. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
 
@@ -60,7 +60,7 @@ The title bar of the file tree (the one with your project's name) has three filt
 
 ![Repo Explorer filtered to changed files](assets/images/filter.png)
 
-Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Next to the letter you may see `staged`, `partly staged`, or `conflict`. Folders named in `multiRepoGit.exclude` and anything hidden by `files.exclude` stay hidden while filtering, even if git sees changes in them. The filter is remembered per workspace.
+Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Next to the letter you may see `staged`, `partly staged`, or `conflict`. Folders named in `multiRepoExplorer.exclude` and anything hidden by `files.exclude` stay hidden while filtering, even if git sees changes in them. The filter is remembered per workspace.
 
 To search files by name or content, use VS Code's own **Search** view (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>). Put a repo's path in *files to include* to search just that repo.
 
@@ -134,7 +134,7 @@ Tested with Claude Code 2.1.318 and Codex 26.1021. Both extensions decide how th
 
 ### Badges in the built-in Explorer (optional)
 
-The built-in Explorer is left unchanged by default. Turn on `multiRepoGit.decorateExplorer` to also give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu with the repo commands above.
+The built-in Explorer is left unchanged by default. Turn on `multiRepoExplorer.decorateExplorer` to also give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu with the repo commands above.
 
 ![Badges and tooltip in the built-in Explorer](assets/images/explorer.png)
 
@@ -185,48 +185,70 @@ Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper
 
 ## Install
 
-The extension isn't on the VS Code Marketplace yet. Build it from source:
+The extension is published on [GitHub Releases](https://github.com/prateep-r/vscode-multi-repo-explorer/releases), not on the VS Code Marketplace. Download and install the latest version with one command:
+
+**macOS / Linux**
+
+```bash
+curl -fsSL -o /tmp/multi-repo-explorer.vsix https://github.com/prateep-r/vscode-multi-repo-explorer/releases/latest/download/multi-repo-explorer.vsix && code --install-extension /tmp/multi-repo-explorer.vsix --force
+```
+
+**Windows (PowerShell)**
+
+```powershell
+iwr https://github.com/prateep-r/vscode-multi-repo-explorer/releases/latest/download/multi-repo-explorer.vsix -OutFile $env:TEMP\multi-repo-explorer.vsix; code --install-extension $env:TEMP\multi-repo-explorer.vsix --force
+```
+
+Then run **Developer: Reload Window** in VS Code.
+
+Or do it by hand: download [`multi-repo-explorer.vsix`](https://github.com/prateep-r/vscode-multi-repo-explorer/releases/latest/download/multi-repo-explorer.vsix), then in VS Code open the Command Palette and run **Extensions: Install from VSIX…**. It also works in Cursor, Windsurf, and VSCodium: use `cursor`, `windsurf`, or `codium` in place of `code` in the commands above.
+
+Requirements: VS Code 1.95 or later, and `git` on your `PATH` (or set in `git.path`).
+
+**Updating**: the extension doesn't update itself. Run the same command again to get the latest version. See what changed in the [changelog](CHANGELOG.md).
+
+**Uninstalling**:
+
+```bash
+code --uninstall-extension prateep-r.multi-repo-explorer
+```
+
+If you built a version before 1.0.0 from source, its ID is `local.multi-repo-explorer`. Uninstall that one first, so you don't get two Repo Explorers. Its settings started with `multiRepoGit.`; they are now `multiRepoExplorer.`, so rename any you changed.
+
+### Build from source
+
+Needs Node.js 20 or later.
 
 ```bash
 git clone https://github.com/prateep-r/vscode-multi-repo-explorer.git
 cd vscode-multi-repo-explorer
 npm install
-npx @vscode/vsce package
-code --install-extension multi-repo-explorer-0.0.1.vsix
-```
-
-Then run **Developer: Reload Window** in VS Code.
-
-Requirements: VS Code 1.95 or later, Node.js 20 or later (to build), and `git` on your `PATH` (or set in `git.path`).
-
-To update, pull the latest code, build again, and install with `--force`. To uninstall:
-
-```bash
-code --uninstall-extension local.multi-repo-explorer
+npx @vscode/vsce package -o multi-repo-explorer.vsix
+code --install-extension multi-repo-explorer.vsix --force
 ```
 
 ## Settings
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `multiRepoGit.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
-| `multiRepoGit.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched, and are hidden while filtering |
-| `multiRepoGit.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
-| `multiRepoGit.maxConcurrency` | `6` | Maximum number of git processes at the same time |
-| `multiRepoGit.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
-| `multiRepoGit.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |
-| `multiRepoGit.backgroundRefreshMinutes` | `5` | Re-check all repos this often. `0` turns it off |
+| `multiRepoExplorer.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
+| `multiRepoExplorer.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched, and are hidden while filtering |
+| `multiRepoExplorer.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
+| `multiRepoExplorer.maxConcurrency` | `6` | Maximum number of git processes at the same time |
+| `multiRepoExplorer.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
+| `multiRepoExplorer.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |
+| `multiRepoExplorer.backgroundRefreshMinutes` | `5` | Re-check all repos this often. `0` turns it off |
 
 You can change the colors with `workbench.colorCustomizations`:
 
 ```jsonc
 "workbench.colorCustomizations": {
-  "multiRepoGit.aheadForeground": "#4FC1FF",
-  "multiRepoGit.behindForeground": "#D18AE0"
+  "multiRepoExplorer.aheadForeground": "#4FC1FF",
+  "multiRepoExplorer.behindForeground": "#D18AE0"
 }
 ```
 
-Available colors: `multiRepoGit.conflictForeground`, `multiRepoGit.dirtyForeground`, `multiRepoGit.aheadForeground`, `multiRepoGit.behindForeground`, `multiRepoGit.pendingForeground`, `multiRepoGit.errorForeground`.
+Available colors: `multiRepoExplorer.conflictForeground`, `multiRepoExplorer.dirtyForeground`, `multiRepoExplorer.aheadForeground`, `multiRepoExplorer.behindForeground`, `multiRepoExplorer.pendingForeground`, `multiRepoExplorer.errorForeground`.
 
 ## What it does to your repos
 
@@ -247,9 +269,9 @@ Tested with 300 repos: they are found in about 50 ms, every repo shows its branc
 
 | Problem | What to try |
 | --- | --- |
-| A repo is missing | It may be deeper than `multiRepoGit.scanDepth`: look for `not scanned` on a folder above it and choose **Scan This Folder**, or raise the setting. Also check that its folder isn't in `multiRepoGit.exclude` |
+| A repo is missing | It may be deeper than `multiRepoExplorer.scanDepth`: look for `not scanned` on a folder above it and choose **Scan This Folder**, or raise the setting. Also check that its folder isn't in `multiRepoExplorer.exclude` |
 | A repo shows `⚠` | Hover it to see git's error. Open **View → Output** and pick *Multi-Repo Explorer* for the full log |
-| Checking is slow | Turn off `multiRepoGit.countUntracked`, or add big generated folders to `multiRepoGit.exclude` |
+| Checking is slow | Turn off `multiRepoExplorer.countUntracked`, or add big generated folders to `multiRepoExplorer.exclude` |
 | "Behind remote" looks wrong | It's based on your last fetch. Run **Fetch All Repos** |
 | Fetch or Push fails asking for a password | Commands run without a terminal, so set up a git credential helper or SSH key |
 | No **Add to Claude Chat** / **Add to Codex Chat** | Install that extension, then reload the window |
@@ -283,6 +305,15 @@ If you run the integration tests from a terminal inside VS Code (or another Elec
 Press <kbd>F5</kbd> in VS Code to run the extension in a new window.
 
 The README images are drawn from the sample workspace's real output. After changing how something looks, redraw them all with `assets/images/source/render.sh` (needs Python 3 and Google Chrome).
+
+To release a new version, raise `version` in `package.json`, add it to `CHANGELOG.md`, commit and push, then:
+
+```bash
+npx @vscode/vsce package -o multi-repo-explorer.vsix
+gh release create v1.0.0 multi-repo-explorer.vsix --title v1.0.0 --notes "..."
+```
+
+Keep the file name `multi-repo-explorer.vsix` without a version, so the `releases/latest/download/multi-repo-explorer.vsix` link in [Install](#install) always gets the newest one.
 
 | Path | Contents |
 | --- | --- |

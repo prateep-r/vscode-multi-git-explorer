@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { runGit } from '../core/git';
 
 /** Read-only documents holding a file as it is in HEAD, for the left side of diffs. */
-export const HEAD_SCHEME = 'multi-repo-git-head';
+export const HEAD_SCHEME = 'multi-repo-explorer-head';
 
 /**
  * A URI for `relPath` at HEAD in the repo at `root`. It keeps the real file's

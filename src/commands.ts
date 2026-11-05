@@ -52,14 +52,14 @@ export function registerCommands(
   };
 
   return [
-    vscode.commands.registerCommand('multiRepoGit.refresh', async () => {
+    vscode.commands.registerCommand('multiRepoExplorer.refresh', async () => {
       await store.discover();
       store.refreshAll(Priority.User);
     }),
 
-    vscode.commands.registerCommand('multiRepoGit.fetchAll', () => fetchAll(store)),
+    vscode.commands.registerCommand('multiRepoExplorer.fetchAll', () => fetchAll(store)),
 
-    vscode.commands.registerCommand('multiRepoGit.filter', async () => {
+    vscode.commands.registerCommand('multiRepoExplorer.filter', async () => {
       const text = await vscode.window.showInputBox({
         title: 'Filter repos',
         prompt: 'Show repos whose path or branch contains this text',
@@ -69,9 +69,9 @@ export function registerCommands(
       if (text !== undefined) reposView.setFilter(text);
     }),
 
-    vscode.commands.registerCommand('multiRepoGit.clearFilter', () => reposView.setFilter('')),
+    vscode.commands.registerCommand('multiRepoExplorer.clearFilter', () => reposView.setFilter('')),
 
-    vscode.commands.registerCommand('multiRepoGit.filterExplorer', () => pickExplorerFilters(explorer)),
+    vscode.commands.registerCommand('multiRepoExplorer.filterExplorer', () => pickExplorerFilters(explorer)),
 
     // Each filter has an "off" and an "on" command so the title-bar button can show its state.
     ...(['changes', 'unpushed', 'behind'] as const).flatMap(filter =>
@@ -80,16 +80,16 @@ export function registerCommands(
       ),
     ),
 
-    vscode.commands.registerCommand('multiRepoGit.clearExplorerFilter', () => explorer.setFilters([])),
+    vscode.commands.registerCommand('multiRepoExplorer.clearExplorerFilter', () => explorer.setFilters([])),
 
-    vscode.commands.registerCommand('multiRepoGit.openChange', (node: ExplorerNode) => openChange(store, node)),
+    vscode.commands.registerCommand('multiRepoExplorer.openChange', (node: ExplorerNode) => openChange(store, node)),
 
-    vscode.commands.registerCommand('multiRepoGit.openChangedFile', (node: ExplorerNode) =>
+    vscode.commands.registerCommand('multiRepoExplorer.openChangedFile', (node: ExplorerNode) =>
       vscode.commands.executeCommand('vscode.open', node.uri),
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.openInScm',
+      'multiRepoExplorer.openInScm',
       withRepo(async repo => {
         // Make sure VS Code's Git knows this repo, then show the Source Control view.
         // VS Code has no public API to select one repo in that view, so it may
@@ -100,7 +100,7 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.openChanges',
+      'multiRepoExplorer.openChanges',
       withRepo(async repo => {
         const gitRepo = await openInGitExtension(repo);
         const api = await gitApi();
@@ -133,16 +133,16 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.switchBranch',
+      'multiRepoExplorer.switchBranch',
       withRepo(repo => pickAndSwitchBranch(store, repo)),
     ),
 
-    vscode.commands.registerCommand('multiRepoGit.fetch', withRepo(repo => runWithProgress(repo, 'Fetching', ['fetch']))),
+    vscode.commands.registerCommand('multiRepoExplorer.fetch', withRepo(repo => runWithProgress(repo, 'Fetching', ['fetch']))),
 
-    vscode.commands.registerCommand('multiRepoGit.pull', withRepo(repo => runWithProgress(repo, 'Pulling', ['pull']))),
+    vscode.commands.registerCommand('multiRepoExplorer.pull', withRepo(repo => runWithProgress(repo, 'Pulling', ['pull']))),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.push',
+      'multiRepoExplorer.push',
       withRepo(async repo => {
         if (repo.status && !repo.status.branch.upstream && !repo.status.branch.detached) {
           const remotes = (await git(repo, ['remote']).catch(() => '')).split('\n').filter(Boolean);
@@ -158,24 +158,24 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.openTerminal',
+      'multiRepoExplorer.openTerminal',
       withRepo(repo => vscode.window.createTerminal({ name: repo.name, cwd: repo.root }).show()),
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.openInNewWindow',
+      'multiRepoExplorer.openInNewWindow',
       withRepo(repo => vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(repo.root), { forceNewWindow: true })),
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoGit.copyBranch',
+      'multiRepoExplorer.copyBranch',
       withRepo(async repo => {
         await vscode.env.clipboard.writeText(repo.view.branchLabel.replace(/ \(detached\)$/, ''));
         vscode.window.setStatusBarMessage(`Copied "${repo.view.branchLabel}"`, 2000);
       }),
     ),
 
-    vscode.commands.registerCommand('multiRepoGit.scanFolder', (arg: CommandArg) => {
+    vscode.commands.registerCommand('multiRepoExplorer.scanFolder', (arg: CommandArg) => {
       const uri = arg instanceof vscode.Uri ? arg : arg && 'uri' in arg ? arg.uri : undefined;
       if (uri) return store.scanFolder(uri.fsPath);
       return undefined;
@@ -184,9 +184,9 @@ export function registerCommands(
 }
 
 const FILTER_COMMANDS: Record<ExplorerFilter, string> = {
-  changes: 'multiRepoGit.filterChanges',
-  unpushed: 'multiRepoGit.filterUnpushed',
-  behind: 'multiRepoGit.filterBehind',
+  changes: 'multiRepoExplorer.filterChanges',
+  unpushed: 'multiRepoExplorer.filterUnpushed',
+  behind: 'multiRepoExplorer.filterBehind',
 };
 
 const FILTER_DETAILS: Record<ExplorerFilter, [string, string]> = {
@@ -351,7 +351,7 @@ async function fetchAll(store: RepoStore): Promise<void> {
     void vscode.window.showInformationMessage('Multi-Repo Explorer: no repos with a remote to fetch.');
     return;
   }
-  const concurrency = vscode.workspace.getConfiguration('multiRepoGit').get('maxConcurrency', 6);
+  const concurrency = vscode.workspace.getConfiguration('multiRepoExplorer').get('maxConcurrency', 6);
   const failed: string[] = [];
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Fetching repos', cancellable: true },

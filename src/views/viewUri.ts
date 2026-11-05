@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
  * VS Code's own git letters, which only cover repos it has opened, out of our
  * views) while file icons still come from the icon theme.
  */
-export const VIEW_SCHEME = 'multi-repo-git';
+export const VIEW_SCHEME = 'multi-repo-explorer';
 
 export function toViewUri(fsPath: string): vscode.Uri {
   return vscode.Uri.file(fsPath).with({ scheme: VIEW_SCHEME });

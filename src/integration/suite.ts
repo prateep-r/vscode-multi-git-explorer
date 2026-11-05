@@ -3,7 +3,7 @@ import { execFileSync } from 'child_process';
 import { appendFileSync, existsSync, rmSync, statSync } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type { MultiRepoGitApi } from '../extension';
+import type { MultiRepoExplorerApi } from '../extension';
 import type { ExplorerNode } from '../views/repoExplorer';
 import { toViewUri } from '../views/viewUri';
 
@@ -20,8 +20,8 @@ async function waitFor<T>(what: string, check: () => T | undefined | false, time
   }
 }
 
-const tests: [string, (api: MultiRepoGitApi) => Promise<void>][] = [];
-const test = (name: string, fn: (api: MultiRepoGitApi) => Promise<void>) => tests.push([name, fn]);
+const tests: [string, (api: MultiRepoExplorerApi) => Promise<void>][] = [];
+const test = (name: string, fn: (api: MultiRepoExplorerApi) => Promise<void>) => tests.push([name, fn]);
 
 test('finds every repo within the depth limit and checks them all', async ({ store }) => {
   const started = Date.now();
@@ -57,7 +57,7 @@ test('badges show in our views but leave the built-in Explorer alone by default'
   const view = (rel: string) => decorations.provideFileDecoration(toViewUri(at(rel)));
   const repo = view('services/billing');
   assert.equal(repo?.badge, '!');
-  assert.equal((repo?.color as vscode.ThemeColor).id, 'multiRepoGit.conflictForeground');
+  assert.equal((repo?.color as vscode.ThemeColor).id, 'multiRepoExplorer.conflictForeground');
   assert.equal(repo?.propagate, true);
   assert.match(repo!.tooltip!, /Merge in progress/);
   assert.equal(view('docs'), undefined);
@@ -74,8 +74,8 @@ test('badges show in our views but leave the built-in Explorer alone by default'
   assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/billing'))), undefined);
 });
 
-test('multiRepoGit.decorateExplorer turns on badges in the built-in Explorer', async ({ decorations }) => {
-  const config = vscode.workspace.getConfiguration('multiRepoGit');
+test('multiRepoExplorer.decorateExplorer turns on badges in the built-in Explorer', async ({ decorations }) => {
+  const config = vscode.workspace.getConfiguration('multiRepoExplorer');
   await config.update('decorateExplorer', true, vscode.ConfigurationTarget.Global);
   try {
     assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/billing')))?.badge, '!');
@@ -131,15 +131,15 @@ test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
     assert.equal((await names(await child(services, 'reports'))).length, 12);
 
     // Changes under excluded folders and files.exclude names are left out too.
-    const multiRepoGit = vscode.workspace.getConfiguration('multiRepoGit');
+    const multiRepoExplorer = vscode.workspace.getConfiguration('multiRepoExplorer');
     const files = vscode.workspace.getConfiguration('files');
-    const exclude = multiRepoGit.get<string[]>('exclude', []);
-    await multiRepoGit.update('exclude', [...exclude, 'src'], vscode.ConfigurationTarget.Global);
+    const exclude = multiRepoExplorer.get<string[]>('exclude', []);
+    await multiRepoExplorer.update('exclude', [...exclude, 'src'], vscode.ConfigurationTarget.Global);
     await files.update('exclude', { '**/NOTES.md': true }, vscode.ConfigurationTarget.Global);
     try {
       assert.deepEqual(await names(api), ['README.md']);
     } finally {
-      await multiRepoGit.update('exclude', undefined, vscode.ConfigurationTarget.Global);
+      await multiRepoExplorer.update('exclude', undefined, vscode.ConfigurationTarget.Global);
       await files.update('exclude', undefined, vscode.ConfigurationTarget.Global);
     }
     assert.deepEqual(await names(api), ['src', 'NOTES.md', 'README.md']);
@@ -159,13 +159,13 @@ test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
 });
 
 test('title-bar buttons turn each filter on and off with one click', async ({ explorer }) => {
-  await vscode.commands.executeCommand('multiRepoGit.filterChanges');
+  await vscode.commands.executeCommand('multiRepoExplorer.filterChanges');
   assert.deepEqual(explorer.activeFilters, ['changes']);
-  await vscode.commands.executeCommand('multiRepoGit.filterBehind');
+  await vscode.commands.executeCommand('multiRepoExplorer.filterBehind');
   assert.deepEqual(explorer.activeFilters, ['changes', 'behind']);
-  await vscode.commands.executeCommand('multiRepoGit.filterChangesOn');
+  await vscode.commands.executeCommand('multiRepoExplorer.filterChangesOn');
   assert.deepEqual(explorer.activeFilters, ['behind']);
-  await vscode.commands.executeCommand('multiRepoGit.filterBehindOn');
+  await vscode.commands.executeCommand('multiRepoExplorer.filterBehindOn');
   assert.deepEqual(explorer.activeFilters, []);
 });
 
@@ -183,7 +183,7 @@ test('clicking a changed file while filtered opens a diff against HEAD', async (
 
     const readme = await child(api, 'README.md');
     const item = explorer.getTreeItem(readme);
-    assert.equal(item.command?.command, 'multiRepoGit.openChange');
+    assert.equal(item.command?.command, 'multiRepoExplorer.openChange');
     await vscode.commands.executeCommand(item.command!.command, ...item.command!.arguments!);
     let diff = activeDiff();
     assert.equal(diff.modified.fsPath, at('services/api-gateway/README.md'));
@@ -191,7 +191,7 @@ test('clicking a changed file while filtered opens a diff against HEAD', async (
     assert.equal((await vscode.workspace.openTextDocument(diff.original)).getText(), head);
 
     const routes = await child(await child(api, 'src'), 'routes.ts');
-    await vscode.commands.executeCommand('multiRepoGit.openChange', routes);
+    await vscode.commands.executeCommand('multiRepoExplorer.openChange', routes);
     diff = activeDiff();
     assert.equal((await vscode.workspace.openTextDocument(diff.original)).getText(), '', 'new file: empty left side');
   } finally {
@@ -206,7 +206,7 @@ test('Switch Branch lists branches and switches to the picked one', async ({ sto
   assert.equal(branch(), 'feat/sso');
   try {
     // Items: Create new…, Create from…, feat/sso (current, newest), main.
-    const done = vscode.commands.executeCommand('multiRepoGit.switchBranch', vscode.Uri.file(root));
+    const done = vscode.commands.executeCommand('multiRepoExplorer.switchBranch', vscode.Uri.file(root));
     await new Promise(r => setTimeout(r, 1500));
     for (let i = 0; i < 3; i++) await vscode.commands.executeCommand('workbench.action.quickOpenSelectNext');
     await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
@@ -222,7 +222,7 @@ test('Switch Branch lists branches and switches to the picked one', async ({ sto
 test('Switch Branch refuses while a merge is in progress', async () => {
   const billing = at('services/billing');
   const before = execFileSync('git', ['branch', '--show-current'], { cwd: billing, encoding: 'utf8' }).trim();
-  await vscode.commands.executeCommand('multiRepoGit.switchBranch', vscode.Uri.file(billing));
+  await vscode.commands.executeCommand('multiRepoExplorer.switchBranch', vscode.Uri.file(billing));
   assert.equal(execFileSync('git', ['branch', '--show-current'], { cwd: billing, encoding: 'utf8' }).trim(), before);
 });
 
@@ -261,21 +261,21 @@ test('committing from outside VS Code is picked up from .git', async ({ store })
 });
 
 test('scanning a folder past the depth limit adds its repos', async ({ store }) => {
-  await vscode.commands.executeCommand('multiRepoGit.scanFolder', vscode.Uri.file(at('archive/2023/q1')));
+  await vscode.commands.executeCommand('multiRepoExplorer.scanFolder', vscode.Uri.file(at('archive/2023/q1')));
   assert.ok(store.get(at('archive/2023/q1/old-crm')));
   await waitFor('300 repos', () => store.all().length === 300);
 });
 
 test('Open in Source Control opens the repo in VS Code Git', async () => {
   const uri = vscode.Uri.file(at('services/auth-service'));
-  await vscode.commands.executeCommand('multiRepoGit.openInScm', uri);
+  await vscode.commands.executeCommand('multiRepoExplorer.openInScm', uri);
   const git = vscode.extensions.getExtension('vscode.git')!.exports.getAPI(1);
   assert.ok(git.getRepository(uri), 'repo is open in VS Code Git');
 });
 
 test('the file tree is titled Files, with the project name as written beside it', async ({ explorer }) => {
-  const manifest = vscode.extensions.getExtension('local.multi-repo-explorer')!.packageJSON;
-  const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoGit');
+  const manifest = vscode.extensions.getExtension('prateep-r.multi-repo-explorer')!.packageJSON;
+  const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoExplorer');
   assert.equal(container.title, 'Repo Explorer');
   // VS Code uppercases titles but not descriptions, so the name is the description.
   assert.equal(explorer.title, 'Files');
@@ -286,20 +286,20 @@ test('New File and New Folder create items in the chosen folder and open the fil
   const docs = at('docs');
   const target: ExplorerNode = { uri: vscode.Uri.file(docs), isDir: true };
   try {
-    await vscode.commands.executeCommand('multiRepoGit.newFile', target, 'guides/setup.md');
+    await vscode.commands.executeCommand('multiRepoExplorer.newFile', target, 'guides/setup.md');
     assert.ok(existsSync(path.join(docs, 'guides', 'setup.md')), 'nested file created');
     assert.equal(vscode.window.activeTextEditor?.document.uri.fsPath, path.join(docs, 'guides', 'setup.md'));
 
-    await vscode.commands.executeCommand('multiRepoGit.newFolder', target, 'images');
+    await vscode.commands.executeCommand('multiRepoExplorer.newFolder', target, 'images');
     assert.ok(statSync(path.join(docs, 'images')).isDirectory(), 'folder created');
 
     // A file chosen as the target means "next to this file".
-    await vscode.commands.executeCommand('multiRepoGit.newFile', { uri: vscode.Uri.file(path.join(docs, 'README.md')), isDir: false }, 'CHANGELOG.md');
+    await vscode.commands.executeCommand('multiRepoExplorer.newFile', { uri: vscode.Uri.file(path.join(docs, 'README.md')), isDir: false }, 'CHANGELOG.md');
     assert.ok(existsSync(path.join(docs, 'CHANGELOG.md')));
 
     // Existing names and paths outside the folder are refused.
-    await vscode.commands.executeCommand('multiRepoGit.newFile', target, 'README.md');
-    await vscode.commands.executeCommand('multiRepoGit.newFile', target, '../escape.md');
+    await vscode.commands.executeCommand('multiRepoExplorer.newFile', target, 'README.md');
+    await vscode.commands.executeCommand('multiRepoExplorer.newFile', target, '../escape.md');
     assert.ok(!existsSync(at('escape.md')));
   } finally {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
@@ -308,13 +308,13 @@ test('New File and New Folder create items in the chosen folder and open the fil
 });
 
 test('every command in package.json is registered', async () => {
-  const manifest = vscode.extensions.getExtension('local.multi-repo-explorer')!.packageJSON;
+  const manifest = vscode.extensions.getExtension('prateep-r.multi-repo-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));
   for (const { command } of manifest.contributes.commands) assert.ok(registered.has(command), command);
 });
 
 export async function run(): Promise<void> {
-  const api = await vscode.extensions.getExtension<MultiRepoGitApi>('local.multi-repo-explorer')!.activate();
+  const api = await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep-r.multi-repo-explorer')!.activate();
   let failed = 0;
   for (const [name, fn] of tests) {
     try {
