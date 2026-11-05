@@ -43,7 +43,7 @@ Repos are found automatically, up to 3 folder levels deep. Every repo shows its 
 
 ### See every repo's branch and status
 
-- **Repo Explorer** works like the normal Explorer: expand folders and click files to open them. Each repo shows its branch and status after its name. Folders that contain repos show a summary like `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them. Changed files carry the same letters as Source Control (`M`, `A`, `U`…).
+- **Repo Explorer** works like the normal Explorer: expand folders, click files to open them, and use **New File** / **New Folder** in its title bar (or right-click a folder) to add items. Type a path such as `src/utils/date.ts` to create the folders on the way. Each repo shows its branch and status after its name. Folders that contain repos show a summary like `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them. Changed files carry the same letters as Source Control (`M`, `A`, `U`…).
 - **Git Repos** lists every repo, grouped: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, *Clean*. Use the filter icon in its title bar to find a repo by path or branch name. Hover a row for buttons to open it in Source Control or in a terminal.
 - **Status bar**: the left item shows the branch of the file you're editing; click it to open that repo in Source Control. The right item counts repos by state; click it to jump to Git Repos.
 - **Tooltips**: hover a repo for the full picture — upstream, ahead/behind, changed files, stashes, and when it was last fetched.
@@ -110,7 +110,7 @@ Fetch shows only for repos with a remote, Pull only for branches with an upstrea
 
 On a **file**: **Add to Claude Chat** / **Add to Codex Chat**, and for changed files **Open Changes** and **Open File**.
 
-On a **folder**: **Copy to Claude Chat** / **Copy to Codex Chat**, and **Scan This Folder** for folders deeper than the scan limit.
+On a **folder** (or repo): **New File…** / **New Folder…**, **Copy to Claude Chat** / **Copy to Codex Chat**, and **Scan This Folder** for folders deeper than the scan limit.
 
 The title bar of **Git Repos** has **Fetch All Repos**, **Filter Repos**, and **Refresh**. All of these are also in the Command Palette under *Multi-Repo Git Status*.
 

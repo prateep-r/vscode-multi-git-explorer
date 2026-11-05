@@ -131,6 +131,23 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return this.filteredChildren(uri);
   }
 
+  /** The folder new files go into: the selected folder, or the folder of the selected file. */
+  selectedFolder(): vscode.Uri | undefined {
+    const selected = this.treeView?.selection[0];
+    if (selected) return selected.isDir ? selected.uri : vscode.Uri.file(path.dirname(selected.uri.fsPath));
+    return vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri;
+  }
+
+  /** Selects a file or folder in the tree, expanding the folders above it. */
+  async reveal(uri: vscode.Uri, isDir: boolean): Promise<void> {
+    const node = isDir ? this.dirNode(uri) : { uri, isDir: false };
+    try {
+      await this.treeView?.reveal(node, { select: true, focus: false, expand: isDir });
+    } catch {
+      // Not shown in the tree, for example because of the filter buttons.
+    }
+  }
+
   getParent(node: ExplorerNode): ExplorerNode | undefined {
     const folders = vscode.workspace.workspaceFolders ?? [];
     if (folders.some(f => f.uri.fsPath === node.uri.fsPath)) return undefined;

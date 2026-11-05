@@ -212,6 +212,18 @@
         "command": "multiRepoGit.copyTo.codex",
         "title": "Copy to Codex Chat",
         "category": "Multi-Repo Git Status"
+      },
+      {
+        "command": "multiRepoGit.newFile",
+        "title": "New File...",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "multiRepoGit.newFolder",
+        "title": "New Folder...",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(new-folder)"
       }
     ],
     "submenus": [
@@ -223,34 +235,44 @@
     "menus": {
       "view/title": [
         {
+          "command": "multiRepoGit.newFile",
+          "when": "view == multiRepoGit.explorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multiRepoGit.newFolder",
+          "when": "view == multiRepoGit.explorer",
+          "group": "navigation@2"
+        },
+        {
           "command": "multiRepoGit.filterChanges",
           "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.changes",
-          "group": "navigation@1"
+          "group": "navigation@3"
         },
         {
           "command": "multiRepoGit.filterChangesOn",
           "when": "view == multiRepoGit.explorer && multiRepoGit.filter.changes",
-          "group": "navigation@1"
+          "group": "navigation@3"
         },
         {
           "command": "multiRepoGit.filterUnpushed",
           "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.unpushed",
-          "group": "navigation@2"
+          "group": "navigation@4"
         },
         {
           "command": "multiRepoGit.filterUnpushedOn",
           "when": "view == multiRepoGit.explorer && multiRepoGit.filter.unpushed",
-          "group": "navigation@2"
+          "group": "navigation@4"
         },
         {
           "command": "multiRepoGit.filterBehind",
           "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.behind",
-          "group": "navigation@3"
+          "group": "navigation@5"
         },
         {
           "command": "multiRepoGit.filterBehindOn",
           "when": "view == multiRepoGit.explorer && multiRepoGit.filter.behind",
-          "group": "navigation@3"
+          "group": "navigation@5"
         },
         {
           "command": "multiRepoGit.fetchAll",
@@ -378,6 +400,16 @@
           "command": "multiRepoGit.scanFolder",
           "when": "viewItem =~ /\\bunscanned\\b/",
           "group": "1_scan@1"
+        },
+        {
+          "command": "multiRepoGit.newFile",
+          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/",
+          "group": "4_new@1"
+        },
+        {
+          "command": "multiRepoGit.newFolder",
+          "when": "view == multiRepoGit.explorer && viewItem =~ /^(folder|repo)/",
+          "group": "4_new@2"
         }
       ],
       "explorer/context": [

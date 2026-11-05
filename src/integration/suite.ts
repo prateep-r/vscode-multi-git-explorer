@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'child_process';
-import { appendFileSync } from 'fs';
+import { appendFileSync, existsSync, rmSync, statSync } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { MultiRepoGitApi } from '../extension';
@@ -264,6 +264,31 @@ test('the file tree is titled with the project name, under a Repo Explorer heade
   const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoGit');
   assert.equal(container.title, 'Repo Explorer');
   assert.equal(explorer.title, path.basename(sample));
+});
+
+test('New File and New Folder create items in the chosen folder and open the file', async () => {
+  const docs = at('docs');
+  const target: ExplorerNode = { uri: vscode.Uri.file(docs), isDir: true };
+  try {
+    await vscode.commands.executeCommand('multiRepoGit.newFile', target, 'guides/setup.md');
+    assert.ok(existsSync(path.join(docs, 'guides', 'setup.md')), 'nested file created');
+    assert.equal(vscode.window.activeTextEditor?.document.uri.fsPath, path.join(docs, 'guides', 'setup.md'));
+
+    await vscode.commands.executeCommand('multiRepoGit.newFolder', target, 'images');
+    assert.ok(statSync(path.join(docs, 'images')).isDirectory(), 'folder created');
+
+    // A file chosen as the target means "next to this file".
+    await vscode.commands.executeCommand('multiRepoGit.newFile', { uri: vscode.Uri.file(path.join(docs, 'README.md')), isDir: false }, 'CHANGELOG.md');
+    assert.ok(existsSync(path.join(docs, 'CHANGELOG.md')));
+
+    // Existing names and paths outside the folder are refused.
+    await vscode.commands.executeCommand('multiRepoGit.newFile', target, 'README.md');
+    await vscode.commands.executeCommand('multiRepoGit.newFile', target, '../escape.md');
+    assert.ok(!existsSync(at('escape.md')));
+  } finally {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    for (const item of ['guides', 'images', 'CHANGELOG.md']) rmSync(path.join(docs, item), { recursive: true, force: true });
+  }
 });
 
 test('every command in package.json is registered', async () => {

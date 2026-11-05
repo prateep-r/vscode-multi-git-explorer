@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { registerChatTargets } from './chatTargets';
 import { registerCommands } from './commands';
+import { registerFileCommands } from './fileCommands';
 import { RepoStore } from './store';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
@@ -44,6 +45,7 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
     new StatusBar(store),
     ...registerCommands(store, reposView, explorer),
     ...registerChatTargets(),
+    ...registerFileCommands(explorer),
   );
 
   void store.discover();
