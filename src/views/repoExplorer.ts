@@ -53,7 +53,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       store.onDidChangeRepos(roots => this.onReposChanged(roots)),
       store.onDidDiscover(() => this.refreshAll()),
       store.onDidChangeFolder(dir => this.onFolderChanged(dir)),
-      vscode.workspace.onDidChangeWorkspaceFolders(() => this.refreshAll()),
+      vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        this.updateDescription();
+        this.refreshAll();
+      }),
       vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('files.exclude')) this.refreshAll();
       }),
@@ -70,6 +73,17 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   attach(treeView: vscode.TreeView<ExplorerNode>): void {
     this.treeView = treeView;
     this.updateMessage();
+    this.updateDescription();
+  }
+
+  /** The text next to the view title. */
+  get description(): string | undefined {
+    return this.treeView?.description;
+  }
+
+  /** Shows the project's name next to the view title, like the built-in Explorer does. */
+  private updateDescription(): void {
+    if (this.treeView) this.treeView.description = vscode.workspace.name;
   }
 
   get activeFilters(): ExplorerFilter[] {

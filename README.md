@@ -6,7 +6,7 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 
 ![Repo Explorer and Git Repos views](assets/images/overview.png)
 
-1. **Repo Explorer**: your files, with each repo's branch and status written after its name.
+1. **Explorer** (called *Repo Explorer* in this README, to tell it apart from VS Code's built-in Explorer): your files, with each repo's branch and status written after its name. The project's folder name is shown next to its title.
 2. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
 3. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
 

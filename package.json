@@ -41,7 +41,7 @@
       "multiRepoGit": [
         {
           "id": "multiRepoGit.explorer",
-          "name": "Repo Explorer"
+          "name": "Explorer"
         },
         {
           "id": "multiRepoGit.repos",
