@@ -4,7 +4,7 @@
 
 If you keep many git repos in one folder (microservices, a polyrepo, a `~/projects` folder…), it's hard to remember which repo is on which branch, which ones have uncommitted work, and which ones you forgot to push. This extension writes all of that next to the folder names, lets you narrow the tree down to what changed, and lets you review, switch branches, or hand files to an AI chat from a right-click.
 
-![Repo Explorer and Git Repos views](docs/images/overview.png)
+![Repo Explorer and Git Repos views](assets/images/overview.png)
 
 1. **Repo Explorer**: your files, with each repo's branch and status written after its name.
 2. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
@@ -58,7 +58,7 @@ The **Repo Explorer** title bar has three filter buttons. Click one to turn it o
 | Not pushed | ↑ | ⬆︎ in a circle | Repos with commits that aren't pushed yet |
 | Behind remote | ↓ | ⬇︎ in a circle | Repos with new commits on the remote (as of the last fetch) |
 
-![Repo Explorer filtered to changed files](docs/images/filter.png)
+![Repo Explorer filtered to changed files](assets/images/filter.png)
 
 Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Next to the letter you may see `staged`, `partly staged`, or `conflict`. The filter is remembered per workspace.
 
@@ -68,7 +68,7 @@ To search files by name or content, use VS Code's own **Search** view (<kbd>Cmd<
 
 With **Changed files** on, **click a file to review it.** It opens a diff of the last commit (`HEAD`) against your working copy, so you see staged and unstaged changes together.
 
-![Diff of a changed file, opened from the Repo Explorer](docs/images/diff.png)
+![Diff of a changed file, opened from the Repo Explorer](assets/images/diff.png)
 
 - Added lines are green and removed lines are red. Within a changed line, the exact part that changed is highlighted.
 - New files show as fully added and deleted files as fully removed. Renamed files are compared with their old name.
@@ -81,7 +81,7 @@ With **Changed files** on, **click a file to review it.** It opens a diff of the
 
 Right-click a repo and choose **Switch Branch…** (the first item in the menu).
 
-![Branch picker](docs/images/switch-branch.png)
+![Branch picker](assets/images/switch-branch.png)
 
 - **Local branches** are listed newest first, with how far each is ahead of or behind its upstream, and whether the upstream was deleted.
 - **Remote branches** you haven't checked out yet are listed after them. Picking one creates a local branch that tracks it.
@@ -91,7 +91,7 @@ Right-click a repo and choose **Switch Branch…** (the first item in the menu).
 
 ### Right-click menus
 
-![Right-click menu on a repo](docs/images/menu.png)
+![Right-click menu on a repo](assets/images/menu.png)
 
 On a **repo**:
 
@@ -118,7 +118,7 @@ The title bar of **Git Repos** has **Fetch All Repos**, **Filter Repos**, and **
 
 If you have [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code) or [Codex](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt) installed, right-click in the Repo Explorer to hand files to its chat. Select several rows first (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click or <kbd>Shift</kbd>+click) to send them all at once. Together with the **Changed files** button, this makes it quick to ask for a review of what you're about to push.
 
-![Adding changed files to the chat](docs/images/chat.png)
+![Adding changed files to the chat](assets/images/chat.png)
 
 | Right-click on | Menu | What happens |
 | --- | --- | --- |
@@ -136,7 +136,7 @@ Tested with Claude Code 2.1.318 and Codex 26.1021. Both extensions decide how th
 
 The built-in Explorer is left unchanged by default. Turn on `multiRepoGit.decorateExplorer` to also give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu with the repo commands above.
 
-![Badges and tooltip in the built-in Explorer](docs/images/explorer.png)
+![Badges and tooltip in the built-in Explorer](assets/images/explorer.png)
 
 > VS Code lets extensions show only a color and a badge of up to two characters in the built-in Explorer. To see branch names next to folders, use **Repo Explorer**.
 
@@ -144,9 +144,9 @@ The built-in Explorer is left unchanged by default. Turn on `multiRepoGit.decora
 
 Colors come from your theme. Changed files use the theme's own git colors (the same as the built-in Explorer and Source Control), and repo states use colors with separate light, dark, and high-contrast values. The screenshots above use *Dark Modern*; here is the same workspace with *Light Modern*:
 
-![Repo Explorer and Git Repos with a light theme](docs/images/overview-light.png)
+![Repo Explorer and Git Repos with a light theme](assets/images/overview-light.png)
 
-![Reviewing a change with a light theme](docs/images/diff-light.png)
+![Reviewing a change with a light theme](assets/images/diff-light.png)
 
 To change any of these colors, see [Settings](#settings).
 
@@ -282,6 +282,8 @@ If you run the integration tests from a terminal inside VS Code (or another Elec
 
 Press <kbd>F5</kbd> in VS Code to run the extension in a new window.
 
+The README images are drawn from the sample workspace's real output. After changing how something looks, redraw them all with `assets/images/source/render.sh` (needs Python 3 and Google Chrome).
+
 | Path | Contents |
 | --- | --- |
 | `src/core/` | Logic with no VS Code dependency: parsing `git status`, reading `.git`, discovery, the job queue, branches, filtering, and the rules for which state and badge to show |
@@ -290,6 +292,8 @@ Press <kbd>F5</kbd> in VS Code to run the extension in a new window.
 | `src/commands.ts` | Right-click and toolbar commands |
 | `src/chatTargets.ts` | Hand-off to Claude Code and Codex |
 | `src/test/`, `src/integration/` | Unit tests, and tests that run inside VS Code |
+| `media/` | The Activity Bar icon (shipped with the extension) |
+| `assets/images/` | README images and the script that draws them (not shipped) |
 
 ## License
 
