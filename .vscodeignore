@@ -6,3 +6,4 @@ scripts/**
 tsconfig.json
 .gitignore
 out/integration/**
+docs/**

@@ -97,6 +97,12 @@ test('conflict wins over everything else', () => {
   assert.equal(view.description, '⎇ main · MERGING · ✕2 · ●1 · ↑1');
 });
 
+test('a repo whose only changes are conflicts does not claim to have no changes', () => {
+  const view = describeRepo(snap(status({ conflicted: 1, changedFiles: 1 }), { operation: { kind: 'merge' } }), NOW);
+  assert.match(view.tooltip, /1 conflicted file/);
+  assert.doesNotMatch(view.tooltip, /No local changes/);
+});
+
 test('rebase in progress shows the branch being rebased and progress', () => {
   const view = describeRepo(
     snap(status({}, { detached: true, head: undefined }), {

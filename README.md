@@ -1,79 +1,158 @@
 # Multi-Repo Git Status
 
-See the branch and state of every git repository in your workspace at a glance — built to stay fast with hundreds of repos.
+**A VS Code extension that shows the branch and git status of every repository in your workspace — at a glance, even with hundreds of repos.**
 
-## What it shows
+If you keep many git repos in one folder (microservices, a polyrepo, a `~/projects` folder…), it's hard to remember which repo is on which branch, which ones have uncommitted work, and which ones you forgot to push. This extension puts all of that next to the folder names.
 
-**Repo Explorer** (Multi-Repo Git Status sidebar) is a file tree like the built-in Explorer, with each repo's branch and state written after its name:
+![Repo Explorer and Git Repos views](docs/images/overview.png)
 
-```
-services          9 repos · !2 ●2 ↑2 ↓2
-  api-gateway     ⎇ main · ●2 +1 ?1
-  auth-service    ⎇ feat/sso · ↑2 · ≡1
-  billing         ⎇ main · MERGING · ✕1 · ↑1
-docs              no git
-archive/2023/q1   not scanned
-```
+1. **Repo Explorer**: your files, with each repo's branch and status written after its name.
+2. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
+3. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
 
-**Git Repos** groups every repo by what needs attention, problems first: conflict or unfinished merge/rebase, check failed, uncommitted changes, not pushed, behind remote, checking, clean. Filter by repo path or branch name.
+## Features
 
-**Built-in Explorer** folders that are repos get a color and a short badge (VS Code allows at most two characters there), with full details in the tooltip.
+### See every repo's branch and status
 
-**Status bar** shows the branch of the repo you are editing in, and totals for all repos.
+Open the **Multi-Repo Git Status** icon in the Activity Bar.
 
-| Badge | Meaning |
+- **Repo Explorer** works like the normal Explorer: expand folders and click files to open them. Each repo shows its branch and status after its name. Folders that contain repos show a summary like `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them.
+- **Git Repos** lists every repo, grouped: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, *Clean*. Click the filter icon to find a repo by path or branch name.
+
+### Badges in the normal Explorer
+
+Repo folders in the built-in Explorer get a color and a short badge. Hover over a repo folder for the details.
+
+![Badges and tooltip in the built-in Explorer](docs/images/explorer.png)
+
+> VS Code lets extensions show only a color and a badge of up to two characters in the built-in Explorer. To see branch names next to folders, use **Repo Explorer**.
+
+### Right-click a repo
+
+![Right-click menu on a repo](docs/images/menu.png)
+
+| Command | What it does |
 | --- | --- |
-| `!` | Conflicted files |
-| `M` `R` `C` `V` | Merge, rebase, cherry-pick or revert in progress |
-| `5`, `9+` | Files with uncommitted changes |
-| `D` | Detached HEAD |
-| `↕` | Diverged: commits to push and to pull |
-| `↑2` | Commits not pushed |
-| `↑` | Branch has no upstream yet |
-| `↓4` | Behind upstream (as of the last fetch) |
-| `…` | Still checking |
-| `⚠` | Status could not be read |
-| none | Clean and in sync |
+| Open in Source Control | Opens the repo in VS Code's Git and shows the Source Control view |
+| View All Changes | Opens every changed file of the repo in one diff view |
+| Switch Branch… | Lists local and remote branches and switches to the one you pick |
+| Fetch / Pull / Push | Runs the git command for this repo. Push sets an upstream if the branch has none |
+| Open Terminal Here | Opens a terminal in the repo folder |
+| Open Repo in New Window | Opens just this repo in a new VS Code window |
+| Copy Branch Name | Copies the current branch name |
 
-In descriptions: `●` modified, `+` staged, `?` untracked, `✕` conflicted, `≡` stash.
+In the built-in Explorer, these commands are under **Git Repo** when you right-click a repo folder.
 
-## Right-click a repo
+The toolbar of the **Git Repos** view also has **Fetch All Repos**, **Filter Repos**, and **Refresh**.
 
-Open in Source Control · View All Changes · Switch Branch… · Fetch · Pull · Push · Open Terminal Here · Open Repo in New Window · Copy Branch Name. In the built-in Explorer these are under **Git Repo**.
+## What the symbols mean
 
-*Open in Source Control* opens the repo in VS Code's Git and shows the Source Control view. VS Code has no public API to select one repo in that view, so other repos may still be listed. *Open Repo in New Window* gives a Source Control view with only that repo.
+| Badge | Color | Meaning |
+| --- | --- | --- |
+| *(none)* | normal | Clean and in sync with its upstream |
+| `4`, `9+` | yellow | Files with uncommitted changes |
+| `↑2` | blue | 2 commits not pushed yet |
+| `↑` | blue | The branch has never been pushed (no upstream) |
+| `↓4` | purple | 4 commits behind the remote, as of the last fetch |
+| `↕` | purple | Diverged: commits to push *and* to pull |
+| `!` | red | Files with merge conflicts |
+| `M` `R` `C` `V` | red | Merge, rebase, cherry-pick or revert in progress |
+| `D` | yellow | Detached HEAD (not on a branch) |
+| `…` | gray | Still checking |
+| `⚠` | red | The status could not be read. Hover for the error |
 
-## How it stays fast
+When a repo has several states at once, the badge shows the most important one. The text after the name shows all of them:
 
-- Branch, detached HEAD and unfinished operations are read straight from files in `.git`, with no git process. With 300 repos this takes about 100 ms.
-- `git status` runs through a queue (6 at a time by default): repos you are working in first, then repos on screen, then the rest in the background.
-- One file watcher for the whole workspace (VS Code's own); changes are debounced per repo.
-- Status checks set `GIT_OPTIONAL_LOCKS=0`, so they never take `index.lock` or get in the way of your own git commands.
-- Nothing is fetched automatically. Use **Fetch All Repos** when you want fresh ahead/behind numbers.
+| Text | Meaning |
+| --- | --- |
+| `⎇ main` | Current branch |
+| `●2` | 2 files modified |
+| `+1` | 1 file staged |
+| `?1` | 1 untracked file |
+| `✕1` | 1 file with conflicts |
+| `↑2 ↓3` | 2 commits to push, 3 to pull |
+| `≡1` | 1 stash entry |
+| `MERGING`, `REBASING 1/2` | An operation is in progress (rebase step 1 of 2) |
+
+Other folders show `no git` (no repos inside), `not scanned` (deeper than the scan limit; right-click and choose **Scan This Folder**), or `excluded`.
+
+## Install
+
+The extension isn't on the VS Code Marketplace yet. Build it from source:
+
+```bash
+git clone https://github.com/prateep-r/vscode-multi-repo-git-status.git
+cd vscode-multi-repo-git-status
+npm install
+npx @vscode/vsce package
+code --install-extension multi-repo-git-status-0.0.1.vsix
+```
+
+Requirements: VS Code 1.95 or later, Node.js 20 or later, and `git` on your `PATH`.
+
+To uninstall:
+
+```bash
+code --uninstall-extension local.multi-repo-git-status
+```
 
 ## Settings
 
-| Setting | Default | |
+| Setting | Default | Description |
 | --- | --- | --- |
-| `multiRepoGit.scanDepth` | `3` | Folder levels below each workspace folder to search |
-| `multiRepoGit.exclude` | `node_modules`, `vendor`, `dist`, … | Folder names never searched |
-| `multiRepoGit.maxConcurrency` | `6` | Git processes at the same time |
-| `multiRepoGit.countUntracked` | `true` | Turn off for faster checks in big repos |
-| `multiRepoGit.refreshOnFocus` | `true` | Re-check when the window gets focus |
-| `multiRepoGit.backgroundRefreshMinutes` | `5` | Background re-check interval; `0` turns it off |
+| `multiRepoGit.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
+| `multiRepoGit.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched |
+| `multiRepoGit.maxConcurrency` | `6` | Maximum number of git processes at the same time |
+| `multiRepoGit.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
+| `multiRepoGit.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |
+| `multiRepoGit.backgroundRefreshMinutes` | `5` | Re-check all repos this often. `0` turns it off |
 
-Colors can be changed with `workbench.colorCustomizations` (`multiRepoGit.conflictForeground`, `multiRepoGit.dirtyForeground`, `multiRepoGit.aheadForeground`, `multiRepoGit.behindForeground`, `multiRepoGit.pendingForeground`, `multiRepoGit.errorForeground`).
+You can change the colors with `workbench.colorCustomizations`:
+
+```jsonc
+"workbench.colorCustomizations": {
+  "multiRepoGit.aheadForeground": "#4FC1FF",
+  "multiRepoGit.behindForeground": "#D18AE0"
+}
+```
+
+Available colors: `multiRepoGit.conflictForeground`, `multiRepoGit.dirtyForeground`, `multiRepoGit.aheadForeground`, `multiRepoGit.behindForeground`, `multiRepoGit.pendingForeground`, `multiRepoGit.errorForeground`.
+
+## Performance
+
+Tested with 300 repos: they are found in about 50 ms, every repo shows its branch right away, and all statuses are checked in about 4 seconds in the background.
+
+- **Branch and in-progress state** (merge, rebase…) are read directly from files in `.git`, without running git.
+- **`git status`** runs through a queue, a few at a time. Repos you're working in go first, then repos on screen, then the rest.
+- **Changes are picked up automatically**, including commits made in a terminal outside VS Code. The extension uses VS Code's own file watcher and debounces changes per repo.
+- **Your own git commands aren't blocked.** Status checks never take git's `index.lock`.
+- **Nothing is fetched automatically.** "Behind remote" is based on your last fetch. Use **Fetch All Repos** to update it.
+
+## Known limitations
+
+- **Open in Source Control** shows the Source Control view but can't select the repo for you. VS Code has no API for that. Use **Open Repo in New Window** to get a Source Control view with only that repo.
+- A repo nested inside another repo is only found if it's a submodule, or if the outer repo is itself a workspace folder.
+- Only local folders are supported (not Remote SSH, WSL, or virtual workspaces).
 
 ## Development
 
 ```bash
 npm install
-npm test                      # unit tests
-scripts/make-sample-repos.sh /tmp/sample-ws 300
+npm test                                     # unit tests
+scripts/make-sample-repos.sh /tmp/sample-ws 300   # sample workspace with repos in every state
 VSCODE_PATH="/Applications/Visual Studio Code.app/Contents/MacOS/Code" \
-  npm run test:integration -- /tmp/sample-ws
+  npm run test:integration -- /tmp/sample-ws # tests inside a real VS Code
 ```
 
-Press F5 in VS Code to run the extension in a new window.
+Press <kbd>F5</kbd> in VS Code to run the extension in a new window.
 
-Repos nested inside another repo are only found when they are submodules (or when the outer repo is a workspace folder).
+| Path | Contents |
+| --- | --- |
+| `src/core/` | Logic with no VS Code dependency: parsing `git status`, reading `.git`, the job queue, and the rules for which state and badge to show |
+| `src/store.ts` | Keeps every repo's state up to date: discovery, refresh queue, file watching |
+| `src/views/` | Repo Explorer, Git Repos view, Explorer decorations, status bar |
+| `src/commands.ts` | Right-click and toolbar commands |
+
+## License
+
+[MIT](LICENSE)

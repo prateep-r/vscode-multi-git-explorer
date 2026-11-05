@@ -236,7 +236,8 @@ function buildTooltip(
       status.staged && `${status.staged} staged`,
       status.untracked && `${status.untracked} untracked`,
     ].filter(Boolean);
-    lines.push(changes.length ? `Changes: ${changes.join(' · ')}` : 'No local changes');
+    if (changes.length) lines.push(`Changes: ${changes.join(' · ')}`);
+    else if (!status.conflicted) lines.push('No local changes');
     if (status.stash) lines.push(`Stash: ${status.stash}`);
   } else if (snap.error) {
     lines.push(`Couldn't read status: ${snap.error}`);

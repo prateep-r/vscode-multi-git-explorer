@@ -97,6 +97,7 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
     const item = new vscode.TreeItem(vscode.Uri.file(repo.root), vscode.TreeItemCollapsibleState.None);
     item.id = `repo:${repo.root}`;
     item.label = this.label(repo);
+    item.iconPath = new vscode.ThemeIcon('repo');
     item.description = repo.view.description;
     item.tooltip = repo.view.tooltip;
     item.contextValue = repo.view.contextValue;
