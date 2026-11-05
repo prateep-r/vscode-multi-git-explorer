@@ -130,6 +130,20 @@ test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
     assert.equal(explorer.getTreeItem(await child(await child(services, 'billing'), 'README.md')).description, 'conflict');
     assert.equal((await names(await child(services, 'reports'))).length, 12);
 
+    // Changes under excluded folders and files.exclude names are left out too.
+    const multiRepoGit = vscode.workspace.getConfiguration('multiRepoGit');
+    const files = vscode.workspace.getConfiguration('files');
+    const exclude = multiRepoGit.get<string[]>('exclude', []);
+    await multiRepoGit.update('exclude', [...exclude, 'src'], vscode.ConfigurationTarget.Global);
+    await files.update('exclude', { '**/NOTES.md': true }, vscode.ConfigurationTarget.Global);
+    try {
+      assert.deepEqual(await names(api), ['README.md']);
+    } finally {
+      await multiRepoGit.update('exclude', undefined, vscode.ConfigurationTarget.Global);
+      await files.update('exclude', undefined, vscode.ConfigurationTarget.Global);
+    }
+    assert.deepEqual(await names(api), ['src', 'NOTES.md', 'README.md']);
+
     explorer.setFilters(['unpushed']);
     assert.deepEqual(await names(), ['services']);
     assert.deepEqual(await names(await child(undefined, 'services')), ['auth-service', 'billing', 'mobile-api', 'payments']);

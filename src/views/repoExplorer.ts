@@ -126,7 +126,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (!this.filtering) return this.readDir(uri);
     if (node?.change) {
       // An untracked folder is new as a whole, so everything inside it is a change.
-      return (await this.readDir(uri)).map(child => ({ ...child, change: node.change }));
+      const excluded = this.excludedNames();
+      return (await this.readDir(uri))
+        .filter(child => !(child.isDir && excluded.has(path.basename(child.uri.fsPath))))
+        .map(child => ({ ...child, change: node.change }));
     }
     return this.filteredChildren(uri);
   }
@@ -225,15 +228,17 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   private filteredChildren(uri: vscode.Uri): ExplorerNode[] {
     const matching = this.matchingRepos();
     const changes = matching.filter(r => this.showsFilesOf(r)).map(r => ({ root: r.root, files: r.status!.files }));
-    return filteredEntries(
-      uri.fsPath,
-      matching.map(r => r.root),
-      changes,
-    ).map(entry => {
-      const child = vscode.Uri.joinPath(uri, entry.name);
-      if (!entry.isDir) return { uri: child, isDir: false, change: entry.change };
-      return entry.change ? { uri: child, isDir: true, change: entry.change } : this.dirNode(child);
-    });
+    // Changed files come straight from git, so leave out what the unfiltered
+    // tree hides (files.exclude) and the folders that are never searched.
+    const hidden = this.hiddenNames(uri);
+    const excluded = this.excludedNames();
+    return filteredEntries(uri.fsPath, matching.map(r => r.root), changes)
+      .filter(entry => !hidden.has(entry.name) && !(entry.isDir && excluded.has(entry.name)))
+      .map(entry => {
+        const child = vscode.Uri.joinPath(uri, entry.name);
+        if (!entry.isDir) return { uri: child, isDir: false, change: entry.change };
+        return entry.change ? { uri: child, isDir: true, change: entry.change } : this.dirNode(child);
+      });
   }
 
   private async readDir(uri: vscode.Uri): Promise<ExplorerNode[]> {
@@ -274,10 +279,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return names;
   }
 
+  /** Folder names in `multiRepoGit.exclude`. */
+  private excludedNames(): Set<string> {
+    return new Set(vscode.workspace.getConfiguration('multiRepoGit').get<string[]>('exclude', []));
+  }
+
   private isExcluded(fsPath: string): boolean {
-    const exclude = vscode.workspace.getConfiguration('multiRepoGit').get<string[]>('exclude', []);
     const name = path.basename(fsPath);
-    return name.startsWith('.') || exclude.includes(name);
+    return name.startsWith('.') || this.excludedNames().has(name);
   }
 
   private refreshAll(): void {

@@ -619,7 +619,7 @@
             "bower_components",
             "__pycache__"
           ],
-          "description": "Folder names that are never searched for repositories."
+          "description": "Folder names that are never searched for repositories, and are hidden while the Repo Explorer is filtered."
         },
         "multiRepoGit.decorateExplorer": {
           "type": "boolean",

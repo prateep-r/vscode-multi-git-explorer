@@ -60,7 +60,7 @@ The title bar of the file tree (the one with your project's name) has three filt
 
 ![Repo Explorer filtered to changed files](assets/images/filter.png)
 
-Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Next to the letter you may see `staged`, `partly staged`, or `conflict`. The filter is remembered per workspace.
+Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Next to the letter you may see `staged`, `partly staged`, or `conflict`. Folders named in `multiRepoGit.exclude` and anything hidden by `files.exclude` stay hidden while filtering, even if git sees changes in them. The filter is remembered per workspace.
 
 To search files by name or content, use VS Code's own **Search** view (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>). Put a repo's path in *files to include* to search just that repo.
 
@@ -210,7 +210,7 @@ code --uninstall-extension local.multi-repo-explorer
 | Setting | Default | Description |
 | --- | --- | --- |
 | `multiRepoGit.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
-| `multiRepoGit.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched |
+| `multiRepoGit.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched, and are hidden while filtering |
 | `multiRepoGit.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
 | `multiRepoGit.maxConcurrency` | `6` | Maximum number of git processes at the same time |
 | `multiRepoGit.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
