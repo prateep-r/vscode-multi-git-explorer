@@ -134,11 +134,15 @@ def sec(title, desc='', acts=''):
     d = f'<span class="d">{desc}</span>' if desc else ''
     return f'<div class="sec"><span class="tw">{ci("chevron-down")}</span>{title}{d}{a}</div>'
 
+# Our file tree's header: "Files", with the project's name as the view's
+# description, which keeps its case.
+PROJECT = 'FILES<span class="d">sample-ws</span>'
+
 REPOS_ACTS = ci('cloud-download') + ci('filter') + ci('refresh') + ci('collapse-all')
 
 # 1. Overview
 side = ('<div class="vt">REPO EXPLORER</div>'
-    + sec('SAMPLE-WS', '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all')) + repo_explorer()
+    + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all')) + repo_explorer()
     + sec('GIT REPOS', '299', REPOS_ACTS) + GIT_REPOS.replace('SELAUTH', ''))
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
 caps = ('<div class="cap" style="left:220px;top:65px">1  Repo Explorer</div>'
@@ -174,7 +178,7 @@ def frow(indent, name, letter, extra_desc='', strike=False):
             f'<span class="lb {color}">{lab}</span><span class="ds">{extra_desc}</span><span class="bd {color}">{letter}</span></div>')
 FILTER_ON = '<span style="color:#ffffff">' + ci('circle-filled') + '</span>'
 side = ('<div class="vt">REPO EXPLORER</div>'
-    + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>SAMPLE-WS<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
+    + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'frontend', '1 repo · ●1')
     + row(1, 'open', 'design-system', '⎇ 3f2a9c1 (detached) · ●1', '1', 'am')
@@ -232,7 +236,7 @@ DIFF_EDITOR = ('<div class="tabs"><div class="tab" style="font-style:italic">' +
     '<div style="border-right:1px solid #2b2b2b;padding-top:4px">' + pane(LEFT, 'l') + '</div>'
     '<div style="padding-top:4px">' + pane(RIGHT, 'r') + '</div></div>')
 side = ('<div class="vt">REPO EXPLORER</div>'
-    + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>SAMPLE-WS<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
+    + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'services', '4 repos · !2 ●2')
     + row(1, 'open', 'api-gateway', '⎇ main · ●2 +1 ?1', '4', 'am')
@@ -254,7 +258,7 @@ menu = ('<div class="menu" style="left:250px;top:222px;min-width:250px">'
         '<div class="mi hl">Add to Claude Chat</div><div class="mi">Add to Codex Chat</div>'
         '<div class="msep"></div><div class="mi">Open Changes</div><div class="mi">Open File</div></div>')
 side = ('<div class="vt">REPO EXPLORER</div>'
-    + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>SAMPLE-WS<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
+    + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'services', '4 repos · !2 ●2')
     + row(1, 'open', 'api-gateway', '⎇ main · ●2 +1 ?1', '4', 'am')
@@ -290,7 +294,7 @@ def repo_menu(left, top, highlight):
         for it in g:
             m += f'<div class="mi{" hl" if it == highlight else ""}">{it}</div>'
     return m + '</div>'
-side = ('<div class="vt">REPO EXPLORER</div>' + '<div class="sec"><span class="tw">' + ci('chevron-right') + '</span>SAMPLE-WS</div>'
+side = ('<div class="vt">REPO EXPLORER</div>' + '<div class="sec"><span class="tw">' + ci('chevron-right') + '</span>' + PROJECT + '</div>'
     + sec('GIT REPOS', '299', REPOS_ACTS) + GIT_REPOS.replace('SELAUTH', 'sel') + repo_menu(300, 308, 'Switch Branch...'))
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
 open('menu.html', 'w').write(html)
@@ -317,7 +321,7 @@ picker = ('<div style="position:absolute;left:520px;top:6px;width:600px;backgrou
     + qp_real('cloud', 'origin/release/2.4', 'not checked out · 2 weeks ago')
     + '</div>')
 side = ('<div class="vt">REPO EXPLORER</div>'
-    + sec('SAMPLE-WS', '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all'))
+    + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all'))
     + row(0, 'closed', 'archive', '287 repos · all clean')
     + row(0, 'closed', 'frontend', '3 repos · ●1')
     + row(0, 'open', 'services', '9 repos · !2 ●2 ↑2 ↓2')

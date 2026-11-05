@@ -80,9 +80,19 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return this.treeView?.title;
   }
 
-  /** Titles the view with the project's name, like the built-in Explorer does. */
+  get description(): string | undefined {
+    return this.treeView?.description;
+  }
+
+  /**
+   * Shows the project's name beside the "Files" title. VS Code changes the
+   * case of view titles (only its own Explorer keeps the case), but not of
+   * descriptions, so the name is the description.
+   */
   private updateTitle(): void {
-    if (this.treeView) this.treeView.title = vscode.workspace.name ?? 'Files';
+    if (!this.treeView) return;
+    this.treeView.title = 'Files';
+    this.treeView.description = vscode.workspace.name;
   }
 
   get activeFilters(): ExplorerFilter[] {

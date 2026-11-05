@@ -273,11 +273,13 @@ test('Open in Source Control opens the repo in VS Code Git', async () => {
   assert.ok(git.getRepository(uri), 'repo is open in VS Code Git');
 });
 
-test('the file tree is titled with the project name, under a Repo Explorer header', async ({ explorer }) => {
+test('the file tree is titled Files, with the project name as written beside it', async ({ explorer }) => {
   const manifest = vscode.extensions.getExtension('local.multi-repo-explorer')!.packageJSON;
   const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoGit');
   assert.equal(container.title, 'Repo Explorer');
-  assert.equal(explorer.title, path.basename(sample));
+  // VS Code uppercases titles but not descriptions, so the name is the description.
+  assert.equal(explorer.title, 'Files');
+  assert.equal(explorer.description, path.basename(sample));
 });
 
 test('New File and New Folder create items in the chosen folder and open the file', async () => {
