@@ -55,7 +55,7 @@ The built-in Explorer is left unchanged by default. Turn on `multiRepoGit.decora
 | --- | --- |
 | Open in Source Control | Opens the repo in VS Code's Git and shows the Source Control view |
 | View All Changes | Opens every changed file of the repo in one diff view |
-| Switch Branch… | Lists local and remote branches and switches to the one you pick |
+| Switch Branch… | Lists local branches (newest first, with how far each is ahead or behind) and remote branches you haven't checked out, and switches to the one you pick. Picking a remote branch creates a local branch that tracks it. You can also create a new branch here. If your uncommitted changes would be overwritten, it offers to stash them first |
 | Fetch / Pull / Push | Runs the git command for this repo. Push sets an upstream if the branch has none |
 | Open Terminal Here | Opens a terminal in the repo folder |
 | Open Repo in New Window | Opens just this repo in a new VS Code window |

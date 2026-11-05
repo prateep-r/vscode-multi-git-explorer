@@ -186,6 +186,32 @@ test('clicking a changed file while filtered opens a diff against HEAD', async (
   }
 });
 
+test('Switch Branch lists branches and switches to the picked one', async ({ store }) => {
+  const root = at('services/auth-service');
+  const branch = () => execFileSync('git', ['branch', '--show-current'], { cwd: root, encoding: 'utf8' }).trim();
+  assert.equal(branch(), 'feat/sso');
+  try {
+    // Items: Create new…, Create from…, feat/sso (current, newest), main.
+    const done = vscode.commands.executeCommand('multiRepoGit.switchBranch', vscode.Uri.file(root));
+    await new Promise(r => setTimeout(r, 1500));
+    for (let i = 0; i < 3; i++) await vscode.commands.executeCommand('workbench.action.quickOpenSelectNext');
+    await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
+    await done;
+    assert.equal(branch(), 'main');
+    await waitFor('the view to show main', () => store.get(root)?.view.branchLabel === 'main', 10_000);
+  } finally {
+    execFileSync('git', ['switch', '-q', 'feat/sso'], { cwd: root });
+    await waitFor('the view to show feat/sso again', () => store.get(root)?.view.kind === 'ahead', 10_000);
+  }
+});
+
+test('Switch Branch refuses while a merge is in progress', async () => {
+  const billing = at('services/billing');
+  const before = execFileSync('git', ['branch', '--show-current'], { cwd: billing, encoding: 'utf8' }).trim();
+  await vscode.commands.executeCommand('multiRepoGit.switchBranch', vscode.Uri.file(billing));
+  assert.equal(execFileSync('git', ['branch', '--show-current'], { cwd: billing, encoding: 'utf8' }).trim(), before);
+});
+
 test('Git Repos view groups problems first and filters', async ({ reposView }) => {
   const groups = reposView.getChildren().map(n => (n.type === 'group' ? n.key : ''));
   assert.deepEqual(groups, ['conflict', 'dirty', 'unpushed', 'behind', 'clean']);

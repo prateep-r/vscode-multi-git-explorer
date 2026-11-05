@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { isValidBranchName, listBranches, stashChanges, switchBranch, type Branches } from './core/branches';
 import { GitError, runGit } from './core/git';
 import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
 import { Priority, runPool } from './core/queue';
@@ -133,44 +134,7 @@ export function registerCommands(
 
     vscode.commands.registerCommand(
       'multiRepoGit.switchBranch',
-      withRepo(async repo => {
-        let refs: string;
-        try {
-          refs = await git(repo, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']);
-        } catch (error) {
-          showGitError(`Couldn't list branches of ${repo.name}`, error);
-          return;
-        }
-        const current = repo.view.branchLabel;
-        const local = new Set<string>();
-        const items: (vscode.QuickPickItem & { branch: string })[] = [];
-        for (const ref of refs.split('\n').filter(Boolean)) {
-          if (ref.startsWith('refs/heads/')) {
-            const branch = ref.slice('refs/heads/'.length);
-            local.add(branch);
-            items.push({ label: `$(git-branch) ${branch}`, description: branch === current ? 'current' : undefined, branch });
-          }
-        }
-        for (const ref of refs.split('\n').filter(Boolean)) {
-          if (!ref.startsWith('refs/remotes/') || ref.endsWith('/HEAD')) continue;
-          const remoteBranch = ref.slice('refs/remotes/'.length);
-          const branch = remoteBranch.slice(remoteBranch.indexOf('/') + 1);
-          if (!local.has(branch)) items.push({ label: `$(cloud) ${remoteBranch}`, description: 'remote', branch });
-        }
-        const picked = await vscode.window.showQuickPick(items, {
-          title: `Switch branch in ${repo.name}`,
-          placeHolder: `Current: ${current}`,
-          matchOnDescription: true,
-        });
-        if (!picked || picked.branch === current) return;
-        try {
-          await git(repo, ['switch', picked.branch]);
-        } catch (error) {
-          showGitError(`Couldn't switch ${repo.name} to ${picked.branch}`, error);
-        } finally {
-          store.refresh(repo.root, Priority.User);
-        }
-      }),
+      withRepo(repo => pickAndSwitchBranch(store, repo)),
     ),
 
     vscode.commands.registerCommand('multiRepoGit.fetch', withRepo(repo => runWithProgress(repo, 'Fetching', ['fetch']))),
@@ -270,6 +234,115 @@ async function openChange(store: RepoStore, node: ExplorerNode): Promise<void> {
   const right = change.letter === 'D' ? headUri(node.uri, repo.root, undefined) : node.uri;
   const title = `${path.basename(node.uri.fsPath)} (${DIFF_LABELS[change.letter]})`;
   await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true });
+}
+
+type BranchPick = vscode.QuickPickItem & {
+  action?: { local: string } | { remote: string } | { create: true; from?: boolean };
+};
+
+async function pickAndSwitchBranch(store: RepoStore, repo: RepoEntry): Promise<void> {
+  const operation = repo.cheap?.operation;
+  if (operation) {
+    void vscode.window.showWarningMessage(`Finish or abort the ${operation.kind} in ${repo.name} before switching branches.`);
+    return;
+  }
+  const options = { gitPath: gitPath() };
+  let branches: Branches;
+  try {
+    branches = await listBranches(repo.root, options);
+  } catch (error) {
+    showGitError(`Couldn't list branches of ${repo.name}`, error);
+    return;
+  }
+
+  const current = repo.status?.branch.detached ? undefined : (repo.status?.branch.head ?? repo.cheap?.branch);
+  const separator = (label: string): BranchPick => ({ label, kind: vscode.QuickPickItemKind.Separator });
+  const items: BranchPick[] = [
+    { label: '$(plus) Create new branch…', action: { create: true } },
+    { label: '$(plus) Create new branch from…', action: { create: true, from: true } },
+    separator('local branches'),
+    ...branches.local.map(b => ({
+      label: `${b.name === current ? '$(check)' : '$(git-branch)'} ${b.name}`,
+      description: [
+        b.name === current && 'current',
+        b.ahead && `↑${b.ahead}`,
+        b.behind && `↓${b.behind} behind ${b.upstream}`,
+        b.gone && 'upstream deleted',
+        b.when,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      action: { local: b.name },
+    })),
+    ...(branches.remote.length ? [separator('remote branches')] : []),
+    ...branches.remote.map(b => ({
+      label: `$(cloud) ${b.name}`,
+      description: `not checked out · ${b.when}`,
+      action: { remote: b.name },
+    })),
+  ];
+
+  const picked = await vscode.window.showQuickPick(items, {
+    title: `Switch branch in ${vscode.workspace.asRelativePath(repo.root)}`,
+    placeHolder: `Pick a branch or type to search · current: ${repo.view.branchLabel}`,
+    matchOnDescription: true,
+  });
+  const action = picked?.action;
+  if (!action || ('local' in action && action.local === current)) return;
+
+  let target: Parameters<typeof switchBranch>[1];
+  if ('create' in action) {
+    let from: string | undefined;
+    if (action.from) {
+      const base = await vscode.window.showQuickPick(
+        [...branches.local.map(b => b.name), ...branches.remote.map(b => b.name)].map(label => ({ label })),
+        { title: `Create a branch in ${repo.name} from…`, placeHolder: 'Pick the branch to start from' },
+      );
+      if (!base) return;
+      from = base.label;
+    }
+    const name = await vscode.window.showInputBox({
+      title: `New branch in ${repo.name}${from ? ` from ${from}` : ''}`,
+      prompt: 'Branch name',
+      placeHolder: 'feat/my-change',
+      validateInput: async value =>
+        !value.trim()
+          ? undefined
+          : (await isValidBranchName(repo.root, value.trim(), options))
+            ? branches.local.some(b => b.name === value.trim())
+              ? 'A branch with this name already exists'
+              : undefined
+            : 'Not a valid branch name',
+    });
+    if (!name?.trim()) return;
+    target = { create: name.trim(), from };
+  } else {
+    target = action;
+  }
+
+  const label = 'local' in target ? target.local : 'remote' in target ? target.remote : target.create;
+  try {
+    let result = await switchBranch(repo.root, target, options);
+    if (!result.ok && result.blockedByChanges) {
+      const choice = await vscode.window.showWarningMessage(
+        `Your uncommitted changes in ${repo.name} would be overwritten by switching to ${label}.`,
+        { modal: true, detail: 'Stash them to keep them safe, then switch. You can bring them back later with "git stash pop".' },
+        'Stash and Switch',
+      );
+      if (choice !== 'Stash and Switch') return;
+      await stashChanges(repo.root, `Before switching to ${label}`, options);
+      result = await switchBranch(repo.root, target, options);
+      if (result.ok) {
+        void vscode.window.showInformationMessage(`Stashed your changes in ${repo.name} and switched to ${label}.`);
+        return;
+      }
+    }
+    if (!result.ok) showGitError(`Couldn't switch ${repo.name} to ${label}`, new Error(result.message));
+  } catch (error) {
+    showGitError(`Couldn't switch ${repo.name} to ${label}`, error);
+  } finally {
+    store.refresh(repo.root, Priority.User);
+  }
 }
 
 async function fetchAll(store: RepoStore): Promise<void> {

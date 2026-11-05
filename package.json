@@ -342,7 +342,7 @@
         {
           "command": "multiRepoGit.switchBranch",
           "when": "viewItem =~ /\\brepo\\b/",
-          "group": "1_scm@3"
+          "group": "0_branch@1"
         },
         {
           "command": "multiRepoGit.fetch",
@@ -398,7 +398,7 @@
         },
         {
           "command": "multiRepoGit.switchBranch",
-          "group": "1_scm@3"
+          "group": "0_branch@1"
         },
         {
           "command": "multiRepoGit.fetch",
