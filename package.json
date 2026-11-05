@@ -32,7 +32,7 @@
       "activitybar": [
         {
           "id": "multiRepoGit",
-          "title": "Multi-Repo Git Status",
+          "title": "Repo Explorer",
           "icon": "media/icon.svg"
         }
       ]
@@ -41,7 +41,7 @@
       "multiRepoGit": [
         {
           "id": "multiRepoGit.explorer",
-          "name": "Explorer"
+          "name": "Files"
         },
         {
           "id": "multiRepoGit.repos",

@@ -259,11 +259,11 @@ test('Open in Source Control opens the repo in VS Code Git', async () => {
   assert.ok(git.getRepository(uri), 'repo is open in VS Code Git');
 });
 
-test('the Explorer view shows the project name next to its title', async ({ explorer }) => {
+test('the file tree is titled with the project name, under a Repo Explorer header', async ({ explorer }) => {
   const manifest = vscode.extensions.getExtension('local.multi-repo-git-status')!.packageJSON;
-  const view = manifest.contributes.views.multiRepoGit.find((v: { id: string }) => v.id === 'multiRepoGit.explorer');
-  assert.equal(view.name, 'Explorer');
-  assert.equal(explorer.description, path.basename(sample));
+  const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoGit');
+  assert.equal(container.title, 'Repo Explorer');
+  assert.equal(explorer.title, path.basename(sample));
 });
 
 test('every command in package.json is registered', async () => {

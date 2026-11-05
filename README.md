@@ -6,7 +6,7 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 
 ![Repo Explorer and Git Repos views](assets/images/overview.png)
 
-1. **Explorer** (called *Repo Explorer* in this README, to tell it apart from VS Code's built-in Explorer): your files, with each repo's branch and status written after its name. The project's folder name is shown next to its title.
+1. **Repo Explorer**: your files, with each repo's branch and status written after its name. Like the built-in Explorer, the tree is titled with your project's folder name.
 2. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
 3. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
 
@@ -35,7 +35,7 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 
 1. [Install the extension](#install).
 2. Open the folder that holds your repos (**File → Open Folder…**).
-3. Click the **Multi-Repo Git Status** icon (a radar) in the Activity Bar.
+3. Click the **Repo Explorer** icon (a radar) in the Activity Bar.
 
 Repos are found automatically, up to 3 folder levels deep. Every repo shows its branch right away; the rest of its status fills in within a few seconds.
 
@@ -50,7 +50,7 @@ Repos are found automatically, up to 3 folder levels deep. Every repo shows its 
 
 ### Show only what changed
 
-The **Repo Explorer** title bar has three filter buttons. Click one to turn it on, and click it again to turn it off. The icon is filled while it's on. You can turn on more than one, and repos matching any of them are shown.
+The title bar of the file tree (the one with your project's name) has three filter buttons. Click one to turn it on, and click it again to turn it off. The icon is filled while it's on. You can turn on more than one, and repos matching any of them are shown.
 
 | Button | Off | On | Shows |
 | --- | --- | --- | --- |
