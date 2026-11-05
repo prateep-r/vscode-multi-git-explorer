@@ -3,6 +3,9 @@
 The text in them is what the extension shows for the sample workspace made by
 scripts/make-sample-repos.sh. Run render.sh rather than this file directly.
 """
+import os
+import re
+
 CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#1f1f1f;color:#cccccc;font:13px -apple-system,"Segoe UI",sans-serif;overflow:hidden}
@@ -46,7 +49,8 @@ body{background:#1f1f1f;color:#cccccc;font:13px -apple-system,"Segoe UI",sans-se
 .cap{position:absolute;background:#ffd84d;color:#1b1b1b;font-weight:700;font-size:12px;border-radius:11px;height:22px;min-width:22px;padding:0 7px;display:flex;align-items:center;justify-content:center;z-index:9;box-shadow:0 0 0 3px rgba(0,0,0,.45);white-space:nowrap}
 """
 HEAD = '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"><style>' + CSS + '</style></head><body>'
-RADAR = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><path d="M12 12 L18.4 5.6"/><circle cx="16.5" cy="15" r="1" fill="currentColor"/><circle cx="7.5" cy="8" r="1" fill="currentColor"/></svg>'
+# The Activity Bar icon, read from the one shipped with the extension.
+ICON = re.sub(r'\s*\n\s*', '', open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'media', 'icon.svg')).read().replace(' xmlns="http://www.w3.org/2000/svg"', ''))
 
 def ci(name, cls=''):
     return f'<i class="codicon codicon-{name} {cls}"></i>'
@@ -66,7 +70,7 @@ def chrome(cols, side, editor, status_left, status_right, title):
     return (HEAD + f'<div class="win" style="grid-template-columns:48px {cols} 1fr;grid-template-rows:30px 1fr 22px">'
         + f'<div class="title" style="grid-column:1/4"><span class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>{title}</div>'
         + '<div class="act"><div class="a">' + ci('files') + '</div><div class="a">' + ci('search') + '</div><div class="a">' + ci('source-control')
-        + f'</div><div class="a on">{RADAR}</div><div class="a">' + ci('extensions') + '</div></div>'
+        + f'</div><div class="a on">{ICON}</div><div class="a">' + ci('extensions') + '</div></div>'
         + f'<div class="side">{side}</div><div class="ed">{editor}</div>'
         + f'<div class="status" style="grid-column:1/4">{status_left}<span class="sp"></span>{status_right}</div></div></body></html>')
 

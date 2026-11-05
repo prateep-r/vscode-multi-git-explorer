@@ -35,7 +35,7 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 
 1. [Install the extension](#install).
 2. Open the folder that holds your repos (**File → Open Folder…**).
-3. Click the **Repo Explorer** icon (a radar) in the Activity Bar.
+3. Click the **Repo Explorer** icon (two pages with an M) in the Activity Bar.
 
 Repos are found automatically, up to 3 folder levels deep. Every repo shows its branch right away; the rest of its status fills in within a few seconds.
 
