@@ -19,9 +19,21 @@ Open the **Multi-Repo Git Status** icon in the Activity Bar.
 - **Repo Explorer** works like the normal Explorer: expand folders and click files to open them. Each repo shows its branch and status after its name. Folders that contain repos show a summary like `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them.
 - **Git Repos** lists every repo, grouped: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, *Clean*. Click the filter icon to find a repo by path or branch name.
 
-### Badges in the normal Explorer
+### Show only what changed
 
-Repo folders in the built-in Explorer get a color and a short badge. Hover over a repo folder for the details.
+Click the filter icon in the **Repo Explorer** title bar and pick what to show. You can pick more than one:
+
+- **Changed files**: repos with uncommitted or conflicted files, showing only those files and the folders they're in
+- **Not pushed**: repos with commits that aren't pushed yet
+- **Behind remote**: repos with new commits on the remote (as of the last fetch)
+
+![Repo Explorer filtered to changed files](docs/images/filter.png)
+
+Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Click a file to open it. Click the clear icon to show everything again. The filter is remembered per workspace.
+
+### Badges in the built-in Explorer (optional)
+
+The built-in Explorer is left unchanged by default. Turn on `multiRepoGit.decorateExplorer` to also give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu.
 
 ![Badges and tooltip in the built-in Explorer](docs/images/explorer.png)
 
@@ -41,7 +53,7 @@ Repo folders in the built-in Explorer get a color and a short badge. Hover over 
 | Open Repo in New Window | Opens just this repo in a new VS Code window |
 | Copy Branch Name | Copies the current branch name |
 
-In the built-in Explorer, these commands are under **Git Repo** when you right-click a repo folder.
+With `multiRepoGit.decorateExplorer` on, the same commands are also in the built-in Explorer, under **Git Repo** when you right-click a repo folder.
 
 The toolbar of the **Git Repos** view also has **Fetch All Repos**, **Filter Repos**, and **Refresh**.
 
@@ -102,6 +114,7 @@ code --uninstall-extension local.multi-repo-git-status
 | --- | --- | --- |
 | `multiRepoGit.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
 | `multiRepoGit.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched |
+| `multiRepoGit.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
 | `multiRepoGit.maxConcurrency` | `6` | Maximum number of git processes at the same time |
 | `multiRepoGit.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
 | `multiRepoGit.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |

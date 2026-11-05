@@ -17,11 +17,13 @@ export interface MultiRepoGitApi {
 export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
   const log = vscode.window.createOutputChannel('Multi-Repo Git Status');
   const store = new RepoStore(log);
-  const explorer = new RepoExplorerProvider(store);
+  const explorer = new RepoExplorerProvider(store, context.workspaceState);
   const reposView = new ReposViewProvider(store);
   const decorations = new RepoDecorationProvider(store);
   const reposTree = vscode.window.createTreeView('multiRepoGit.repos', { treeDataProvider: reposView, showCollapseAll: true });
   reposView.attach(reposTree);
+  const explorerTree = vscode.window.createTreeView('multiRepoGit.explorer', { treeDataProvider: explorer, showCollapseAll: true });
+  explorer.attach(explorerTree);
 
   context.subscriptions.push(
     log,
@@ -29,11 +31,11 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
     explorer,
     reposView,
     reposTree,
-    vscode.window.createTreeView('multiRepoGit.explorer', { treeDataProvider: explorer, showCollapseAll: true }),
+    explorerTree,
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
     new StatusBar(store),
-    ...registerCommands(store, reposView),
+    ...registerCommands(store, reposView, explorer),
   );
 
   void store.discover();

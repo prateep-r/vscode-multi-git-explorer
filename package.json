@@ -81,6 +81,24 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "multiRepoGit.filterExplorer",
+        "title": "Filter Repo Explorer...",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "multiRepoGit.filterExplorerActive",
+        "title": "Change Repo Explorer Filter...",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "multiRepoGit.clearExplorerFilter",
+        "title": "Show All Files",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "multiRepoGit.openInScm",
         "title": "Open in Source Control",
         "category": "Multi-Repo Git Status",
@@ -144,6 +162,21 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "multiRepoGit.filterExplorer",
+          "when": "view == multiRepoGit.explorer && !multiRepoGit.explorerFiltered",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multiRepoGit.filterExplorerActive",
+          "when": "view == multiRepoGit.explorer && multiRepoGit.explorerFiltered",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multiRepoGit.clearExplorerFilter",
+          "when": "view == multiRepoGit.explorer && multiRepoGit.explorerFiltered",
+          "group": "navigation@2"
+        },
         {
           "command": "multiRepoGit.fetchAll",
           "when": "view == multiRepoGit.repos",
@@ -230,7 +263,7 @@
       "explorer/context": [
         {
           "submenu": "multiRepoGit.repoMenu",
-          "when": "explorerResourceIsFolder && resourcePath in multiRepoGit.repoPaths",
+          "when": "explorerResourceIsFolder && config.multiRepoGit.decorateExplorer && resourcePath in multiRepoGit.repoPaths",
           "group": "7_multiRepoGit@1"
         }
       ],
@@ -304,6 +337,14 @@
         {
           "command": "multiRepoGit.clearFilter",
           "when": "multiRepoGit.filtered"
+        },
+        {
+          "command": "multiRepoGit.filterExplorerActive",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.clearExplorerFilter",
+          "when": "multiRepoGit.explorerFiltered"
         }
       ]
     },
@@ -395,6 +436,11 @@
             "__pycache__"
           ],
           "description": "Folder names that are never searched for repositories."
+        },
+        "multiRepoGit.decorateExplorer": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also show repo colors, badges, and the Git Repo right-click menu in the built-in Explorer. Off by default, so the built-in Explorer stays unchanged."
         },
         "multiRepoGit.maxConcurrency": {
           "type": "number",

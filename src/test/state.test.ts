@@ -14,6 +14,7 @@ function status(overrides: Partial<StatusSummary> = {}, branch: Partial<StatusSu
     untracked: 0,
     conflicted: 0,
     changedFiles: 0,
+    files: [],
     ...overrides,
     branch: { detached: false, head: 'main', oid: 'a1b2c3d4e5', upstream: 'origin/main', ahead: 0, behind: 0, ...branch },
   };

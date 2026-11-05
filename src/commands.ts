@@ -1,16 +1,21 @@
 import * as vscode from 'vscode';
 import { GitError, runGit } from './core/git';
+import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
 import { Priority, runPool } from './core/queue';
 import type { RepoEntry, RepoStore } from './store';
 import { GitStatus, type GitAPI, type GitChange, type GitExtension, type GitRepository } from './typings/git';
-import type { ExplorerNode } from './views/repoExplorer';
+import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import type { ReposNode, ReposViewProvider } from './views/reposView';
 
 const NETWORK_TIMEOUT_MS = 120_000;
 
 type CommandArg = vscode.Uri | ExplorerNode | ReposNode | undefined;
 
-export function registerCommands(store: RepoStore, reposView: ReposViewProvider): vscode.Disposable[] {
+export function registerCommands(
+  store: RepoStore,
+  reposView: ReposViewProvider,
+  explorer: RepoExplorerProvider,
+): vscode.Disposable[] {
   /** Finds the repo a command was invoked on: a view row, an Explorer folder, or the active file. */
   const repoFrom = (arg: CommandArg): RepoEntry | undefined => {
     let fsPath: string | undefined;
@@ -62,6 +67,12 @@ export function registerCommands(store: RepoStore, reposView: ReposViewProvider)
     }),
 
     vscode.commands.registerCommand('multiRepoGit.clearFilter', () => reposView.setFilter('')),
+
+    ...['multiRepoGit.filterExplorer', 'multiRepoGit.filterExplorerActive'].map(id =>
+      vscode.commands.registerCommand(id, () => pickExplorerFilters(explorer)),
+    ),
+
+    vscode.commands.registerCommand('multiRepoGit.clearExplorerFilter', () => explorer.setFilters([])),
 
     vscode.commands.registerCommand(
       'multiRepoGit.openInScm',
@@ -193,6 +204,28 @@ export function registerCommands(store: RepoStore, reposView: ReposViewProvider)
       return undefined;
     }),
   ];
+}
+
+const FILTER_DETAILS: Record<ExplorerFilter, [string, string]> = {
+  changes: ['$(diff)', 'Repos with uncommitted or conflicted files, showing only those files'],
+  unpushed: ['$(arrow-up)', 'Repos with commits that are not pushed yet'],
+  behind: ['$(arrow-down)', 'Repos with new commits on the remote (as of the last fetch)'],
+};
+
+async function pickExplorerFilters(explorer: RepoExplorerProvider): Promise<void> {
+  const active = new Set(explorer.activeFilters);
+  const items = (Object.keys(FILTER_DETAILS) as ExplorerFilter[]).map(filter => ({
+    label: `${FILTER_DETAILS[filter][0]} ${FILTER_LABELS[filter]}`,
+    detail: FILTER_DETAILS[filter][1],
+    picked: active.size === 0 ? filter === 'changes' : active.has(filter),
+    filter,
+  }));
+  const picked = await vscode.window.showQuickPick(items, {
+    title: 'Show in Repo Explorer',
+    placeHolder: 'Pick what to show. Pick nothing to show everything.',
+    canPickMany: true,
+  });
+  if (picked) explorer.setFilters(picked.map(item => item.filter));
 }
 
 async function fetchAll(store: RepoStore): Promise<void> {

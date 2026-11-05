@@ -52,6 +52,7 @@ export async function readStatus(root: string, countUntracked: boolean, options?
     [
       'status',
       '--porcelain=v2',
+      '-z',
       '--branch',
       '--show-stash',
       countUntracked ? '--untracked-files=normal' : '--untracked-files=no',

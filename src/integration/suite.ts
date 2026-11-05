@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import type { MultiRepoGitApi } from '../extension';
 import type { ExplorerNode } from '../views/repoExplorer';
+import { toViewUri } from '../views/viewUri';
 
 const sample = process.env.SAMPLE_WORKSPACE!;
 const at = (...parts: string[]) => path.join(sample, ...parts);
@@ -52,16 +53,36 @@ test('each sample repo gets the expected state', async ({ store }) => {
   assert.match(store.get(at('frontend/design-system'))!.view.description, /\(detached\) · ●1$/);
 });
 
-test('decorations color repo folders and leave other folders alone', async ({ decorations }) => {
-  const repo = decorations.provideFileDecoration(vscode.Uri.file(at('services/billing')));
+test('badges show in our views but leave the built-in Explorer alone by default', async ({ decorations }) => {
+  const view = (rel: string) => decorations.provideFileDecoration(toViewUri(at(rel)));
+  const repo = view('services/billing');
   assert.equal(repo?.badge, '!');
   assert.equal((repo?.color as vscode.ThemeColor).id, 'multiRepoGit.conflictForeground');
   assert.equal(repo?.propagate, true);
   assert.match(repo!.tooltip!, /Merge in progress/);
-  assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('docs'))), undefined);
-  const clean = decorations.provideFileDecoration(vscode.Uri.file(at('services/notification')));
+  assert.equal(view('docs'), undefined);
+  const clean = view('services/notification');
   assert.equal(clean?.badge, undefined);
   assert.equal(clean?.propagate, false);
+
+  assert.equal(view('services/api-gateway/src/index.ts')?.badge, 'M');
+  assert.equal(view('services/api-gateway/src/routes.ts')?.badge, 'A');
+  assert.equal(view('services/api-gateway/NOTES.md')?.badge, 'U');
+  assert.equal(view('services/billing/README.md')?.badge, '!');
+  assert.equal(view('services/api-gateway/package.json'), undefined, 'unchanged file');
+
+  assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/billing'))), undefined);
+});
+
+test('multiRepoGit.decorateExplorer turns on badges in the built-in Explorer', async ({ decorations }) => {
+  const config = vscode.workspace.getConfiguration('multiRepoGit');
+  await config.update('decorateExplorer', true, vscode.ConfigurationTarget.Global);
+  try {
+    assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/billing')))?.badge, '!');
+    assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/api-gateway/src/index.ts'))), undefined);
+  } finally {
+    await config.update('decorateExplorer', undefined, vscode.ConfigurationTarget.Global);
+  }
 });
 
 test('Repo Explorer writes branch and state after folder names', async ({ explorer }) => {
@@ -87,6 +108,40 @@ test('Repo Explorer writes branch and state after folder names', async ({ explor
   assert.equal(describe(q1).description, 'not scanned');
   assert.match(describe(q1).contextValue!, /\bunscanned\b/);
   assert.equal(describe(await byName(undefined, '.remotes')).description, 'excluded');
+});
+
+test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
+  const names = async (node?: ExplorerNode) => (await explorer.getChildren(node)).map(n => path.basename(n.uri.fsPath));
+  const child = async (node: ExplorerNode | undefined, name: string) =>
+    (await explorer.getChildren(node)).find(n => path.basename(n.uri.fsPath) === name)!;
+  try {
+    explorer.setFilters(['changes']);
+    assert.deepEqual(await names(), ['frontend', 'services']);
+    const services = await child(undefined, 'services');
+    assert.equal(explorer.getTreeItem(services).description, '4 repos · !2 ●2');
+    assert.equal(explorer.getTreeItem(services).collapsibleState, vscode.TreeItemCollapsibleState.Expanded);
+    assert.deepEqual(await names(services), ['api-gateway', 'billing', 'catalog', 'reports']);
+
+    const api = await child(services, 'api-gateway');
+    assert.deepEqual(await names(api), ['src', 'NOTES.md', 'README.md']);
+    const src = await child(api, 'src');
+    assert.deepEqual(await names(src), ['index.ts', 'routes.ts']);
+    assert.equal(explorer.getTreeItem(await child(src, 'routes.ts')).description, 'staged');
+    assert.equal(explorer.getTreeItem(await child(await child(services, 'billing'), 'README.md')).description, 'conflict');
+    assert.equal((await names(await child(services, 'reports'))).length, 12);
+
+    explorer.setFilters(['unpushed']);
+    assert.deepEqual(await names(), ['services']);
+    assert.deepEqual(await names(await child(undefined, 'services')), ['auth-service', 'billing', 'mobile-api', 'payments']);
+    const auth = await child(await child(undefined, 'services'), 'auth-service');
+    assert.equal(explorer.getTreeItem(auth).collapsibleState, vscode.TreeItemCollapsibleState.None, 'no files to show');
+
+    explorer.setFilters(['changes', 'behind']);
+    assert.deepEqual(await names(await child(undefined, 'services')), ['api-gateway', 'billing', 'catalog', 'payments', 'reports', 'search']);
+  } finally {
+    explorer.setFilters([]);
+  }
+  assert.ok((await names()).includes('docs'), 'everything is back after clearing the filter');
 });
 
 test('Git Repos view groups problems first and filters', async ({ reposView }) => {

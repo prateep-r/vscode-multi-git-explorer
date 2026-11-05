@@ -20,10 +20,23 @@ export interface StatusSummary {
   conflicted: number;
   /** Distinct paths with any kind of change. */
   changedFiles: number;
+  files: ChangedFile[];
+}
+
+/** The same letters VS Code's Git uses: Modified, Added, Deleted, Renamed, Untracked, and ! for conflicts. */
+export type ChangeLetter = 'M' | 'A' | 'D' | 'R' | 'U' | '!';
+
+export interface ChangedFile {
+  /** Relative to the repo root, with forward slashes. Untracked folders end with "/". */
+  path: string;
+  letter: ChangeLetter;
+  staged: boolean;
+  /** Has changes in the working tree that are not staged. */
+  unstaged: boolean;
 }
 
 /**
- * Parses the output of `git status --porcelain=v2 --branch --show-stash`.
+ * Parses the output of `git status --porcelain=v2 -z --branch --show-stash`.
  * See https://git-scm.com/docs/git-status#_porcelain_format_version_2
  */
 export function parseStatusV2(output: string): StatusSummary {
@@ -35,33 +48,56 @@ export function parseStatusV2(output: string): StatusSummary {
     untracked: 0,
     conflicted: 0,
     changedFiles: 0,
+    files: [],
   };
 
-  for (const line of output.split('\n')) {
-    if (line.startsWith('# ')) {
-      parseHeader(line.slice(2), summary);
+  const records = output.split('\0');
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    if (record.startsWith('# ')) {
+      parseHeader(record.slice(2), summary);
       continue;
     }
-    switch (line[0]) {
+    switch (record[0]) {
       case '1':
       case '2': {
-        // "1 XY ..." where X is the index status and Y the working tree status.
-        if (line[2] !== '.') summary.staged++;
-        if (line[3] !== '.') summary.modified++;
+        // "1 XY sub mH mI mW hH hI path"; "2 ..." adds a score field, and the
+        // original path follows as its own record.
+        const x = record[2];
+        const y = record[3];
+        const path = fieldsAfter(record, record[0] === '1' ? 8 : 9);
+        if (record[0] === '2') i++;
+        if (x !== '.') summary.staged++;
+        if (y !== '.') summary.modified++;
         summary.changedFiles++;
+        summary.files.push({
+          path,
+          letter: x === 'D' || y === 'D' ? 'D' : x === 'A' ? 'A' : record[0] === '2' ? 'R' : 'M',
+          staged: x !== '.',
+          unstaged: y !== '.',
+        });
         break;
       }
       case 'u':
         summary.conflicted++;
         summary.changedFiles++;
+        summary.files.push({ path: fieldsAfter(record, 10), letter: '!', staged: false, unstaged: true });
         break;
       case '?':
         summary.untracked++;
         summary.changedFiles++;
+        summary.files.push({ path: record.slice(2), letter: 'U', staged: false, unstaged: true });
         break;
     }
   }
   return summary;
+}
+
+/** The rest of a record after its first `count` space-separated fields (paths may contain spaces). */
+function fieldsAfter(record: string, count: number): string {
+  let index = 0;
+  for (let n = 0; n < count; n++) index = record.indexOf(' ', index) + 1;
+  return record.slice(index);
 }
 
 function parseHeader(header: string, summary: StatusSummary): void {

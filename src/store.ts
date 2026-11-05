@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { discoverRepos } from './core/discovery';
 import { readStatus } from './core/git';
 import { readCheapState, type CheapState } from './core/gitDir';
-import type { StatusSummary } from './core/porcelain';
+import type { ChangedFile, StatusSummary } from './core/porcelain';
 import { Priority, TaskQueue, runPool } from './core/queue';
 import { describeRepo, type RepoView } from './core/state';
 
@@ -13,6 +13,8 @@ export interface RepoEntry {
   isSubmodule: boolean;
   cheap?: CheapState;
   status?: StatusSummary;
+  /** Changed files by path relative to the root (forward slashes; untracked folders end with "/"). */
+  changes?: Map<string, ChangedFile>;
   error?: string;
   /** True once a status check has been asked for since the last change. */
   requested: boolean;
@@ -253,6 +255,7 @@ export class RepoStore implements vscode.Disposable {
       ]);
       entry.cheap = cheap;
       entry.status = status;
+      entry.changes = new Map(status.files.map(file => [file.path, file]));
       entry.error = undefined;
     } catch (error) {
       entry.error = error instanceof Error ? error.message : String(error);
