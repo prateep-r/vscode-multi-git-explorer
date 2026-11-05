@@ -68,8 +68,13 @@ export function registerCommands(
 
     vscode.commands.registerCommand('multiRepoGit.clearFilter', () => reposView.setFilter('')),
 
-    ...['multiRepoGit.filterExplorer', 'multiRepoGit.filterExplorerActive'].map(id =>
-      vscode.commands.registerCommand(id, () => pickExplorerFilters(explorer)),
+    vscode.commands.registerCommand('multiRepoGit.filterExplorer', () => pickExplorerFilters(explorer)),
+
+    // Each filter has an "off" and an "on" command so the title-bar button can show its state.
+    ...(['changes', 'unpushed', 'behind'] as const).flatMap(filter =>
+      [FILTER_COMMANDS[filter], `${FILTER_COMMANDS[filter]}On`].map(id =>
+        vscode.commands.registerCommand(id, () => explorer.toggleFilter(filter)),
+      ),
     ),
 
     vscode.commands.registerCommand('multiRepoGit.clearExplorerFilter', () => explorer.setFilters([])),
@@ -205,6 +210,12 @@ export function registerCommands(
     }),
   ];
 }
+
+const FILTER_COMMANDS: Record<ExplorerFilter, string> = {
+  changes: 'multiRepoGit.filterChanges',
+  unpushed: 'multiRepoGit.filterUnpushed',
+  behind: 'multiRepoGit.filterBehind',
+};
 
 const FILTER_DETAILS: Record<ExplorerFilter, [string, string]> = {
   changes: ['$(diff)', 'Repos with uncommitted or conflicted files, showing only those files'],

@@ -21,15 +21,17 @@ Open the **Multi-Repo Git Status** icon in the Activity Bar.
 
 ### Show only what changed
 
-Click the filter icon in the **Repo Explorer** title bar and pick what to show. You can pick more than one:
+The **Repo Explorer** title bar has three filter buttons. Click one to turn it on, and click it again to turn it off. The icon is filled while it's on. You can turn on more than one, and repos matching any of them are shown.
 
-- **Changed files**: repos with uncommitted or conflicted files, showing only those files and the folders they're in
-- **Not pushed**: repos with commits that aren't pushed yet
-- **Behind remote**: repos with new commits on the remote (as of the last fetch)
+| Button | Off | On | Shows |
+| --- | --- | --- | --- |
+| Changed files | ○ | ● | Repos with uncommitted or conflicted files, listing only those files and the folders they're in |
+| Not pushed | ↑ | ⬆︎ in a circle | Repos with commits that aren't pushed yet |
+| Behind remote | ↓ | ⬇︎ in a circle | Repos with new commits on the remote (as of the last fetch) |
 
 ![Repo Explorer filtered to changed files](docs/images/filter.png)
 
-Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Click a file to open it. Click the clear icon to show everything again. The filter is remembered per workspace.
+Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Click a file to open it. The filter is remembered per workspace.
 
 ### Badges in the built-in Explorer (optional)
 

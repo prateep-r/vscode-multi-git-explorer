@@ -59,7 +59,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       }),
       this._onDidChangeTreeData,
     ];
-    void vscode.commands.executeCommand('setContext', 'multiRepoGit.explorerFiltered', this.filtering);
+    this.updateContextKeys();
   }
 
   dispose(): void {
@@ -79,8 +79,23 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   setFilters(filters: ExplorerFilter[]): void {
     this.filters = new Set(filters);
     void this.state.update(FILTER_STATE_KEY, this.activeFilters);
-    void vscode.commands.executeCommand('setContext', 'multiRepoGit.explorerFiltered', this.filtering);
+    this.updateContextKeys();
     this.refreshAll();
+  }
+
+  toggleFilter(filter: ExplorerFilter): void {
+    const next = new Set(this.filters);
+    if (next.has(filter)) next.delete(filter);
+    else next.add(filter);
+    this.setFilters([...next]);
+  }
+
+  /** Drive which title-bar buttons show as on (`multiRepoGit.filter.<name>`). */
+  private updateContextKeys(): void {
+    void vscode.commands.executeCommand('setContext', 'multiRepoGit.explorerFiltered', this.filtering);
+    for (const filter of FILTER_ORDER) {
+      void vscode.commands.executeCommand('setContext', `multiRepoGit.filter.${filter}`, this.filters.has(filter));
+    }
   }
 
   private get filtering(): boolean {

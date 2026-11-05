@@ -144,6 +144,17 @@ test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
   assert.ok((await names()).includes('docs'), 'everything is back after clearing the filter');
 });
 
+test('title-bar buttons turn each filter on and off with one click', async ({ explorer }) => {
+  await vscode.commands.executeCommand('multiRepoGit.filterChanges');
+  assert.deepEqual(explorer.activeFilters, ['changes']);
+  await vscode.commands.executeCommand('multiRepoGit.filterBehind');
+  assert.deepEqual(explorer.activeFilters, ['changes', 'behind']);
+  await vscode.commands.executeCommand('multiRepoGit.filterChangesOn');
+  assert.deepEqual(explorer.activeFilters, ['behind']);
+  await vscode.commands.executeCommand('multiRepoGit.filterBehindOn');
+  assert.deepEqual(explorer.activeFilters, []);
+});
+
 test('Git Repos view groups problems first and filters', async ({ reposView }) => {
   const groups = reposView.getChildren().map(n => (n.type === 'group' ? n.key : ''));
   assert.deepEqual(groups, ['conflict', 'dirty', 'unpushed', 'behind', 'clean']);

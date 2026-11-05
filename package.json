@@ -83,20 +83,48 @@
       {
         "command": "multiRepoGit.filterExplorer",
         "title": "Filter Repo Explorer...",
-        "category": "Multi-Repo Git Status",
-        "icon": "$(filter)"
+        "category": "Multi-Repo Git Status"
       },
       {
-        "command": "multiRepoGit.filterExplorerActive",
-        "title": "Change Repo Explorer Filter...",
+        "command": "multiRepoGit.filterChanges",
+        "title": "Show Only Changed Files",
         "category": "Multi-Repo Git Status",
-        "icon": "$(filter-filled)"
+        "icon": "$(circle-outline)"
+      },
+      {
+        "command": "multiRepoGit.filterChangesOn",
+        "title": "Showing Only Changed Files (Click to Turn Off)",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(circle-filled)"
+      },
+      {
+        "command": "multiRepoGit.filterUnpushed",
+        "title": "Show Only Repos Not Pushed",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "multiRepoGit.filterUnpushedOn",
+        "title": "Showing Only Repos Not Pushed (Click to Turn Off)",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(arrow-circle-up)"
+      },
+      {
+        "command": "multiRepoGit.filterBehind",
+        "title": "Show Only Repos Behind Remote",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "multiRepoGit.filterBehindOn",
+        "title": "Showing Only Repos Behind Remote (Click to Turn Off)",
+        "category": "Multi-Repo Git Status",
+        "icon": "$(arrow-circle-down)"
       },
       {
         "command": "multiRepoGit.clearExplorerFilter",
         "title": "Show All Files",
-        "category": "Multi-Repo Git Status",
-        "icon": "$(clear-all)"
+        "category": "Multi-Repo Git Status"
       },
       {
         "command": "multiRepoGit.openInScm",
@@ -163,19 +191,34 @@
     "menus": {
       "view/title": [
         {
-          "command": "multiRepoGit.filterExplorer",
-          "when": "view == multiRepoGit.explorer && !multiRepoGit.explorerFiltered",
+          "command": "multiRepoGit.filterChanges",
+          "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.changes",
           "group": "navigation@1"
         },
         {
-          "command": "multiRepoGit.filterExplorerActive",
-          "when": "view == multiRepoGit.explorer && multiRepoGit.explorerFiltered",
+          "command": "multiRepoGit.filterChangesOn",
+          "when": "view == multiRepoGit.explorer && multiRepoGit.filter.changes",
           "group": "navigation@1"
         },
         {
-          "command": "multiRepoGit.clearExplorerFilter",
-          "when": "view == multiRepoGit.explorer && multiRepoGit.explorerFiltered",
+          "command": "multiRepoGit.filterUnpushed",
+          "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.unpushed",
           "group": "navigation@2"
+        },
+        {
+          "command": "multiRepoGit.filterUnpushedOn",
+          "when": "view == multiRepoGit.explorer && multiRepoGit.filter.unpushed",
+          "group": "navigation@2"
+        },
+        {
+          "command": "multiRepoGit.filterBehind",
+          "when": "view == multiRepoGit.explorer && !multiRepoGit.filter.behind",
+          "group": "navigation@3"
+        },
+        {
+          "command": "multiRepoGit.filterBehindOn",
+          "when": "view == multiRepoGit.explorer && multiRepoGit.filter.behind",
+          "group": "navigation@3"
         },
         {
           "command": "multiRepoGit.fetchAll",
@@ -195,7 +238,7 @@
         {
           "command": "multiRepoGit.refresh",
           "when": "view == multiRepoGit.repos || view == multiRepoGit.explorer",
-          "group": "navigation@4"
+          "group": "navigation@9"
         }
       ],
       "view/item/context": [
@@ -339,12 +382,20 @@
           "when": "multiRepoGit.filtered"
         },
         {
-          "command": "multiRepoGit.filterExplorerActive",
+          "command": "multiRepoGit.clearExplorerFilter",
+          "when": "multiRepoGit.explorerFiltered"
+        },
+        {
+          "command": "multiRepoGit.filterChangesOn",
           "when": "false"
         },
         {
-          "command": "multiRepoGit.clearExplorerFilter",
-          "when": "multiRepoGit.explorerFiltered"
+          "command": "multiRepoGit.filterUnpushedOn",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoGit.filterBehindOn",
+          "when": "false"
         }
       ]
     },
