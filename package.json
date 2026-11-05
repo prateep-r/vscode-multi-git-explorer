@@ -1,13 +1,13 @@
 {
-  "name": "multi-repo-git-status",
-  "displayName": "Multi-Repo Git Status",
+  "name": "multi-repo-explorer",
+  "displayName": "Multi-Repo Explorer",
   "description": "See the branch and status of every git repository in your workspace at a glance, even with hundreds of repos.",
   "version": "0.0.1",
   "publisher": "local",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prateep-r/vscode-multi-repo-git-status.git"
+    "url": "https://github.com/prateep-r/vscode-multi-repo-explorer.git"
   },
   "engines": {
     "vscode": "^1.95.0"
@@ -59,170 +59,170 @@
       {
         "command": "multiRepoGit.refresh",
         "title": "Refresh",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(refresh)"
       },
       {
         "command": "multiRepoGit.fetchAll",
         "title": "Fetch All Repos",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(cloud-download)"
       },
       {
         "command": "multiRepoGit.filter",
         "title": "Filter Repos",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(filter)"
       },
       {
         "command": "multiRepoGit.clearFilter",
         "title": "Clear Filter",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(clear-all)"
       },
       {
         "command": "multiRepoGit.filterExplorer",
         "title": "Filter Repo Explorer...",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.filterChanges",
         "title": "Show Only Changed Files",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(circle-outline)"
       },
       {
         "command": "multiRepoGit.filterChangesOn",
         "title": "Showing Only Changed Files (Click to Turn Off)",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(circle-filled)"
       },
       {
         "command": "multiRepoGit.filterUnpushed",
         "title": "Show Only Repos Not Pushed",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(arrow-up)"
       },
       {
         "command": "multiRepoGit.filterUnpushedOn",
         "title": "Showing Only Repos Not Pushed (Click to Turn Off)",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(arrow-circle-up)"
       },
       {
         "command": "multiRepoGit.filterBehind",
         "title": "Show Only Repos Behind Remote",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(arrow-down)"
       },
       {
         "command": "multiRepoGit.filterBehindOn",
         "title": "Showing Only Repos Behind Remote (Click to Turn Off)",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(arrow-circle-down)"
       },
       {
         "command": "multiRepoGit.clearExplorerFilter",
         "title": "Show All Files",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.openInScm",
         "title": "Open in Source Control",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(source-control)"
       },
       {
         "command": "multiRepoGit.openChanges",
         "title": "View All Changes",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(diff-multiple)"
       },
       {
         "command": "multiRepoGit.openChange",
         "title": "Open Changes",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(git-compare)"
       },
       {
         "command": "multiRepoGit.openChangedFile",
         "title": "Open File",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(go-to-file)"
       },
       {
         "command": "multiRepoGit.switchBranch",
         "title": "Switch Branch...",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(git-branch)"
       },
       {
         "command": "multiRepoGit.fetch",
         "title": "Fetch",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.pull",
         "title": "Pull",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.push",
         "title": "Push",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.openTerminal",
         "title": "Open Terminal Here",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(terminal)"
       },
       {
         "command": "multiRepoGit.openInNewWindow",
         "title": "Open Repo in New Window",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(empty-window)"
       },
       {
         "command": "multiRepoGit.copyBranch",
         "title": "Copy Branch Name",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.scanFolder",
         "title": "Scan This Folder",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.addTo.claude",
         "title": "Add to Claude Chat",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.copyTo.claude",
         "title": "Copy to Claude Chat",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.addTo.codex",
         "title": "Add to Codex Chat",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.copyTo.codex",
         "title": "Copy to Codex Chat",
-        "category": "Multi-Repo Git Status"
+        "category": "Multi-Repo Explorer"
       },
       {
         "command": "multiRepoGit.newFile",
         "title": "New File...",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(new-file)"
       },
       {
         "command": "multiRepoGit.newFolder",
         "title": "New Folder...",
-        "category": "Multi-Repo Git Status",
+        "category": "Multi-Repo Explorer",
         "icon": "$(new-folder)"
       }
     ],
@@ -595,7 +595,7 @@
       }
     ],
     "configuration": {
-      "title": "Multi-Repo Git Status",
+      "title": "Multi-Repo Explorer",
       "properties": {
         "multiRepoGit.scanDepth": {
           "type": "number",

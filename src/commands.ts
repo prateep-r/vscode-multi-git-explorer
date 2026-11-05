@@ -26,7 +26,7 @@ export function registerCommands(
     else if (arg && 'uri' in arg) fsPath = arg.uri.fsPath;
     else if (arg && arg.type === 'repo') fsPath = arg.root;
     const repo = fsPath ? (store.get(fsPath) ?? store.repoContaining(fsPath)) : store.activeRepo();
-    if (!repo) void vscode.window.showWarningMessage('Multi-Repo Git Status: this folder is not a git repository.');
+    if (!repo) void vscode.window.showWarningMessage('Multi-Repo Explorer: this folder is not a git repository.');
     return repo;
   };
 
@@ -105,7 +105,7 @@ export function registerCommands(
         const gitRepo = await openInGitExtension(repo);
         const api = await gitApi();
         if (!gitRepo || !api) {
-          void vscode.window.showWarningMessage(`Multi-Repo Git Status: couldn't open ${repo.name} in VS Code's Git.`);
+          void vscode.window.showWarningMessage(`Multi-Repo Explorer: couldn't open ${repo.name} in VS Code's Git.`);
           return;
         }
         await gitRepo.status();
@@ -348,7 +348,7 @@ async function pickAndSwitchBranch(store: RepoStore, repo: RepoEntry): Promise<v
 async function fetchAll(store: RepoStore): Promise<void> {
   const repos = store.all().filter(r => r.cheap?.hasRemote);
   if (repos.length === 0) {
-    void vscode.window.showInformationMessage('Multi-Repo Git Status: no repos with a remote to fetch.');
+    void vscode.window.showInformationMessage('Multi-Repo Explorer: no repos with a remote to fetch.');
     return;
   }
   const concurrency = vscode.workspace.getConfiguration('multiRepoGit').get('maxConcurrency', 6);

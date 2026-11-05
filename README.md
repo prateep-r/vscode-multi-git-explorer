@@ -1,4 +1,4 @@
-# Multi-Repo Git Status
+# Multi-Repo Explorer
 
 **A VS Code extension that shows the branch and git status of every repository in your workspace — at a glance, even with hundreds of repos.**
 
@@ -112,7 +112,7 @@ On a **file**: **Add to Claude Chat** / **Add to Codex Chat**, and for changed f
 
 On a **folder** (or repo): **New File…** / **New Folder…**, **Copy to Claude Chat** / **Copy to Codex Chat**, and **Scan This Folder** for folders deeper than the scan limit.
 
-The title bar of **Git Repos** has **Fetch All Repos**, **Filter Repos**, and **Refresh**. All of these are also in the Command Palette under *Multi-Repo Git Status*.
+The title bar of **Git Repos** has **Fetch All Repos**, **Filter Repos**, and **Refresh**. All of these are also in the Command Palette under *Multi-Repo Explorer*.
 
 ### Send files to Claude Code or Codex
 
@@ -188,11 +188,11 @@ Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper
 The extension isn't on the VS Code Marketplace yet. Build it from source:
 
 ```bash
-git clone https://github.com/prateep-r/vscode-multi-repo-git-status.git
-cd vscode-multi-repo-git-status
+git clone https://github.com/prateep-r/vscode-multi-repo-explorer.git
+cd vscode-multi-repo-explorer
 npm install
 npx @vscode/vsce package
-code --install-extension multi-repo-git-status-0.0.1.vsix
+code --install-extension multi-repo-explorer-0.0.1.vsix
 ```
 
 Then run **Developer: Reload Window** in VS Code.
@@ -202,7 +202,7 @@ Requirements: VS Code 1.95 or later, Node.js 20 or later (to build), and `git` o
 To update, pull the latest code, build again, and install with `--force`. To uninstall:
 
 ```bash
-code --uninstall-extension local.multi-repo-git-status
+code --uninstall-extension local.multi-repo-explorer
 ```
 
 ## Settings
@@ -248,7 +248,7 @@ Tested with 300 repos: they are found in about 50 ms, every repo shows its branc
 | Problem | What to try |
 | --- | --- |
 | A repo is missing | It may be deeper than `multiRepoGit.scanDepth`: look for `not scanned` on a folder above it and choose **Scan This Folder**, or raise the setting. Also check that its folder isn't in `multiRepoGit.exclude` |
-| A repo shows `⚠` | Hover it to see git's error. Open **View → Output** and pick *Multi-Repo Git Status* for the full log |
+| A repo shows `⚠` | Hover it to see git's error. Open **View → Output** and pick *Multi-Repo Explorer* for the full log |
 | Checking is slow | Turn off `multiRepoGit.countUntracked`, or add big generated folders to `multiRepoGit.exclude` |
 | "Behind remote" looks wrong | It's based on your last fetch. Run **Fetch All Repos** |
 | Fetch or Push fails asking for a password | Commands run without a terminal, so set up a git credential helper or SSH key |

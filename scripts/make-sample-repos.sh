@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates a workspace full of git repos in every state Multi-Repo Git Status shows,
+# Creates a workspace full of git repos in every state Multi-Repo Explorer shows,
 # for trying the extension and checking performance.
 #
 #   scripts/make-sample-repos.sh <target-dir> [repo-count]

@@ -260,7 +260,7 @@ test('Open in Source Control opens the repo in VS Code Git', async () => {
 });
 
 test('the file tree is titled with the project name, under a Repo Explorer header', async ({ explorer }) => {
-  const manifest = vscode.extensions.getExtension('local.multi-repo-git-status')!.packageJSON;
+  const manifest = vscode.extensions.getExtension('local.multi-repo-explorer')!.packageJSON;
   const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoGit');
   assert.equal(container.title, 'Repo Explorer');
   assert.equal(explorer.title, path.basename(sample));
@@ -292,13 +292,13 @@ test('New File and New Folder create items in the chosen folder and open the fil
 });
 
 test('every command in package.json is registered', async () => {
-  const manifest = vscode.extensions.getExtension('local.multi-repo-git-status')!.packageJSON;
+  const manifest = vscode.extensions.getExtension('local.multi-repo-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));
   for (const { command } of manifest.contributes.commands) assert.ok(registered.has(command), command);
 });
 
 export async function run(): Promise<void> {
-  const api = await vscode.extensions.getExtension<MultiRepoGitApi>('local.multi-repo-git-status')!.activate();
+  const api = await vscode.extensions.getExtension<MultiRepoGitApi>('local.multi-repo-explorer')!.activate();
   let failed = 0;
   for (const [name, fn] of tests) {
     try {

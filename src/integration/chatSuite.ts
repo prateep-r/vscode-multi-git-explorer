@@ -88,7 +88,7 @@ test('Copy to … Chat copies @path/ for folders and opens the chat', async () =
 });
 
 export async function run(): Promise<void> {
-  await vscode.extensions.getExtension<MultiRepoGitApi>('local.multi-repo-git-status')!.activate();
+  await vscode.extensions.getExtension<MultiRepoGitApi>('local.multi-repo-explorer')!.activate();
   const clipboard = await vscode.env.clipboard.readText();
   let failed = 0;
   try {

@@ -18,7 +18,7 @@ export interface MultiRepoGitApi {
 }
 
 export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
-  const log = vscode.window.createOutputChannel('Multi-Repo Git Status');
+  const log = vscode.window.createOutputChannel('Multi-Repo Explorer');
   const store = new RepoStore(log);
   const explorer = new RepoExplorerProvider(store, context.workspaceState);
   const reposView = new ReposViewProvider(store);

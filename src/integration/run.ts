@@ -19,7 +19,7 @@ async function main(): Promise<void> {
   if (!workspace || (flag && (flag !== '--chat' || !chatExtensions))) {
     throw new Error('usage: run.js <sample-workspace> [--chat <extensions-dir>]');
   }
-  const profile = mkdtempSync(path.join(tmpdir(), 'multi-repo-git-status-vscode-'));
+  const profile = mkdtempSync(path.join(tmpdir(), 'multi-repo-explorer-vscode-'));
 
   await runTests({
     vscodeExecutablePath: process.env.VSCODE_PATH,

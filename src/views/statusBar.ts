@@ -12,8 +12,8 @@ export class StatusBar implements vscode.Disposable {
   private updateTimer?: NodeJS.Timeout;
 
   constructor(private readonly store: RepoStore) {
-    this.current.name = 'Multi-Repo Git Status: Current Repo';
-    this.totals.name = 'Multi-Repo Git Status: All Repos';
+    this.current.name = 'Multi-Repo Explorer: Current Repo';
+    this.totals.name = 'Multi-Repo Explorer: All Repos';
     this.totals.command = 'multiRepoGit.repos.focus';
     this.disposables = [
       this.current,
