@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as path from 'path';
-import { describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
+import { describeChange, filteredEntries, matchRepo, matchesFilter, type ExplorerFilter } from '../core/filter';
 import type { ChangedFile, StatusSummary } from '../core/porcelain';
 
 const ws = path.join(path.sep, 'ws');
@@ -70,6 +70,19 @@ test('inside a repo, only changed files and the folders that hold them are shown
     filteredEntries(path.join(root, 'src', 'routes'), [root], changes).map(e => e.name),
     ['new.ts'],
   );
+});
+
+test('matchRepo: typed text matches the repo path or its changed files', () => {
+  const none = new Set<ExplorerFilter>();
+  const changes = new Set<ExplorerFilter>(['changes']);
+  const repo = { ...status(2), files: [file('src/login.ts'), file('README.md')] };
+
+  assert.deepEqual(matchRepo('services/auth-service', repo, true, none, 'AUTH'), {}, 'path match, no buttons: browse normally');
+  assert.deepEqual(matchRepo('services/auth-service', repo, true, changes, 'auth')?.files, repo.files, 'path match: all changed files');
+  assert.deepEqual(matchRepo('services/auth-service', repo, true, none, 'login')?.files, [repo.files[0]], 'file match: only that file');
+  assert.equal(matchRepo('services/auth-service', repo, true, none, 'nothing'), undefined);
+  assert.equal(matchRepo('services/auth-service', status(0), true, changes, 'auth'), undefined, 'buttons still apply');
+  assert.deepEqual(matchRepo('services/auth-service', status(0, { ahead: 1 }), true, new Set(['unpushed']), '')?.files, [], 'no files to list');
 });
 
 test('describeChange', () => {

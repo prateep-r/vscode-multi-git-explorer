@@ -155,6 +155,39 @@ test('title-bar buttons turn each filter on and off with one click', async ({ ex
   assert.deepEqual(explorer.activeFilters, []);
 });
 
+test('typing in the filter box narrows the Repo Explorer by repo path or changed file', async ({ explorer }) => {
+  const names = async (node?: ExplorerNode) => (await explorer.getChildren(node)).map(n => path.basename(n.uri.fsPath));
+  const child = async (node: ExplorerNode | undefined, name: string) =>
+    (await explorer.getChildren(node)).find(n => path.basename(n.uri.fsPath) === name)!;
+  try {
+    explorer.setFilterText('auth');
+    assert.deepEqual(await names(), ['services']);
+    const services = await child(undefined, 'services');
+    assert.deepEqual(await names(services), ['auth-service']);
+    const auth = await child(services, 'auth-service');
+    assert.equal(explorer.getTreeItem(auth).collapsibleState, vscode.TreeItemCollapsibleState.Collapsed);
+    assert.ok((await names(auth)).includes('src'), 'a repo matched by name lists all its files');
+
+    explorer.setFilterText('routes');
+    assert.deepEqual(await names(await child(undefined, 'services')), ['api-gateway']);
+    const api = await child(await child(undefined, 'services'), 'api-gateway');
+    assert.deepEqual(await names(api), ['src']);
+    assert.deepEqual(await names(await child(api, 'src')), ['routes.ts']);
+
+    explorer.setFilters(['unpushed']);
+    explorer.setFilterText('mobile');
+    assert.deepEqual(await names(await child(undefined, 'services')), ['mobile-api'], 'buttons and text combine');
+
+    await vscode.commands.executeCommand('multiRepoGit.focusFilterInput');
+    await vscode.commands.executeCommand('multiRepoGit.clearExplorerFilter');
+    assert.equal(explorer.filterText, '');
+    assert.deepEqual(explorer.activeFilters, []);
+  } finally {
+    explorer.setFilters([]);
+    explorer.setFilterText('');
+  }
+});
+
 test('Git Repos view groups problems first and filters', async ({ reposView }) => {
   const groups = reposView.getChildren().map(n => (n.type === 'group' ? n.key : ''));
   assert.deepEqual(groups, ['conflict', 'dirty', 'unpushed', 'behind', 'clean']);

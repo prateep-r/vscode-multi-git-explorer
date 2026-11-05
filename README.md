@@ -6,9 +6,10 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 
 ![Repo Explorer and Git Repos views](docs/images/overview.png)
 
-1. **Repo Explorer**: your files, with each repo's branch and status written after its name.
-2. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
-3. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
+1. **Filter box**: type part of a repo path or a changed file name to narrow down the Repo Explorer.
+2. **Repo Explorer**: your files, with each repo's branch and status written after its name.
+3. **Git Repos**: every repo, grouped by what needs your attention. Problems are listed first.
+4. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
 
 ## Features
 
@@ -31,7 +32,20 @@ The **Repo Explorer** title bar has three filter buttons. Click one to turn it o
 
 ![Repo Explorer filtered to changed files](docs/images/filter.png)
 
-Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Click a file to open it. The filter is remembered per workspace.
+Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Click a file to open it.
+
+### Type to filter
+
+Type in the **Filter** box above the Repo Explorer. The tree updates as you type and keeps:
+
+- repos whose path contains the text, for example `auth` finds `services/auth-service`, and
+- repos with a changed file whose path contains the text, listing only those files. For example, `routes` finds `services/api-gateway/src/routes.ts`.
+
+![Typing in the filter box](docs/images/search.png)
+
+The text works together with the buttons. For example, turn on **Not pushed** and type `mobile` to see only unpushed repos with "mobile" in their path. Press <kbd>Esc</kbd> or click ✕ to clear the text. Press <kbd>Enter</kbd> or <kbd>↓</kbd> to move to the tree. With the Repo Explorer focused, <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> on Windows and Linux) jumps back to the box.
+
+The buttons and the text are remembered per workspace. **Clear Repo Explorer Filter** in the Command Palette turns everything off at once.
 
 ### Badges in the built-in Explorer (optional)
 

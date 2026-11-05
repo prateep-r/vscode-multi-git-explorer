@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { RepoStore } from './store';
 import { RepoDecorationProvider } from './views/decorations';
+import { FilterInputProvider } from './views/filterInput';
 import { RepoExplorerProvider } from './views/repoExplorer';
 import { ReposViewProvider } from './views/reposView';
 import { StatusBar } from './views/statusBar';
@@ -24,6 +25,7 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
   reposView.attach(reposTree);
   const explorerTree = vscode.window.createTreeView('multiRepoGit.explorer', { treeDataProvider: explorer, showCollapseAll: true });
   explorer.attach(explorerTree);
+  const filterInput = new FilterInputProvider(explorer);
 
   context.subscriptions.push(
     log,
@@ -32,10 +34,11 @@ export function activate(context: vscode.ExtensionContext): MultiRepoGitApi {
     reposView,
     reposTree,
     explorerTree,
+    vscode.window.registerWebviewViewProvider('multiRepoGit.filterInput', filterInput),
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
     new StatusBar(store),
-    ...registerCommands(store, reposView, explorer),
+    ...registerCommands(store, reposView, explorer, filterInput),
   );
 
   void store.discover();

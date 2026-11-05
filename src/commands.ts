@@ -4,6 +4,7 @@ import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
 import { Priority, runPool } from './core/queue';
 import type { RepoEntry, RepoStore } from './store';
 import { GitStatus, type GitAPI, type GitChange, type GitExtension, type GitRepository } from './typings/git';
+import type { FilterInputProvider } from './views/filterInput';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import type { ReposNode, ReposViewProvider } from './views/reposView';
 
@@ -15,6 +16,7 @@ export function registerCommands(
   store: RepoStore,
   reposView: ReposViewProvider,
   explorer: RepoExplorerProvider,
+  filterInput: FilterInputProvider,
 ): vscode.Disposable[] {
   /** Finds the repo a command was invoked on: a view row, an Explorer folder, or the active file. */
   const repoFrom = (arg: CommandArg): RepoEntry | undefined => {
@@ -77,7 +79,12 @@ export function registerCommands(
       ),
     ),
 
-    vscode.commands.registerCommand('multiRepoGit.clearExplorerFilter', () => explorer.setFilters([])),
+    vscode.commands.registerCommand('multiRepoGit.clearExplorerFilter', () => {
+      explorer.setFilters([]);
+      filterInput.clear();
+    }),
+
+    vscode.commands.registerCommand('multiRepoGit.focusFilterInput', () => filterInput.focus()),
 
     vscode.commands.registerCommand(
       'multiRepoGit.openInScm',
