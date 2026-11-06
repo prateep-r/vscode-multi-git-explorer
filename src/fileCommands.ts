@@ -4,6 +4,7 @@ import { checkNewName, checkNewPath, copyName } from './core/fileNames';
 import { isAtOrInside } from './core/paths';
 import type { RepoStore } from './store';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
+import { toViewUri } from './views/viewUri';
 import { folderOf, isKeyboard, isWorkspaceFolder, localFolders, onDisk, pickRows } from './workspace';
 
 /**
@@ -91,6 +92,12 @@ export function registerFileCommands(
     vscode.commands.registerCommand('multiGitExplorer.copy', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
       files.setClipboard(await picked(clicked, selected), false),
     ),
+    // Escape cancels a cut when the focused row is cut; otherwise it clears the selection, as in any tree.
+    vscode.commands.registerCommand('multiGitExplorer.cancelCut', async () => {
+      const focused = await explorer.focusedRow();
+      if (focused && files.isCut(focused.uri.fsPath)) files.cancelCut();
+      else await vscode.commands.executeCommand('list.clear');
+    }),
     vscode.commands.registerCommand('multiGitExplorer.paste', async (clicked?: ExplorerNode | { keyboard: true }) => {
       const row = isKeyboard(clicked) ? await explorer.focusedRow() : clicked;
       const target = row ? folderOf(row) : explorer.selectedFolder();
@@ -136,6 +143,9 @@ const TREE_MIME = 'application/vnd.code.tree.multigitexplorer.explorer';
 /** File changes made from the file tree; also its drag and drop controller. */
 export class FileOperations implements vscode.Disposable {
   private clipboard?: Clipboard;
+  private readonly _onDidChangeCut = new vscode.EventEmitter<vscode.Uri[]>();
+  /** Fires with the rows that became cut, or stopped being cut, as view URIs. */
+  readonly onDidChangeCut = this._onDidChangeCut.event;
 
   constructor(
     private readonly store: RepoStore,
@@ -143,6 +153,7 @@ export class FileOperations implements vscode.Disposable {
   ) {}
 
   dispose(): void {
+    this._onDidChangeCut.dispose();
     this.clipboard = undefined;
   }
 
@@ -223,12 +234,33 @@ export class FileOperations implements vscode.Disposable {
     await this.afterChange(targets);
   }
 
+  /** Whether this exact row was cut and not pasted yet. Rows inside a cut folder aren't, as in the built-in Explorer. */
+  isCut(fsPath: string): boolean {
+    return !!this.clipboard?.cut && this.clipboard.items.some(i => i.uri.fsPath === fsPath);
+  }
+
+  /** Escape: forgets the cut items, so they can't be pasted. */
+  cancelCut(): void {
+    if (!this.clipboard?.cut) return;
+    this.replaceClipboard(undefined);
+    void vscode.commands.executeCommand('setContext', 'multiGitExplorer.canPaste', false);
+  }
+
+  private replaceClipboard(clipboard: Clipboard | undefined): void {
+    const wasCut = this.clipboard?.cut ? this.clipboard.items : [];
+    this.clipboard = clipboard;
+    const nowCut = clipboard?.cut ? clipboard.items : [];
+    void vscode.commands.executeCommand('setContext', 'multiGitExplorer.resourceCut', nowCut.length > 0);
+    const changed = [...wasCut, ...nowCut].map(i => toViewUri(i.uri.fsPath));
+    if (changed.length) this._onDidChangeCut.fire(changed);
+  }
+
   async setClipboard(nodes: readonly ExplorerNode[], cut: boolean): Promise<void> {
     const items = outermost(nodes)
       .filter(n => !(cut && isWorkspaceFolder(n.uri.fsPath)))
       .map(n => ({ uri: n.uri, isDir: n.isDir }));
     if (items.length === 0) return;
-    this.clipboard = { items, cut };
+    this.replaceClipboard({ items, cut });
     await vscode.commands.executeCommand('setContext', 'multiGitExplorer.canPaste', true);
     const what = items.length === 1 ? path.basename(items[0].uri.fsPath) : `${items.length} items`;
     vscode.window.setStatusBarMessage(`${cut ? 'Cut' : 'Copied'} ${what}. Paste into a folder in the file tree.`, 3000);
@@ -243,7 +275,7 @@ export class FileOperations implements vscode.Disposable {
       if (moves && (await this.move(moves))) {
         pasted.push(...moves.map(m => ({ uri: m.to, isDir: clipboard.items.find(i => i.uri.fsPath === m.from.fsPath)!.isDir })));
         // A cut can only be pasted once, like the built-in Explorer.
-        this.clipboard = undefined;
+        this.replaceClipboard(undefined);
         void vscode.commands.executeCommand('setContext', 'multiGitExplorer.canPaste', false);
       }
     } else {

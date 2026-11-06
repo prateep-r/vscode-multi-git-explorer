@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Problems show on files and folders**, like the built-in Explorer: files with errors or warnings are colored and show how many, and the folders above them are colored too. Follows `problems.decorations.enabled`.
+- **Cut items are dimmed** until you paste them, and <kbd>Escape</kbd> cancels the cut.
 - **Keyboard shortcuts act on the focused row**, like the built-in Explorer: the row you moved to with the arrow keys, or the whole selection when that row is part of it. Before, they acted on the selected rows only.
 - **More of the built-in Explorer's keys**: <kbd>Enter</kbd> renames on macOS (<kbd>F2</kbd> still works), <kbd>Space</kbd> opens a file and keeps focus in the tree, <kbd>Enter</kbd> (<kbd>Cmd</kbd>+<kbd>Down</kbd> on macOS) opens it and moves focus to the editor, <kbd>Shift</kbd>+<kbd>Delete</kbd> (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>Backspace</kbd>) deletes permanently, and <kbd>Delete</kbd> also deletes on macOS.
 - **Open With…** on files, and **Add Folder to Workspace…** / **Remove Folder from Workspace** on workspace folders.

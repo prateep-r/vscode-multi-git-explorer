@@ -553,6 +553,37 @@ test('shortcuts act on the focused row, or the selection it is part of, like the
     await waitFor('a.txt to open', () => vscode.window.activeTextEditor?.document.uri.fsPath === path.join(dir, 'a.txt'));
   }));
 
+test('files with problems are colored and counted, and cut rows are dimmed, like the built-in Explorer', ({ problems, cut, files }) =>
+  withScratch(async (dir, node) => {
+    const file = vscode.Uri.file(path.join(dir, 'a.txt'));
+    const diagnostics = vscode.languages.createDiagnosticCollection('integration');
+    const config = vscode.workspace.getConfiguration('problems');
+    try {
+      diagnostics.set(file, [
+        new vscode.Diagnostic(new vscode.Range(0, 0, 0, 1), 'warning', vscode.DiagnosticSeverity.Warning),
+        new vscode.Diagnostic(new vscode.Range(0, 0, 0, 1), 'error', vscode.DiagnosticSeverity.Error),
+      ]);
+      const decoration = problems.provideFileDecoration(toViewUri(file.fsPath));
+      assert.equal(decoration?.badge, '2');
+      assert.equal((decoration?.color as vscode.ThemeColor).id, 'list.errorForeground');
+      assert.equal(decoration?.propagate, true, 'folders above are tinted too');
+      await config.update('decorations.enabled', false, vscode.ConfigurationTarget.Global);
+      assert.equal(problems.provideFileDecoration(toViewUri(file.fsPath)), undefined, 'problems.decorations.enabled');
+    } finally {
+      await config.update('decorations.enabled', undefined, vscode.ConfigurationTarget.Global);
+      diagnostics.dispose();
+    }
+
+    await files.setClipboard([node('a.txt')], true);
+    assert.equal((cut.provideFileDecoration(toViewUri(file.fsPath))?.color as vscode.ThemeColor).id, 'disabledForeground');
+    files.cancelCut();
+    assert.equal(cut.provideFileDecoration(toViewUri(file.fsPath)), undefined, 'Escape cancels the cut');
+    await files.setClipboard([node('a.txt')], true);
+    await files.paste(vscode.Uri.file(path.join(dir, 'sub')));
+    assert.equal(cut.provideFileDecoration(toViewUri(path.join(dir, 'sub', 'a.txt'))), undefined, 'pasting ends the cut');
+    assert.equal(cut.provideFileDecoration(toViewUri(file.fsPath)), undefined);
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

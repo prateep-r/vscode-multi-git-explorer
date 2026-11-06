@@ -363,6 +363,11 @@
         "command": "multiGitExplorer.removeRootFolder",
         "title": "Remove Folder from Workspace",
         "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.cancelCut",
+        "title": "Cancel Cut",
+        "category": "Multi-Git Explorer"
       }
     ],
     "submenus": [
@@ -873,6 +878,10 @@
         {
           "command": "multiGitExplorer.addRootFolder",
           "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.cancelCut",
+          "when": "false"
         }
       ]
     },
@@ -1165,6 +1174,14 @@
         "key": "shift+delete",
         "mac": "alt+cmd+backspace",
         "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.cancelCut",
+        "key": "escape",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && multiGitExplorer.resourceCut",
         "args": {
           "keyboard": true
         }

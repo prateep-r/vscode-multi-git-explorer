@@ -5,8 +5,10 @@ import { FileOperations, registerFileCommands } from './fileCommands';
 import { registerPathCommands } from './pathCommands';
 import { copyOldSettings, offerToUninstallOld } from './rename';
 import { RepoStore } from './store';
+import { CutDecorationProvider } from './views/cutDecorations';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
+import { ProblemDecorationProvider } from './views/problemDecorations';
 import { RepoExplorerProvider } from './views/repoExplorer';
 import { ReposViewProvider } from './views/reposView';
 import { StatusBar } from './views/statusBar';
@@ -17,6 +19,8 @@ export interface MultiGitExplorerApi {
   explorer: RepoExplorerProvider;
   reposView: ReposViewProvider;
   decorations: RepoDecorationProvider;
+  problems: ProblemDecorationProvider;
+  cut: CutDecorationProvider;
   files: FileOperations;
 }
 
@@ -29,6 +33,8 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   const reposTree = vscode.window.createTreeView('multiGitExplorer.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
   reposView.attach(reposTree);
   const files = new FileOperations(store, explorer);
+  const problems = new ProblemDecorationProvider();
+  const cut = new CutDecorationProvider(files);
   const explorerTree = vscode.window.createTreeView('multiGitExplorer.explorer', {
     treeDataProvider: explorer,
     showCollapseAll: true,
@@ -46,6 +52,10 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     explorerTree,
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
+    // The provider registered last wins when colors clash: problems over git states, and cut over all.
+    problems,
+    vscode.window.registerFileDecorationProvider(problems),
+    vscode.window.registerFileDecorationProvider(cut),
     vscode.workspace.registerTextDocumentContentProvider(HEAD_SCHEME, new HeadContentProvider()),
     new StatusBar(store),
     ...registerCommands(store, reposView, explorer),
@@ -59,7 +69,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   void copyOldSettings(context, log).then(() => store.discover());
   void offerToUninstallOld();
   void showOnStartup();
-  return { store, explorer, reposView, decorations, files };
+  return { store, explorer, reposView, decorations, problems, cut, files };
 }
 
 /**
