@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Sorted like the built-in Explorer**, following `explorer.sortOrder` (folders first, mixed, files first, by type, by date modified, or files with nested files first), `explorer.sortOrderLexicographicOptions` and `explorer.sortOrderReverse`. Names are compared with VS Code's own code.
 - **`files.exclude` works as in the built-in Explorer**: every glob pattern (such as `**/*.pyc`), `when` clauses, `!` exceptions, and excluded files stay shown while an editor shows them. Before, only patterns like `**/node_modules` were understood. The pattern matching is VS Code's own code.
 - **Copy Remote File URL** and **Open on Remote (Web)** no longer keep part of a password in the link when a remote URL's password contains an unescaped `@`.
 - Turned off in Restricted Mode, like VS Code's own Git, since a repo's git config can run programs. Trust the folder to use it.

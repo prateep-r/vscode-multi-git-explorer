@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { FILTER_LABELS, describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
 import { isAtOrInside, isInside, repoRelative } from '../core/paths';
 import type { ChangedFile } from '../core/porcelain';
+import { compareEntries, readSortConfig, type Sortable } from '../core/sort';
 import type { GroupKey } from '../core/state';
 import { checkEntry, parseExcludes, ROOT_STATE, type ExcludeRules, type VisibilityState } from '../core/visibility';
 import type { RepoEntry, RepoStore } from '../store';
@@ -80,6 +81,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('files.exclude')) {
           this.excludeRules.clear();
+          this.refreshAll();
+        } else if (e.affectsConfiguration('explorer.sortOrder') || e.affectsConfiguration('explorer.sortOrderLexicographicOptions') || e.affectsConfiguration('explorer.sortOrderReverse')) {
           this.refreshAll();
         }
       }),
@@ -170,7 +173,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         .filter(child => !(child.isDir && excluded.has(path.basename(child.uri.fsPath))))
         .map(child => ({ ...child, change: node.change }));
     }
-    return this.filteredChildren(uri);
+    return await this.filteredChildren(uri);
   }
 
   /** The folder new files go into: the selected folder, or the folder of the selected file. */
@@ -298,7 +301,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return this.filters.has('changes') && (repo.status?.changedFiles ?? 0) > 0;
   }
 
-  private filteredChildren(uri: vscode.Uri): ExplorerNode[] {
+  private async filteredChildren(uri: vscode.Uri): Promise<ExplorerNode[]> {
     const matching = this.matchingRepos();
     const changes = matching.filter(r => this.showsFilesOf(r)).map(r => ({ root: r.root, files: r.status!.files }));
     // Changed files come straight from git, so leave out what the unfiltered
@@ -308,7 +311,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       entry => !(entry.isDir && excluded.has(entry.name)),
     );
     // A deleted file is listed too, so siblings for `when` clauses come from the disk.
-    return this.visibleEntries(uri.fsPath, entries, name => existsSync(path.join(uri.fsPath, name)))
+    const visible = this.visibleEntries(uri.fsPath, entries, name => existsSync(path.join(uri.fsPath, name)));
+    return (await this.sorted(uri.fsPath, visible))
       .map(entry => {
         const child = vscode.Uri.joinPath(uri, entry.name);
         if (!entry.isDir) return { uri: child, isDir: false, change: entry.change };
@@ -325,8 +329,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     }
     const names = new Set(entries.map(([name]) => name));
     const listed = entries.map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0 }));
-    return this.visibleEntries(uri.fsPath, listed, name => names.has(name))
-      .sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, undefined, { numeric: true }))
+    return (await this.sorted(uri.fsPath, this.visibleEntries(uri.fsPath, listed, name => names.has(name))))
       .map(({ name, isDir }) => {
         const child = vscode.Uri.joinPath(uri, name);
         return isDir ? this.dirNode(child) : { uri: child, isDir: false };
@@ -369,6 +372,31 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       this.visibility.set(fsPath, result.state);
       return result.visible;
     });
+  }
+
+  /**
+   * Sorts a folder's entries by `explorer.sortOrder`, its lexicographic
+   * options and `explorer.sortOrderReverse`, like the built-in Explorer.
+   */
+  private async sorted<T extends Sortable>(dir: string, entries: T[]): Promise<T[]> {
+    const explorer = vscode.workspace.getConfiguration('explorer');
+    const config = readSortConfig(
+      explorer.get('sortOrder'),
+      explorer.get('sortOrderLexicographicOptions'),
+      explorer.get('sortOrderReverse'),
+    );
+    if (config.order === 'modified') {
+      await Promise.all(
+        entries.map(async entry => {
+          try {
+            entry.mtime = (await vscode.workspace.fs.stat(vscode.Uri.file(path.join(dir, entry.name)))).mtime;
+          } catch {
+            // Deleted files, listed while filtering, have no time and go last.
+          }
+        }),
+      );
+    }
+    return entries.sort(compareEntries(config));
   }
 
   private excludeRulesFor(root: string): ExcludeRules {

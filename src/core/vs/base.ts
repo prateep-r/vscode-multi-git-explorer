@@ -102,3 +102,24 @@ export const enum CharCode {
   Slash = 47,
   Backslash = 92,
 }
+
+/** A value computed the first time it's read (lazy.ts). */
+export class Lazy<T> {
+  private computed = false;
+  private result?: T;
+  constructor(private readonly executor: () => T) {}
+  get value(): T {
+    if (!this.computed) {
+      this.result = this.executor();
+      this.computed = true;
+    }
+    return this.result as T;
+  }
+}
+
+/** `Intl` constructors made lazily, as date.ts's `safeIntl` does. */
+export const safeIntl = {
+  Collator(locales?: string | string[], options?: Intl.CollatorOptions): Lazy<Intl.Collator> {
+    return new Lazy(() => new Intl.Collator(locales, options));
+  },
+};

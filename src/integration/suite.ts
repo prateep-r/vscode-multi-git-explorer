@@ -512,6 +512,30 @@ test('files.exclude hides items like the built-in Explorer: globs, when clauses,
     }
   }));
 
+test('explorer.sortOrder and its options sort the file tree like the built-in Explorer', ({ explorer }) =>
+  withScratch(async (dir, node) => {
+    writeFileSync(path.join(dir, 'b.md'), '');
+    writeFileSync(path.join(dir, 'C.txt'), '');
+    const names = async () => (await explorer.getChildren(node('.', true))).map(n => path.basename(n.uri.fsPath));
+    const config = vscode.workspace.getConfiguration('explorer');
+    const set = (key: string, value: unknown) => config.update(key, value, vscode.ConfigurationTarget.Global);
+    try {
+      assert.deepEqual(await names(), ['sub', 'a.txt', 'b.md', 'C.txt'], 'default');
+      await set('sortOrder', 'filesFirst');
+      assert.deepEqual(await names(), ['a.txt', 'b.md', 'C.txt', 'sub']);
+      await set('sortOrder', 'type');
+      assert.deepEqual(await names(), ['sub', 'b.md', 'a.txt', 'C.txt']);
+      await set('sortOrder', 'default');
+      await set('sortOrderLexicographicOptions', 'upper');
+      assert.deepEqual(await names(), ['sub', 'C.txt', 'a.txt', 'b.md']);
+      await set('sortOrderLexicographicOptions', undefined);
+      await set('sortOrderReverse', true);
+      assert.deepEqual(await names(), ['C.txt', 'b.md', 'a.txt', 'sub']);
+    } finally {
+      for (const key of ['sortOrder', 'sortOrderLexicographicOptions', 'sortOrderReverse']) await set(key, undefined);
+    }
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));
