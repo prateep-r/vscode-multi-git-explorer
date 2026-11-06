@@ -3,10 +3,13 @@ import * as vscode from 'vscode';
 import { isValidBranchName, listBranches, stashChanges, switchBranch, type Branches } from './core/branches';
 import { GitError, runGit } from './core/git';
 import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
+import { repoRelative } from './core/paths';
+import { defaultRemote } from './core/remoteLink';
 import { Priority, runPool } from './core/queue';
 import type { RepoEntry, RepoStore } from './store';
 import { GitStatus, type GitAPI, type GitChange, type GitExtension, type GitRepository } from './typings/git';
 import { headUri } from './views/headContent';
+import { gitPath } from './workspace';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import type { ReposNode, ReposViewProvider } from './views/reposView';
 
@@ -82,7 +85,9 @@ export function registerCommands(
 
     vscode.commands.registerCommand('multiRepoExplorer.clearExplorerFilter', () => explorer.setFilters([])),
 
-    vscode.commands.registerCommand('multiRepoExplorer.openChange', (node: ExplorerNode) => openChange(store, node)),
+    vscode.commands.registerCommand('multiRepoExplorer.openChange', (node: ExplorerNode, options?: vscode.TextDocumentShowOptions) =>
+      openChange(store, node, options),
+    ),
 
     vscode.commands.registerCommand('multiRepoExplorer.openChangedFile', (node: ExplorerNode) =>
       vscode.commands.executeCommand('vscode.open', node.uri),
@@ -145,8 +150,7 @@ export function registerCommands(
       'multiRepoExplorer.push',
       withRepo(async repo => {
         if (repo.status && !repo.status.branch.upstream && !repo.status.branch.detached) {
-          const remotes = (await git(repo, ['remote']).catch(() => '')).split('\n').filter(Boolean);
-          const remote = remotes.includes('origin') ? 'origin' : remotes[0];
+          const remote = defaultRemote((await git(repo, ['remote']).catch(() => '')).split('\n').filter(Boolean));
           if (!remote) {
             void vscode.window.showWarningMessage(`${repo.name} has no remote to push to.`);
             return;
@@ -204,7 +208,7 @@ async function pickExplorerFilters(explorer: RepoExplorerProvider): Promise<void
     filter,
   }));
   const picked = await vscode.window.showQuickPick(items, {
-    title: 'Show in Repo Explorer',
+    title: 'Show in Multi-Repo Explorer',
     placeHolder: 'Pick what to show. Pick nothing to show everything.',
     canPickMany: true,
   });
@@ -220,20 +224,20 @@ const DIFF_LABELS: Record<string, string> = {
 };
 
 /** Shows a changed file as a diff against HEAD; conflicted files open as-is so they can be resolved. */
-async function openChange(store: RepoStore, node: ExplorerNode): Promise<void> {
+async function openChange(store: RepoStore, node: ExplorerNode, options?: vscode.TextDocumentShowOptions): Promise<void> {
   const repo = store.repoContaining(node.uri.fsPath);
   const change = node.change;
   if (!repo || !change || change.letter === '!') {
-    await vscode.commands.executeCommand('vscode.open', node.uri);
+    await vscode.commands.executeCommand('vscode.open', node.uri, options);
     return;
   }
-  const relPath = path.relative(repo.root, node.uri.fsPath).split(path.sep).join('/');
+  const relPath = repoRelative(repo.root, node.uri.fsPath);
   // A file inside an untracked folder carries the folder's change, so it's new too.
   const isNew = change.letter === 'A' || change.letter === 'U';
   const left = headUri(node.uri, repo.root, isNew ? undefined : (change.origPath ?? relPath));
   const right = change.letter === 'D' ? headUri(node.uri, repo.root, undefined) : node.uri;
   const title = `${path.basename(node.uri.fsPath)} (${DIFF_LABELS[change.letter]})`;
-  await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true });
+  await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true, ...options });
 }
 
 type BranchPick = vscode.QuickPickItem & {
@@ -394,11 +398,6 @@ function uniqueChanges(changes: GitChange[]): GitChange[] {
   const seen = new Map<string, GitChange>();
   for (const change of changes) if (!seen.has(change.uri.toString())) seen.set(change.uri.toString(), change);
   return [...seen.values()];
-}
-
-function gitPath(): string | undefined {
-  const value = vscode.workspace.getConfiguration('git').get<string | string[]>('path');
-  return (Array.isArray(value) ? value[0] : value) || undefined;
 }
 
 function showGitError(title: string, error: unknown): void {

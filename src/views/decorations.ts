@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { repoRelative } from '../core/paths';
 import type { ChangeLetter, ChangedFile } from '../core/porcelain';
 import { Priority } from '../core/queue';
 import type { StateKind } from '../core/state';
@@ -116,7 +117,7 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
 /** The change recorded for a path, including files inside an untracked folder. */
 function findChange(repo: RepoEntry, fsPath: string): ChangedFile | undefined {
   if (!repo.changes || fsPath === repo.root) return undefined;
-  let rel = path.relative(repo.root, fsPath).split(path.sep).join('/');
+  let rel = repoRelative(repo.root, fsPath);
   const direct = repo.changes.get(rel) ?? repo.changes.get(`${rel}/`);
   if (direct) return direct;
   while (rel.includes('/')) {

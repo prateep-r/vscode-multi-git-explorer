@@ -1,4 +1,4 @@
-import * as path from 'path';
+import { firstPartBelow, isAtOrInside, isInside, repoRelative } from './paths';
 import type { ChangedFile, StatusSummary } from './porcelain';
 
 export type ExplorerFilter = 'changes' | 'unpushed' | 'behind';
@@ -48,14 +48,13 @@ export function filteredEntries(
     if (!existing?.isDir) entries.set(name, { name, isDir: true, change: change ?? existing?.change });
   };
 
-  const prefix = dir + path.sep;
   for (const root of matchingRoots) {
-    if (root.startsWith(prefix)) addDir(root.slice(prefix.length).split(path.sep)[0]);
+    if (isInside(root, dir)) addDir(firstPartBelow(root, dir));
   }
 
   for (const { root, files } of changes) {
-    if (dir !== root && !dir.startsWith(root + path.sep)) continue;
-    const relDir = path.relative(root, dir).split(path.sep).join('/');
+    if (!isAtOrInside(dir, root)) continue;
+    const relDir = repoRelative(root, dir);
     const filePrefix = relDir ? `${relDir}/` : '';
     for (const file of files) {
       if (!file.path.startsWith(filePrefix)) continue;

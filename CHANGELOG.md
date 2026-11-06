@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Right-click menu like the built-in Explorer** in the file tree: Open to the Side, Reveal in Finder, Open in Integrated Terminal, Reveal in Explorer View, Find in Folder, Select for Compare / Compare with Selected, Open Timeline, Cut / Copy / Paste, Copy Path / Copy Relative Path, Rename and Delete, with the built-in Explorer's keyboard shortcuts.
+- **Drag and drop** items onto a folder to move them.
+- **Copy Remote File URL** and **Open on Remote (Web)** link to a file or folder on GitHub, GitLab, Bitbucket, Azure DevOps or Gitea. Set the kind of self-hosted sites in `multiRepoExplorer.remoteHosts`.
+- **Copy to AI Chat** replaces Copy to Claude Chat and Copy to Codex Chat, which copied the same `@path` text. It shows on every row, also without either extension installed.
+- The side bar is titled **Multi-Repo Explorer**, and the repo list **Git Repositories**.
+- Clicking a file in the file tree opens it as a preview and keeps focus in the tree, like the built-in Explorer, so keyboard shortcuts act on the row instead of the editor.
+- A file removed with `git rm --cached` shows as untracked instead of deleted, since it's still on disk.
+- Menu items are limited to this extension's views, so they no longer show up twice next to an older build's.
+
 ## 1.1.0
 
 - The side bar opens on the Repo Explorer when a window with a folder opens, instead of the built-in Explorer. Turn this off with `multiRepoExplorer.showOnStartup`.

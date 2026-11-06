@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { registerChatTargets } from './chatTargets';
 import { registerCommands } from './commands';
-import { registerFileCommands } from './fileCommands';
+import { FileOperations, registerFileCommands } from './fileCommands';
+import { registerPathCommands } from './pathCommands';
 import { RepoStore } from './store';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
@@ -15,6 +16,7 @@ export interface MultiRepoExplorerApi {
   explorer: RepoExplorerProvider;
   reposView: ReposViewProvider;
   decorations: RepoDecorationProvider;
+  files: FileOperations;
 }
 
 export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi {
@@ -25,10 +27,12 @@ export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi
   const decorations = new RepoDecorationProvider(store);
   const reposTree = vscode.window.createTreeView('multiRepoExplorer.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
   reposView.attach(reposTree);
+  const files = new FileOperations(store, explorer);
   const explorerTree = vscode.window.createTreeView('multiRepoExplorer.explorer', {
     treeDataProvider: explorer,
     showCollapseAll: true,
     canSelectMany: true,
+    dragAndDropController: files.dragAndDrop,
   });
   explorer.attach(explorerTree);
 
@@ -44,13 +48,15 @@ export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi
     vscode.workspace.registerTextDocumentContentProvider(HEAD_SCHEME, new HeadContentProvider()),
     new StatusBar(store),
     ...registerCommands(store, reposView, explorer),
-    ...registerChatTargets(),
-    ...registerFileCommands(explorer),
+    ...registerChatTargets(explorerTree),
+    files,
+    ...registerFileCommands(files, explorer, explorerTree),
+    ...registerPathCommands(store, explorerTree),
   );
 
   void store.discover();
   void showOnStartup();
-  return { store, explorer, reposView, decorations };
+  return { store, explorer, reposView, decorations, files };
 }
 
 /**

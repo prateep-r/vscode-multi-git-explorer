@@ -77,10 +77,12 @@ test('Add to Codex Chat runs without opening the file', async () => {
   );
 });
 
-test('Copy to … Chat copies @path/ for folders and opens the chat', async () => {
-  await vscode.commands.executeCommand('multiRepoExplorer.copyTo.claude', dirNode('services/api-gateway'));
+test('Copy to AI Chat copies @path mentions for folders and files', async () => {
+  await vscode.commands.executeCommand('multiRepoExplorer.copyToAiChat', dirNode('services/api-gateway'));
   assert.equal(await vscode.env.clipboard.readText(), '@services/api-gateway/');
-  await vscode.commands.executeCommand('multiRepoExplorer.copyTo.codex', dirNode('services/auth-service'), [
+  await vscode.commands.executeCommand('multiRepoExplorer.copyToAiChat', fileNode('services/billing/README.md'));
+  assert.equal(await vscode.env.clipboard.readText(), '@services/billing/README.md');
+  await vscode.commands.executeCommand('multiRepoExplorer.copyToAiChat', dirNode('services/auth-service'), [
     dirNode('services/auth-service'),
     dirNode('frontend/web-app'),
   ]);

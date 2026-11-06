@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 import { formatMentions } from './core/mention';
 import type { ExplorerNode } from './views/repoExplorer';
 import type { ReposNode } from './views/reposView';
+import { pickRows } from './workspace';
 
 /**
  * AI chat extensions we can hand files to. Each only exposes a command that
- * works on files, so files are added for real and folders are copied as
- * `@path/` for the user to paste.
+ * works on files, so files are added for real. Anything can also be copied as
+ * `@path` mentions, which most AI chats understand, for the user to paste.
  */
 interface ChatTarget {
   key: string;
@@ -46,28 +47,34 @@ interface Picked {
   isDir: boolean;
 }
 
-/** The rows a command applies to: every selected row when the clicked one is part of the selection. */
-function pickedRows(clicked: Row | undefined, selected: readonly Row[] | undefined): Picked[] {
-  const toPicked = (row: Row): Picked[] => {
-    if ('uri' in row) return [{ uri: row.uri, isDir: row.isDir }];
-    if (row.type === 'repo') return [{ uri: vscode.Uri.file(row.root), isDir: true }];
-    return [];
-  };
-  const target = clicked ? toPicked(clicked) : [];
-  const all = (selected ?? []).flatMap(toPicked);
-  // Right-clicking outside the selection acts on the clicked row only, like the built-in Explorer.
-  return target.length && all.some(p => p.uri.fsPath === target[0].uri.fsPath) ? all : target;
+function toPicked(row: Row): Picked[] {
+  if ('uri' in row) return [{ uri: row.uri, isDir: row.isDir }];
+  if (row.type === 'repo') return [{ uri: vscode.Uri.file(row.root), isDir: true }];
+  return [];
 }
 
-async function copyMentions(target: ChatTarget, rows: Picked[]): Promise<void> {
+/**
+ * Copies `@path` mentions. The chat to paste into is opened when it's clear
+ * which one: the one given, or the only one installed.
+ */
+async function copyMentions(rows: Picked[], target?: ChatTarget): Promise<void> {
+  if (rows.length === 0) return;
   const text = formatMentions(rows.map(r => ({ path: vscode.workspace.asRelativePath(r.uri), isDir: r.isDir })));
   await vscode.env.clipboard.writeText(text);
-  await Promise.resolve(target.focus()).catch(() => undefined);
+  const installed = TARGETS.filter(t => vscode.extensions.getExtension(t.extensionId) !== undefined);
+  const chat = target ?? (installed.length === 1 ? installed[0] : undefined);
+  if (chat) await Promise.resolve(chat.focus()).catch(() => undefined);
   const paste = process.platform === 'darwin' ? 'Cmd+V' : 'Ctrl+V';
-  void vscode.window.showInformationMessage(`Copied ${text} — press ${paste} in the ${target.name} chat to add it.`);
+  void vscode.window.showInformationMessage(`Copied ${text} — press ${paste} in ${chat ? `the ${chat.name}` : 'your AI'} chat to add it.`);
 }
 
-export function registerChatTargets(): vscode.Disposable[] {
+/** Registers the chat commands. Keyboard shortcuts, which pass no row, act on the file tree's selection. */
+export function registerChatTargets(tree: vscode.TreeView<ExplorerNode>): vscode.Disposable[] {
+  const pickedRows = (clicked?: Row, selected?: readonly Row[]): Picked[] => {
+    const rows: readonly Row[] | undefined = selected ?? (clicked ? undefined : tree.selection);
+    return pickRows<Row>(clicked, rows, row => toPicked(row)[0]?.uri.fsPath ?? '').flatMap(toPicked);
+  };
+
   const updateAvailability = () => {
     for (const target of TARGETS) {
       const installed = vscode.extensions.getExtension(target.extensionId) !== undefined;
@@ -91,11 +98,11 @@ export function registerChatTargets(): vscode.Disposable[] {
           }
         }
         // Folders can't be added, and files the chat refused are better copied than lost.
-        if (folders.length || failed.length) await copyMentions(target, [...failed, ...folders]);
+        if (folders.length || failed.length) await copyMentions([...failed, ...folders], target);
       }),
-      vscode.commands.registerCommand(`multiRepoExplorer.copyTo.${target.key}`, (clicked?: Row, selected?: Row[]) =>
-        copyMentions(target, pickedRows(clicked, selected)),
-      ),
     ]),
+    vscode.commands.registerCommand('multiRepoExplorer.copyToAiChat', (clicked?: Row, selected?: Row[]) =>
+      copyMentions(pickedRows(clicked, selected)),
+    ),
   ];
 }

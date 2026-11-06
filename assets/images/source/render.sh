@@ -30,6 +30,6 @@ shoot explorer 1000,560
 shoot filter 1280,640
 shoot diff 1280,460
 shoot diff-light 1280,460
-shoot chat 1280,520
-shoot menu 1000,700
+shoot chat 1280,900
+shoot menu 1000,960
 shoot switch-branch 1280,420

@@ -32,7 +32,7 @@
       "activitybar": [
         {
           "id": "multiRepoExplorer",
-          "title": "Repo Explorer",
+          "title": "Multi-Repo Explorer",
           "icon": "media/icon.svg"
         }
       ]
@@ -45,7 +45,7 @@
         },
         {
           "id": "multiRepoExplorer.repos",
-          "name": "Git Repos"
+          "name": "Git Repositories"
         }
       ]
     },
@@ -82,7 +82,7 @@
       },
       {
         "command": "multiRepoExplorer.filterExplorer",
-        "title": "Filter Repo Explorer...",
+        "title": "Filter Multi-Repo Explorer...",
         "category": "Multi-Repo Explorer"
       },
       {
@@ -199,18 +199,8 @@
         "category": "Multi-Repo Explorer"
       },
       {
-        "command": "multiRepoExplorer.copyTo.claude",
-        "title": "Copy to Claude Chat",
-        "category": "Multi-Repo Explorer"
-      },
-      {
         "command": "multiRepoExplorer.addTo.codex",
         "title": "Add to Codex Chat",
-        "category": "Multi-Repo Explorer"
-      },
-      {
-        "command": "multiRepoExplorer.copyTo.codex",
-        "title": "Copy to Codex Chat",
         "category": "Multi-Repo Explorer"
       },
       {
@@ -224,6 +214,112 @@
         "title": "New Folder...",
         "category": "Multi-Repo Explorer",
         "icon": "$(new-folder)"
+      },
+      {
+        "command": "multiRepoExplorer.copyToAiChat",
+        "title": "Copy to AI Chat",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.openToSide",
+        "title": "Open to the Side",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.revealInFinder",
+        "title": "Reveal in Finder",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.revealInFileExplorer",
+        "title": "Reveal in File Explorer",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.openContainingFolder",
+        "title": "Open Containing Folder",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.openInTerminal",
+        "title": "Open in Integrated Terminal",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.revealInExplorer",
+        "title": "Reveal in Explorer View",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.findInFolder",
+        "title": "Find in Folder...",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.selectForCompare",
+        "title": "Select for Compare",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.compareWithSelected",
+        "title": "Compare with Selected",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.compareSelected",
+        "title": "Compare Selected",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.openTimeline",
+        "title": "Open Timeline",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.cut",
+        "title": "Cut",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.copy",
+        "title": "Copy",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.paste",
+        "title": "Paste",
+        "category": "Multi-Repo Explorer",
+        "enablement": "multiRepoExplorer.canPaste"
+      },
+      {
+        "command": "multiRepoExplorer.copyPath",
+        "title": "Copy Path",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.copyRelativePath",
+        "title": "Copy Relative Path",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.copyRemoteUrl",
+        "title": "Copy Remote File URL",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.openOnRemote",
+        "title": "Open on Remote (Web)",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.rename",
+        "title": "Rename...",
+        "category": "Multi-Repo Explorer"
+      },
+      {
+        "command": "multiRepoExplorer.delete",
+        "title": "Delete",
+        "category": "Multi-Repo Explorer"
       }
     ],
     "submenus": [
@@ -298,33 +394,13 @@
       "view/item/context": [
         {
           "command": "multiRepoExplorer.addTo.claude",
-          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file/ && multiRepoExplorer.has.claude",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/ && multiRepoExplorer.has.claude",
           "group": "0_chat@1"
-        },
-        {
-          "command": "multiRepoExplorer.copyTo.claude",
-          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/ && multiRepoExplorer.has.claude",
-          "group": "0_chat@2"
-        },
-        {
-          "command": "multiRepoExplorer.copyTo.claude",
-          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/ && multiRepoExplorer.has.claude",
-          "group": "0_chat@2"
         },
         {
           "command": "multiRepoExplorer.addTo.codex",
-          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file/ && multiRepoExplorer.has.codex",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/ && multiRepoExplorer.has.codex",
           "group": "0_chat@1"
-        },
-        {
-          "command": "multiRepoExplorer.copyTo.codex",
-          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/ && multiRepoExplorer.has.codex",
-          "group": "0_chat@2"
-        },
-        {
-          "command": "multiRepoExplorer.copyTo.codex",
-          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/ && multiRepoExplorer.has.codex",
-          "group": "0_chat@2"
         },
         {
           "command": "multiRepoExplorer.openChangedFile",
@@ -353,52 +429,52 @@
         },
         {
           "command": "multiRepoExplorer.openInScm",
-          "when": "viewItem =~ /\\brepo\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\brepo\\b/",
           "group": "1_scm@1"
         },
         {
           "command": "multiRepoExplorer.openChanges",
-          "when": "viewItem =~ /\\brepo\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\brepo\\b/",
           "group": "1_scm@2"
         },
         {
           "command": "multiRepoExplorer.switchBranch",
-          "when": "viewItem =~ /\\brepo\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\brepo\\b/",
           "group": "0_branch@1"
         },
         {
           "command": "multiRepoExplorer.fetch",
-          "when": "viewItem =~ /\\bremote\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\bremote\\b/",
           "group": "2_sync@1"
         },
         {
           "command": "multiRepoExplorer.pull",
-          "when": "viewItem =~ /\\bupstream\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\bupstream\\b/",
           "group": "2_sync@2"
         },
         {
           "command": "multiRepoExplorer.push",
-          "when": "viewItem =~ /\\bcanPush\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\bcanPush\\b/",
           "group": "2_sync@3"
         },
         {
           "command": "multiRepoExplorer.openTerminal",
-          "when": "viewItem =~ /\\brepo\\b/",
+          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/",
           "group": "3_open@1"
         },
         {
           "command": "multiRepoExplorer.openInNewWindow",
-          "when": "viewItem =~ /\\brepo\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\brepo\\b/",
           "group": "3_open@2"
         },
         {
           "command": "multiRepoExplorer.copyBranch",
-          "when": "viewItem =~ /\\brepo\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\brepo\\b/",
           "group": "3_open@3"
         },
         {
           "command": "multiRepoExplorer.scanFolder",
-          "when": "viewItem =~ /\\bunscanned\\b/",
+          "when": "view =~ /^multiRepoExplorer\\./ && viewItem =~ /\\bunscanned\\b/",
           "group": "1_scan@1"
         },
         {
@@ -410,6 +486,116 @@
           "command": "multiRepoExplorer.newFolder",
           "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/",
           "group": "4_new@2"
+        },
+        {
+          "command": "multiRepoExplorer.copyToAiChat",
+          "when": "view == multiRepoExplorer.explorer",
+          "group": "0_chat@3"
+        },
+        {
+          "command": "multiRepoExplorer.copyToAiChat",
+          "when": "view == multiRepoExplorer.repos && viewItem =~ /\\brepo\\b/",
+          "group": "0_chat@3"
+        },
+        {
+          "command": "multiRepoExplorer.openToSide",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/",
+          "group": "1_open@3"
+        },
+        {
+          "command": "multiRepoExplorer.revealInFinder",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/ && isMac",
+          "group": "5_reveal@1"
+        },
+        {
+          "command": "multiRepoExplorer.revealInFileExplorer",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/ && isWindows",
+          "group": "5_reveal@1"
+        },
+        {
+          "command": "multiRepoExplorer.openContainingFolder",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/ && isLinux",
+          "group": "5_reveal@1"
+        },
+        {
+          "command": "multiRepoExplorer.openInTerminal",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/",
+          "group": "5_reveal@2"
+        },
+        {
+          "command": "multiRepoExplorer.revealInExplorer",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/",
+          "group": "5_reveal@3"
+        },
+        {
+          "command": "multiRepoExplorer.findInFolder",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(folder|repo)/",
+          "group": "6_search@1"
+        },
+        {
+          "command": "multiRepoExplorer.selectForCompare",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/",
+          "group": "7_compare@1"
+        },
+        {
+          "command": "multiRepoExplorer.compareWithSelected",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/ && multiRepoExplorer.compareSelected",
+          "group": "7_compare@2"
+        },
+        {
+          "command": "multiRepoExplorer.compareSelected",
+          "when": "view == multiRepoExplorer.explorer && multiRepoExplorer.twoFilesSelected",
+          "group": "7_compare@3"
+        },
+        {
+          "command": "multiRepoExplorer.openTimeline",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/",
+          "group": "7_compare@4"
+        },
+        {
+          "command": "multiRepoExplorer.cut",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/ && viewItem =~ /^(?!.*\\broot\\b)/",
+          "group": "8a_clipboard@1"
+        },
+        {
+          "command": "multiRepoExplorer.copy",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/",
+          "group": "8a_clipboard@2"
+        },
+        {
+          "command": "multiRepoExplorer.paste",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/",
+          "group": "8a_clipboard@3"
+        },
+        {
+          "command": "multiRepoExplorer.copyPath",
+          "when": "view == multiRepoExplorer.explorer",
+          "group": "8b_path@1"
+        },
+        {
+          "command": "multiRepoExplorer.copyRelativePath",
+          "when": "view == multiRepoExplorer.explorer",
+          "group": "8b_path@2"
+        },
+        {
+          "command": "multiRepoExplorer.copyRemoteUrl",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /\\bhosted\\b/",
+          "group": "8c_remote@1"
+        },
+        {
+          "command": "multiRepoExplorer.openOnRemote",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /\\bhosted\\b/",
+          "group": "8c_remote@2"
+        },
+        {
+          "command": "multiRepoExplorer.rename",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/ && viewItem =~ /^(?!.*\\broot\\b)/",
+          "group": "9_modify@1"
+        },
+        {
+          "command": "multiRepoExplorer.delete",
+          "when": "view == multiRepoExplorer.explorer && viewItem =~ /^(?!.*\\bdeleted\\b)/ && viewItem =~ /^(?!.*\\broot\\b)/",
+          "group": "9_modify@2"
         }
       ],
       "explorer/context": [
@@ -519,15 +705,91 @@
           "when": "false"
         },
         {
-          "command": "multiRepoExplorer.copyTo.claude",
-          "when": "false"
-        },
-        {
           "command": "multiRepoExplorer.addTo.codex",
           "when": "false"
         },
         {
-          "command": "multiRepoExplorer.copyTo.codex",
+          "command": "multiRepoExplorer.copyToAiChat",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.openToSide",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.revealInFinder",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.revealInFileExplorer",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.openContainingFolder",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.openInTerminal",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.revealInExplorer",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.findInFolder",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.selectForCompare",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.compareWithSelected",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.compareSelected",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.openTimeline",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.cut",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.copy",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.paste",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.copyRelativePath",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.copyRemoteUrl",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.openOnRemote",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.rename",
+          "when": "false"
+        },
+        {
+          "command": "multiRepoExplorer.delete",
           "when": "false"
         }
       ]
@@ -618,7 +880,7 @@
             "bower_components",
             "__pycache__"
           ],
-          "description": "Folder names that are never searched for repositories, and are hidden while the Repo Explorer is filtered."
+          "description": "Folder names that are never searched for repositories, and are hidden while the file tree is filtered."
         },
         "multiRepoExplorer.decorateExplorer": {
           "type": "boolean",
@@ -628,7 +890,23 @@
         "multiRepoExplorer.showOnStartup": {
           "type": "boolean",
           "default": true,
-          "description": "Show the Repo Explorer in the side bar when a window with a folder opens, instead of the built-in Explorer."
+          "description": "Show the Multi-Repo Explorer in the side bar when a window with a folder opens, instead of the built-in Explorer."
+        },
+        "multiRepoExplorer.remoteHosts": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab",
+              "bitbucket",
+              "bitbucket-server",
+              "azure",
+              "gitea"
+            ]
+          },
+          "markdownDescription": "The kind of website each git host is, for **Copy Remote File URL** and **Open on Remote (Web)**, such as `{ \"git.mycompany.com\": \"github\" }`. Hosts not listed are guessed from their name, and other self-hosted sites are treated as GitLab."
         },
         "multiRepoExplorer.maxConcurrency": {
           "type": "number",
@@ -654,19 +932,91 @@
           "description": "Re-check every repo in the background this often. 0 turns it off. This never fetches from remotes."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "multiRepoExplorer.openToSide",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.revealInFinder",
+        "key": "alt+cmd+r",
+        "mac": "alt+cmd+r",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus && isMac"
+      },
+      {
+        "command": "multiRepoExplorer.revealInFileExplorer",
+        "key": "shift+alt+r",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus && isWindows"
+      },
+      {
+        "command": "multiRepoExplorer.openContainingFolder",
+        "key": "ctrl+alt+r",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus && isLinux"
+      },
+      {
+        "command": "multiRepoExplorer.findInFolder",
+        "key": "shift+alt+f",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.cut",
+        "key": "ctrl+x",
+        "mac": "cmd+x",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.copy",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.paste",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus && multiRepoExplorer.canPaste"
+      },
+      {
+        "command": "multiRepoExplorer.copyPath",
+        "key": "shift+alt+c",
+        "mac": "alt+cmd+c",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.copyRelativePath",
+        "key": "ctrl+shift+alt+c",
+        "mac": "alt+shift+cmd+c",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.rename",
+        "key": "f2",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      },
+      {
+        "command": "multiRepoExplorer.delete",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView == multiRepoExplorer.explorer && !inputFocus"
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "test": "tsc -p . && node --test \"out/test/**/*.test.js\"",
     "vscode:prepublish": "npm run compile",
-    "test:integration": "tsc -p . && node out/integration/run.js"
+    "test:integration": "tsc -p . && node out/integration/run.js",
+    "test:e2e": "tsc -p . && node out/e2e/run.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.95.0",
     "@vscode/test-electron": "^3.1.0",
+    "playwright-core": "^1.48.2",
     "typescript": "^5.6.0"
   }
 }

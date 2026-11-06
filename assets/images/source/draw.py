@@ -43,9 +43,12 @@ body{background:#1f1f1f;color:#cccccc;font:13px -apple-system,"Segoe UI",sans-se
 .status .sp{flex:1}
 .tip{position:absolute;background:#202020;border:1px solid #454545;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.6);padding:6px 9px;font-size:12px;line-height:1.6;color:#cccccc;white-space:pre;z-index:5}
 .menu{position:absolute;background:#1f1f1f;border:1px solid #454545;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.6);padding:4px;font-size:13px;z-index:6;min-width:250px}
-.mi{height:26px;display:flex;align-items:center;padding:0 24px 0 26px;border-radius:4px;color:#cccccc}
+.mi{height:26px;display:flex;align-items:center;padding:0 24px 0 26px;border-radius:4px;color:#cccccc;white-space:nowrap}
 .mi.hl{background:#0078d4;color:#fff}
 .msep{height:1px;background:#454545;margin:4px 6px}
+.mi .kb{margin-left:auto;padding-left:28px;color:#9d9d9d;letter-spacing:1px}
+.mi.hl .kb{color:#fff}
+.mi.dis{color:#6b6b6b}
 .cap{position:absolute;background:#ffd84d;color:#1b1b1b;font-weight:700;font-size:12px;border-radius:11px;height:22px;min-width:22px;padding:0 7px;display:flex;align-items:center;justify-content:center;z-index:9;box-shadow:0 0 0 3px rgba(0,0,0,.45);white-space:nowrap}
 """
 HEAD = '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"><style>' + CSS + '</style></head><body>'
@@ -141,12 +144,12 @@ PROJECT = 'FILES<span class="d">sample-ws</span>'
 REPOS_ACTS = ci('cloud-download') + ci('filter') + ci('refresh') + ci('collapse-all')
 
 # 1. Overview
-side = ('<div class="vt">REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
     + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all')) + repo_explorer()
-    + sec('GIT REPOS', '299', REPOS_ACTS) + GIT_REPOS.replace('SELAUTH', ''))
+    + sec('GIT REPOSITORIES', '299', REPOS_ACTS) + GIT_REPOS.replace('SELAUTH', ''))
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
-caps = ('<div class="cap" style="left:220px;top:65px">1  Repo Explorer</div>'
-        '<div class="cap" style="left:180px;top:417px">2  Git Repos</div>'
+caps = ('<div class="cap" style="left:220px;top:65px">1  Files</div>'
+        '<div class="cap" style="left:180px;top:417px">2  Git Repositories</div>'
         '<div class="cap" style="left:190px;top:757px">3  Status bar</div>')
 html = html.replace('grid-template-rows:30px 1fr 22px', 'grid-template-rows:30px minmax(0,1fr) 22px')
 open('overview.html', 'w').write(html.replace('</body>', caps + '</body>'))
@@ -169,7 +172,7 @@ side = ('<div class="vt">EXPLORER</div>' + sec('SAMPLE-WS')
 html = chrome('300px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
 open('explorer.html', 'w').write(html)
 
-# 3. Repo Explorer filtered to changed files
+# 3. The file tree filtered to changed files
 LETTER = {'M': 'am', 'A': 'gr', 'U': 'gr', 'D': 'rd', '!': 'rd', 'R': 'bl'}
 def frow(indent, name, letter, extra_desc='', strike=False):
     lab = f'<span style="text-decoration:line-through">{name}</span>' if strike else name
@@ -177,7 +180,7 @@ def frow(indent, name, letter, extra_desc='', strike=False):
     return (f'<div class="row" style="padding-left:{8 + indent * 8}px"><span class="tw"></span><span class="ic">{TS if name.endswith(".ts") else MD if name.endswith(".md") else ci("file")}</span>'
             f'<span class="lb {color}">{lab}</span><span class="ds">{extra_desc}</span><span class="bd {color}">{letter}</span></div>')
 FILTER_ON = '<span style="color:#ffffff">' + ci('circle-filled') + '</span>'
-side = ('<div class="vt">REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
     + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'frontend', '1 repo · ●1')
@@ -197,7 +200,7 @@ side = ('<div class="vt">REPO EXPLORER</div>'
     + row(1, 'open', 'reports', '⎇ main · ?12', '9+', 'am')
     + frow(2, 'a.csv', 'U') + frow(2, 'b.csv', 'U') + frow(2, 'c.csv', 'U')
     + frow(2, 'd.csv', 'U')
-    + '<div class="sec"><span class="tw">' + ci('chevron-right') + '</span>GIT REPOS<span class="d">299</span></div>')
+    + '<div class="sec"><span class="tw">' + ci('chevron-right') + '</span>GIT REPOSITORIES<span class="d">299</span></div>')
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
 caps = ''
 open('filter.html', 'w').write(html.replace('</body>', caps + '</body>'))
@@ -235,7 +238,7 @@ DIFF_EDITOR = ('<div class="tabs"><div class="tab" style="font-style:italic">' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;font:13px/19px Menlo,monospace;color:#cccccc;flex:1">'
     '<div style="border-right:1px solid #2b2b2b;padding-top:4px">' + pane(LEFT, 'l') + '</div>'
     '<div style="padding-top:4px">' + pane(RIGHT, 'r') + '</div></div>')
-side = ('<div class="vt">REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
     + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'services', '4 repos · !2 ●2')
@@ -253,11 +256,35 @@ caps = ('<div class="cap" style="left:735px;top:66px">← Left: last commit (HEA
         '<div class="cap" style="left:1075px;top:66px">Right: your working copy →</div>')
 open('diff.html', 'w').write(html.replace('</body>', caps + '</body>'))
 
+def menu_html(left, top, groups, highlight):
+    """A right-click menu. Items are names, or (name, shortcut), and 'Paste' shows as disabled."""
+    m = f'<div class="menu" style="left:{left}px;top:{top}px">'
+    for gi, g in enumerate(groups):
+        if gi: m += '<div class="msep"></div>'
+        for it in g:
+            name, kb = it if isinstance(it, tuple) else (it, '')
+            cls = ' hl' if name == highlight else ' dis' if name == 'Paste' else ''
+            m += f'<div class="mi{cls}">{name}' + (f'<span class="kb">{kb}</span>' if kb else '') + '</div>'
+    return m + '</div>'
+
+# The menu items every row in the file tree gets, after its own ones.
+FILE_GROUPS = [
+    ['Reveal in Finder', 'Open in Integrated Terminal', 'Reveal in Explorer View'],
+    [('Cut', '⌘X'), ('Copy', '⌘C'), ('Paste', '⌘V')],
+    [('Copy Path', '⌥⌘C'), ('Copy Relative Path', '⇧⌥⌘C')],
+    ['Copy Remote File URL', 'Open on Remote (Web)'],
+    [('Rename...', 'F2'), ('Delete', '⌘⌫')],
+]
+FILE_GROUPS[0][0] = ('Reveal in Finder', '⌥⌘R')
+
 # 5. Sending files to Claude Code or Codex
-menu = ('<div class="menu" style="left:250px;top:222px;min-width:250px">'
-        '<div class="mi hl">Add to Claude Chat</div><div class="mi">Add to Codex Chat</div>'
-        '<div class="msep"></div><div class="mi">Open Changes</div><div class="mi">Open File</div></div>')
-side = ('<div class="vt">REPO EXPLORER</div>'
+menu = menu_html(250, 190, [
+    ['Add to Claude Chat', 'Add to Codex Chat', 'Copy to AI Chat'],
+    ['Open Changes', 'Open File', ('Open to the Side', '⌘⏎')],
+    FILE_GROUPS[0],
+    ['Select for Compare', 'Compare Selected', 'Open Timeline'],
+] + FILE_GROUPS[1:], 'Add to Claude Chat')
+side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
     + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'services', '4 repos · !2 ●2')
@@ -272,30 +299,26 @@ side = ('<div class="vt">REPO EXPLORER</div>'
     + menu)
 chat = ('<div class="tabs"><div class="tab">Claude Code</div></div>'
     '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:16px">'
-    '<div style="color:#9d9d9d;font-size:12px;margin-bottom:8px">Files are added to the message box. Nothing is sent until you press Enter.</div>'
-    '<div style="border:1px solid #0078d4;border-radius:8px;background:#252526;padding:10px 12px;min-height:84px;font-size:13px;line-height:1.9">'
+    '<div style="color:#9d9d9d;font-size:12px;margin:0 0 8px 150px">Files are added to the message box. Nothing is sent until you press Enter.</div>'
+    '<div style="border:1px solid #0078d4;border-radius:8px;background:#252526;padding:10px 12px;min-height:84px;font-size:13px;line-height:1.9;margin-left:150px">'
     '<span style="background:#264f78;border-radius:4px;padding:1px 6px;color:#e7e7e7">@services/api-gateway/src/index.ts</span> '
     '<span style="background:#264f78;border-radius:4px;padding:1px 6px;color:#e7e7e7">@services/api-gateway/src/routes.ts</span> '
     '<span style="color:#cccccc">review these changes before I push</span><span style="border-left:1px solid #fff;margin-left:1px">&nbsp;</span>'
     '</div></div>')
 html = chrome('470px', side, chat, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
 caps = ('<div class="cap" style="left:250px;top:170px">1  Select files, right-click</div>'
-        '<div class="cap" style="left:560px;top:322px">2  Files land in the chat box</div>')
+        '<div class="cap" style="left:840px;top:712px">2  Files land in the chat box</div>')
 open('chat.html', 'w').write(html.replace('</body>', caps + '</body>'))
 
 # 6. Right-click menu on a repo, and the branch picker
+REPO_GROUPS = [['Switch Branch...'], ['Copy to AI Chat'],
+               ['Open in Source Control', 'View All Changes'], ['Fetch', 'Pull', 'Push'],
+               ['Open Repo in New Window', 'Copy Branch Name'], ['New File...', 'New Folder...']]
 def repo_menu(left, top, highlight):
-    groups = [['Switch Branch...'], ['Copy to Claude Chat', 'Copy to Codex Chat'],
-              ['Open in Source Control', 'View All Changes'], ['Fetch', 'Pull', 'Push'],
-              ['Open Terminal Here', 'Open Repo in New Window', 'Copy Branch Name']]
-    m = f'<div class="menu" style="left:{left}px;top:{top}px">'
-    for gi, g in enumerate(groups):
-        if gi: m += '<div class="msep"></div>'
-        for it in g:
-            m += f'<div class="mi{" hl" if it == highlight else ""}">{it}</div>'
-    return m + '</div>'
-side = ('<div class="vt">REPO EXPLORER</div>' + '<div class="sec"><span class="tw">' + ci('chevron-right') + '</span>' + PROJECT + '</div>'
-    + sec('GIT REPOS', '299', REPOS_ACTS) + GIT_REPOS.replace('SELAUTH', 'sel') + repo_menu(300, 308, 'Switch Branch...'))
+    return menu_html(left, top, REPO_GROUPS + FILE_GROUPS[:1] + [[('Find in Folder...', '⇧⌥F')]] + FILE_GROUPS[1:], highlight)
+side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+    + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all'))
+    + repo_explorer() + repo_menu(250, 178, 'Switch Branch...'))
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
 open('menu.html', 'w').write(html)
 
@@ -320,7 +343,7 @@ picker = ('<div style="position:absolute;left:520px;top:6px;width:600px;backgrou
     + qp_real('cloud', 'origin/feat/payments', 'not checked out · 5 hours ago')
     + qp_real('cloud', 'origin/release/2.4', 'not checked out · 2 weeks ago')
     + '</div>')
-side = ('<div class="vt">REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
     + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all'))
     + row(0, 'closed', 'archive', '287 repos · all clean')
     + row(0, 'closed', 'frontend', '3 repos · ●1')

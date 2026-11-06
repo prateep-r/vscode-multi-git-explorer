@@ -68,3 +68,11 @@ test('repo without commits has no oid', () => {
   assert.equal(status.branch.head, 'main');
   assert.equal(status.changedFiles, 1);
 });
+
+test('a file removed with git rm --cached shows once, as untracked', () => {
+  const status = parseStatusV2(
+    ['# branch.oid abc', '# branch.head main', '1 D. N... 100644 000000 000000 abc 000 f.txt', '? f.txt', ''].join('\0'),
+  );
+  assert.deepEqual(status.files, [{ path: 'f.txt', letter: 'U', staged: true, unstaged: true }]);
+  assert.equal(status.changedFiles, 1);
+});

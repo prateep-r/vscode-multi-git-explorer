@@ -86,11 +86,21 @@ export function parseStatusV2(output: string): StatusSummary {
         summary.changedFiles++;
         summary.files.push({ path: fieldsAfter(record, 10), letter: '!', staged: false, unstaged: true });
         break;
-      case '?':
+      case '?': {
+        const path = record.slice(2);
         summary.untracked++;
+        // After `git rm --cached`, the file is both deleted from the index and
+        // untracked on disk. It's still there, so show it as untracked.
+        const removed = summary.files.find(f => f.path === path && f.letter === 'D' && f.staged);
+        if (removed) {
+          removed.letter = 'U';
+          removed.unstaged = true;
+          break;
+        }
         summary.changedFiles++;
-        summary.files.push({ path: record.slice(2), letter: 'U', staged: false, unstaged: true });
+        summary.files.push({ path, letter: 'U', staged: false, unstaged: true });
         break;
+      }
     }
   }
   return summary;

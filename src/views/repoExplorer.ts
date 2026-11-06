@@ -1,9 +1,11 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { FILTER_LABELS, describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
+import { isAtOrInside, isInside } from '../core/paths';
 import type { ChangedFile } from '../core/porcelain';
 import type { GroupKey } from '../core/state';
 import type { RepoEntry, RepoStore } from '../store';
+import { folderOf, isWorkspaceFolder, localFolders } from '../workspace';
 import { toViewUri } from './viewUri';
 
 export interface ExplorerNode {
@@ -25,6 +27,12 @@ const SUMMARY_SYMBOLS: [GroupKey[], string][] = [
 const FILTER_STATE_KEY = 'multiRepoExplorer.explorerFilter';
 const FILTER_ORDER: ExplorerFilter[] = ['changes', 'unpushed', 'behind'];
 const FILTERED_REFRESH_MS = 300;
+/**
+ * Clicking a file opens it as a preview and keeps focus in the tree, like the
+ * built-in Explorer, so keyboard shortcuts such as Copy and Rename act on the
+ * row instead of the editor.
+ */
+const CLICK_OPEN: vscode.TextDocumentShowOptions = { preview: true, preserveFocus: true };
 
 /**
  * A file tree like the built-in Explorer, but with each repo's branch and
@@ -128,10 +136,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   async getChildren(node?: ExplorerNode): Promise<ExplorerNode[]> {
-    const folders = (vscode.workspace.workspaceFolders ?? []).filter(f => f.uri.scheme === 'file');
+    const folders = localFolders();
     if (!node && folders.length !== 1) {
       const nodes = folders.map(f => this.dirNode(f.uri));
-      return this.filtering ? nodes.filter(n => this.matchingRepos().some(r => isAtOrBelow(r.root, n.uri.fsPath))) : nodes;
+      return this.filtering ? nodes.filter(n => this.matchingRepos().some(r => isAtOrInside(r.root, n.uri.fsPath))) : nodes;
     }
     const uri = node?.uri ?? folders[0]?.uri;
     if (!uri) return [];
@@ -152,8 +160,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   /** The folder new files go into: the selected folder, or the folder of the selected file. */
   selectedFolder(): vscode.Uri | undefined {
     const selected = this.treeView?.selection[0];
-    if (selected) return selected.isDir ? selected.uri : vscode.Uri.file(path.dirname(selected.uri.fsPath));
-    return vscode.workspace.workspaceFolders?.find(f => f.uri.scheme === 'file')?.uri;
+    return selected ? folderOf(selected) : localFolders()[0]?.uri;
   }
 
   /** Selects a file or folder in the tree, expanding the folders above it. */
@@ -167,8 +174,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   getParent(node: ExplorerNode): ExplorerNode | undefined {
-    const folders = vscode.workspace.workspaceFolders ?? [];
-    if (folders.some(f => f.uri.fsPath === node.uri.fsPath)) return undefined;
+    // Must match getChildren: with one folder its contents are the top level, otherwise the folders are.
+    const folders = localFolders();
+    if (isWorkspaceFolder(node.uri.fsPath)) return undefined;
     const parent = vscode.Uri.file(path.dirname(node.uri.fsPath));
     if (folders.length === 1 && folders[0].uri.fsPath === parent.fsPath) return undefined;
     return this.dirNode(parent);
@@ -183,14 +191,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (!node.isDir) {
       const item = new vscode.TreeItem(toViewUri(fsPath), vscode.TreeItemCollapsibleState.None);
       item.id = id;
-      item.contextValue = 'file';
+      item.contextValue = this.withHosted('file', fsPath);
       if (node.change) {
         // Listed because it changed: clicking shows what changed, like Source Control.
         item.description = describeChange(node.change);
-        item.contextValue = node.change.letter === 'D' ? 'file change deleted' : 'file change';
-        item.command = { command: 'multiRepoExplorer.openChange', title: 'Open Changes', arguments: [node] };
+        item.contextValue = this.withHosted(node.change.letter === 'D' ? 'file change deleted' : 'file change', fsPath);
+        item.command = { command: 'multiRepoExplorer.openChange', title: 'Open Changes', arguments: [node, CLICK_OPEN] };
       } else {
-        item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri] };
+        item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri, CLICK_OPEN] };
       }
       return item;
     }
@@ -205,18 +213,18 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (repo) {
       item.description = repo.view.description;
       item.tooltip = repo.view.tooltip;
-      item.contextValue = repo.view.contextValue;
-      if (this.filtering && !this.showsFilesOf(repo) && !this.matchingRepos().some(r => isBelow(r.root, fsPath))) {
+      item.contextValue = this.withHosted(repo.view.contextValue, fsPath);
+      if (this.filtering && !this.showsFilesOf(repo) && !this.matchingRepos().some(r => isInside(r.root, fsPath))) {
         item.collapsibleState = vscode.TreeItemCollapsibleState.None;
       }
       return item;
     }
 
-    item.contextValue = 'folder';
+    item.contextValue = this.withHosted('folder', fsPath);
     if (node.change) item.description = 'untracked';
     if (this.store.repoContaining(fsPath)) return item;
 
-    const below = this.filtering ? this.matchingRepos().filter(r => isBelow(r.root, fsPath)) : this.store.reposUnder(fsPath);
+    const below = this.filtering ? this.matchingRepos().filter(r => isInside(r.root, fsPath)) : this.store.reposUnder(fsPath);
     if (below.length > 0) {
       item.description = summarize(below);
     } else if (this.store.isScanned(fsPath)) {
@@ -229,6 +237,18 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       item.contextValue = 'folder unscanned';
     }
     return item;
+  }
+
+  /**
+   * Adds `hosted` for rows in a repo with a remote, which can be linked to on
+   * its website, and `root` for workspace folders, which can't be renamed,
+   * moved or deleted from the tree.
+   */
+  private withHosted(contextValue: string, fsPath: string): string {
+    const tokens = [contextValue];
+    if (this.store.repoContaining(fsPath)?.cheap?.hasRemote) tokens.push('hosted');
+    if (isWorkspaceFolder(fsPath)) tokens.push('root');
+    return tokens.join(' ');
   }
 
   /** Whether a folder was past the depth limit, so its repos aren't known yet. */
@@ -354,7 +374,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   private onFolderChanged(dir: string): void {
     if (this.filtering) return;
     const node = this.dirNodes.get(dir);
-    const isTopLevel = (vscode.workspace.workspaceFolders ?? []).some(f => f.uri.fsPath === dir);
+    const isTopLevel = isWorkspaceFolder(dir);
     if (node && !isTopLevel) this._onDidChangeTreeData.fire(node);
     else if (isTopLevel) this._onDidChangeTreeData.fire(undefined);
   }
@@ -374,13 +394,6 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 }
 
-function isBelow(fsPath: string, dir: string): boolean {
-  return fsPath.startsWith(dir + path.sep);
-}
-
-function isAtOrBelow(fsPath: string, dir: string): boolean {
-  return fsPath === dir || isBelow(fsPath, dir);
-}
 
 function summarize(repos: RepoEntry[]): string {
   const parts = [`${repos.length} ${repos.length === 1 ? 'repo' : 'repos'}`];

@@ -3,6 +3,8 @@ import * as vscode from 'vscode';
 import { discoverRepos } from './core/discovery';
 import { readStatus } from './core/git';
 import { readCheapState, type CheapState } from './core/gitDir';
+import { isAtOrInside, isInside } from './core/paths';
+import { gitPath, localFolders } from './workspace';
 import type { ChangedFile, StatusSummary } from './core/porcelain';
 import { Priority, TaskQueue, runPool } from './core/queue';
 import { describeRepo, type RepoView } from './core/state';
@@ -102,15 +104,14 @@ export class RepoStore implements vscode.Disposable {
   /** The innermost repo that contains `fsPath` (or is `fsPath`). */
   repoContaining(fsPath: string): RepoEntry | undefined {
     for (const root of this.rootsByLength) {
-      if (fsPath === root || fsPath.startsWith(root + path.sep)) return this.repos.get(root);
+      if (isAtOrInside(fsPath, root)) return this.repos.get(root);
     }
     return undefined;
   }
 
   /** Repos strictly below `dir`. */
   reposUnder(dir: string): RepoEntry[] {
-    const prefix = dir + path.sep;
-    return this.all().filter(r => r.root.startsWith(prefix));
+    return this.all().filter(r => isInside(r.root, dir));
   }
 
   isScanned(dir: string): boolean {
@@ -135,7 +136,7 @@ export class RepoStore implements vscode.Disposable {
   }
 
   private async doDiscover(): Promise<void> {
-    const roots = (vscode.workspace.workspaceFolders ?? []).filter(f => f.uri.scheme === 'file').map(f => f.uri.fsPath);
+    const roots = localFolders().map(f => f.uri.fsPath);
     const started = Date.now();
     const result = await discoverRepos(roots, this.discoveryOptions());
 
@@ -245,13 +246,10 @@ export class RepoStore implements vscode.Disposable {
   private async check(root: string): Promise<void> {
     const entry = this.repos.get(root);
     if (!entry) return;
-    const gitPath = vscode.workspace.getConfiguration('git').get<string | string[]>('path');
     try {
       const [cheap, status] = await Promise.all([
         readCheapState(root),
-        readStatus(root, config().get('countUntracked', true), {
-          gitPath: Array.isArray(gitPath) ? gitPath[0] : gitPath || undefined,
-        }),
+        readStatus(root, config().get('countUntracked', true), { gitPath: gitPath() }),
       ]);
       entry.cheap = cheap;
       entry.status = status;

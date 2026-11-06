@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { runGit } from '../core/git';
+import { gitPath } from '../workspace';
 
 /** Read-only documents holding a file as it is in HEAD, for the left side of diffs. */
 export const HEAD_SCHEME = 'multi-repo-explorer-head';
@@ -17,11 +18,8 @@ export class HeadContentProvider implements vscode.TextDocumentContentProvider {
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
     const { root, path } = JSON.parse(uri.query) as { root: string; path: string | null };
     if (!path) return '';
-    const gitPath = vscode.workspace.getConfiguration('git').get<string | string[]>('path');
     try {
-      return await runGit(root, ['show', `HEAD:${path}`], {
-        gitPath: (Array.isArray(gitPath) ? gitPath[0] : gitPath) || undefined,
-      });
+      return await runGit(root, ['show', `HEAD:${path}`], { gitPath: gitPath() });
     } catch {
       return '';
     }
