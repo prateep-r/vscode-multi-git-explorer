@@ -3,6 +3,7 @@ import { registerChatTargets } from './chatTargets';
 import { registerCommands } from './commands';
 import { FileOperations, registerFileCommands } from './fileCommands';
 import { registerPathCommands } from './pathCommands';
+import { copyOldSettings, offerToUninstallOld } from './rename';
 import { RepoStore } from './store';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
@@ -11,7 +12,7 @@ import { ReposViewProvider } from './views/reposView';
 import { StatusBar } from './views/statusBar';
 
 /** Returned from `activate` so integration tests can look inside. */
-export interface MultiRepoExplorerApi {
+export interface MultiGitExplorerApi {
   store: RepoStore;
   explorer: RepoExplorerProvider;
   reposView: ReposViewProvider;
@@ -19,16 +20,16 @@ export interface MultiRepoExplorerApi {
   files: FileOperations;
 }
 
-export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi {
-  const log = vscode.window.createOutputChannel('Multi-Repo Explorer');
+export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi {
+  const log = vscode.window.createOutputChannel('Multi-Git Explorer');
   const store = new RepoStore(log);
   const explorer = new RepoExplorerProvider(store, context.workspaceState);
   const reposView = new ReposViewProvider(store);
   const decorations = new RepoDecorationProvider(store);
-  const reposTree = vscode.window.createTreeView('multiRepoExplorer.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
+  const reposTree = vscode.window.createTreeView('multiGitExplorer.repos', { treeDataProvider: reposView, showCollapseAll: true, canSelectMany: true });
   reposView.attach(reposTree);
   const files = new FileOperations(store, explorer);
-  const explorerTree = vscode.window.createTreeView('multiRepoExplorer.explorer', {
+  const explorerTree = vscode.window.createTreeView('multiGitExplorer.explorer', {
     treeDataProvider: explorer,
     showCollapseAll: true,
     canSelectMany: true,
@@ -54,7 +55,9 @@ export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi
     ...registerPathCommands(store, explorerTree),
   );
 
-  void store.discover();
+  // Settings like scanDepth must be carried over before the first scan reads them.
+  void copyOldSettings(context, log).then(() => store.discover());
+  void offerToUninstallOld();
   void showOnStartup();
   return { store, explorer, reposView, decorations, files };
 }
@@ -65,9 +68,9 @@ export function activate(context: vscode.ExtensionContext): MultiRepoExplorerApi
  */
 async function showOnStartup(): Promise<void> {
   if (!vscode.workspace.workspaceFolders?.length) return;
-  if (!vscode.workspace.getConfiguration('multiRepoExplorer').get('showOnStartup', true)) return;
+  if (!vscode.workspace.getConfiguration('multiGitExplorer').get('showOnStartup', true)) return;
   const hadEditor = vscode.window.activeTextEditor !== undefined;
-  await vscode.commands.executeCommand('workbench.view.extension.multiRepoExplorer');
+  await vscode.commands.executeCommand('workbench.view.extension.multiGitExplorer');
   if (hadEditor) await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
 }
 

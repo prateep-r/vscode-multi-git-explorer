@@ -3,7 +3,7 @@ import { execFileSync } from 'child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type { MultiRepoExplorerApi } from '../extension';
+import type { MultiGitExplorerApi } from '../extension';
 import type { ExplorerNode } from '../views/repoExplorer';
 import { toViewUri } from '../views/viewUri';
 
@@ -20,8 +20,8 @@ async function waitFor<T>(what: string, check: () => T | undefined | false, time
   }
 }
 
-const tests: [string, (api: MultiRepoExplorerApi) => Promise<void>][] = [];
-const test = (name: string, fn: (api: MultiRepoExplorerApi) => Promise<void>) => tests.push([name, fn]);
+const tests: [string, (api: MultiGitExplorerApi) => Promise<void>][] = [];
+const test = (name: string, fn: (api: MultiGitExplorerApi) => Promise<void>) => tests.push([name, fn]);
 
 test('finds every repo within the depth limit and checks them all', async ({ store }) => {
   const started = Date.now();
@@ -57,7 +57,7 @@ test('badges show in our views but leave the built-in Explorer alone by default'
   const view = (rel: string) => decorations.provideFileDecoration(toViewUri(at(rel)));
   const repo = view('services/billing');
   assert.equal(repo?.badge, '!');
-  assert.equal((repo?.color as vscode.ThemeColor).id, 'multiRepoExplorer.conflictForeground');
+  assert.equal((repo?.color as vscode.ThemeColor).id, 'multiGitExplorer.conflictForeground');
   assert.equal(repo?.propagate, true);
   assert.match(repo!.tooltip!, /Merge in progress/);
   assert.equal(view('docs'), undefined);
@@ -74,8 +74,8 @@ test('badges show in our views but leave the built-in Explorer alone by default'
   assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/billing'))), undefined);
 });
 
-test('multiRepoExplorer.decorateExplorer turns on badges in the built-in Explorer', async ({ decorations }) => {
-  const config = vscode.workspace.getConfiguration('multiRepoExplorer');
+test('multiGitExplorer.decorateExplorer turns on badges in the built-in Explorer', async ({ decorations }) => {
+  const config = vscode.workspace.getConfiguration('multiGitExplorer');
   await config.update('decorateExplorer', true, vscode.ConfigurationTarget.Global);
   try {
     assert.equal(decorations.provideFileDecoration(vscode.Uri.file(at('services/billing')))?.badge, '!');
@@ -131,15 +131,15 @@ test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
     assert.equal((await names(await child(services, 'reports'))).length, 12);
 
     // Changes under excluded folders and files.exclude names are left out too.
-    const multiRepoExplorer = vscode.workspace.getConfiguration('multiRepoExplorer');
+    const multiGitExplorer = vscode.workspace.getConfiguration('multiGitExplorer');
     const files = vscode.workspace.getConfiguration('files');
-    const exclude = multiRepoExplorer.get<string[]>('exclude', []);
-    await multiRepoExplorer.update('exclude', [...exclude, 'src'], vscode.ConfigurationTarget.Global);
+    const exclude = multiGitExplorer.get<string[]>('exclude', []);
+    await multiGitExplorer.update('exclude', [...exclude, 'src'], vscode.ConfigurationTarget.Global);
     await files.update('exclude', { '**/NOTES.md': true }, vscode.ConfigurationTarget.Global);
     try {
       assert.deepEqual(await names(api), ['README.md']);
     } finally {
-      await multiRepoExplorer.update('exclude', undefined, vscode.ConfigurationTarget.Global);
+      await multiGitExplorer.update('exclude', undefined, vscode.ConfigurationTarget.Global);
       await files.update('exclude', undefined, vscode.ConfigurationTarget.Global);
     }
     assert.deepEqual(await names(api), ['src', 'NOTES.md', 'README.md']);
@@ -159,13 +159,13 @@ test('filtering the Repo Explorer to changed files', async ({ explorer }) => {
 });
 
 test('title-bar buttons turn each filter on and off with one click', async ({ explorer }) => {
-  await vscode.commands.executeCommand('multiRepoExplorer.filterChanges');
+  await vscode.commands.executeCommand('multiGitExplorer.filterChanges');
   assert.deepEqual(explorer.activeFilters, ['changes']);
-  await vscode.commands.executeCommand('multiRepoExplorer.filterBehind');
+  await vscode.commands.executeCommand('multiGitExplorer.filterBehind');
   assert.deepEqual(explorer.activeFilters, ['changes', 'behind']);
-  await vscode.commands.executeCommand('multiRepoExplorer.filterChangesOn');
+  await vscode.commands.executeCommand('multiGitExplorer.filterChangesOn');
   assert.deepEqual(explorer.activeFilters, ['behind']);
-  await vscode.commands.executeCommand('multiRepoExplorer.filterBehindOn');
+  await vscode.commands.executeCommand('multiGitExplorer.filterBehindOn');
   assert.deepEqual(explorer.activeFilters, []);
 });
 
@@ -183,7 +183,7 @@ test('clicking a changed file while filtered opens a diff against HEAD', async (
 
     const readme = await child(api, 'README.md');
     const item = explorer.getTreeItem(readme);
-    assert.equal(item.command?.command, 'multiRepoExplorer.openChange');
+    assert.equal(item.command?.command, 'multiGitExplorer.openChange');
     await vscode.commands.executeCommand(item.command!.command, ...item.command!.arguments!);
     let diff = activeDiff();
     assert.equal(diff.modified.fsPath, at('services/api-gateway/README.md'));
@@ -191,7 +191,7 @@ test('clicking a changed file while filtered opens a diff against HEAD', async (
     assert.equal((await vscode.workspace.openTextDocument(diff.original)).getText(), head);
 
     const routes = await child(await child(api, 'src'), 'routes.ts');
-    await vscode.commands.executeCommand('multiRepoExplorer.openChange', routes);
+    await vscode.commands.executeCommand('multiGitExplorer.openChange', routes);
     diff = activeDiff();
     assert.equal((await vscode.workspace.openTextDocument(diff.original)).getText(), '', 'new file: empty left side');
   } finally {
@@ -206,7 +206,7 @@ test('Switch Branch lists branches and switches to the picked one', async ({ sto
   assert.equal(branch(), 'feat/sso');
   try {
     // Items: Create new…, Create from…, feat/sso (current, newest), main.
-    const done = vscode.commands.executeCommand('multiRepoExplorer.switchBranch', vscode.Uri.file(root));
+    const done = vscode.commands.executeCommand('multiGitExplorer.switchBranch', vscode.Uri.file(root));
     await new Promise(r => setTimeout(r, 1500));
     for (let i = 0; i < 3; i++) await vscode.commands.executeCommand('workbench.action.quickOpenSelectNext');
     await vscode.commands.executeCommand('workbench.action.acceptSelectedQuickOpenItem');
@@ -222,7 +222,7 @@ test('Switch Branch lists branches and switches to the picked one', async ({ sto
 test('Switch Branch refuses while a merge is in progress', async () => {
   const billing = at('services/billing');
   const before = execFileSync('git', ['branch', '--show-current'], { cwd: billing, encoding: 'utf8' }).trim();
-  await vscode.commands.executeCommand('multiRepoExplorer.switchBranch', vscode.Uri.file(billing));
+  await vscode.commands.executeCommand('multiGitExplorer.switchBranch', vscode.Uri.file(billing));
   assert.equal(execFileSync('git', ['branch', '--show-current'], { cwd: billing, encoding: 'utf8' }).trim(), before);
 });
 
@@ -272,21 +272,21 @@ test('opening a folder past the depth limit searches it for repos', async ({ sto
 });
 
 test('Scan This Folder searches a folder past the depth limit', async ({ store }) => {
-  await vscode.commands.executeCommand('multiRepoExplorer.scanFolder', vscode.Uri.file(at('archive/2023/q1')));
+  await vscode.commands.executeCommand('multiGitExplorer.scanFolder', vscode.Uri.file(at('archive/2023/q1')));
   assert.ok(store.get(at('archive/2023/q1/old-crm')));
 });
 
 test('Open in Source Control opens the repo in VS Code Git', async () => {
   const uri = vscode.Uri.file(at('services/auth-service'));
-  await vscode.commands.executeCommand('multiRepoExplorer.openInScm', uri);
+  await vscode.commands.executeCommand('multiGitExplorer.openInScm', uri);
   const git = vscode.extensions.getExtension('vscode.git')!.exports.getAPI(1);
   assert.ok(git.getRepository(uri), 'repo is open in VS Code Git');
 });
 
 test('the file tree is titled Files, with the project name as written beside it', async ({ explorer }) => {
-  const manifest = vscode.extensions.getExtension('prateep-r.multi-repo-explorer')!.packageJSON;
-  const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoExplorer');
-  assert.equal(container.title, 'Multi-Repo Explorer');
+  const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
+  const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiGitExplorer');
+  assert.equal(container.title, 'Multi-Git Explorer');
   // VS Code uppercases titles but not descriptions, so the name is the description.
   assert.equal(explorer.title, 'Files');
   assert.equal(explorer.description, path.basename(sample));
@@ -296,20 +296,20 @@ test('New File and New Folder create items in the chosen folder and open the fil
   const docs = at('docs');
   const target: ExplorerNode = { uri: vscode.Uri.file(docs), isDir: true };
   try {
-    await vscode.commands.executeCommand('multiRepoExplorer.newFile', target, 'guides/setup.md');
+    await vscode.commands.executeCommand('multiGitExplorer.newFile', target, 'guides/setup.md');
     assert.ok(existsSync(path.join(docs, 'guides', 'setup.md')), 'nested file created');
     assert.equal(vscode.window.activeTextEditor?.document.uri.fsPath, path.join(docs, 'guides', 'setup.md'));
 
-    await vscode.commands.executeCommand('multiRepoExplorer.newFolder', target, 'images');
+    await vscode.commands.executeCommand('multiGitExplorer.newFolder', target, 'images');
     assert.ok(statSync(path.join(docs, 'images')).isDirectory(), 'folder created');
 
     // A file chosen as the target means "next to this file".
-    await vscode.commands.executeCommand('multiRepoExplorer.newFile', { uri: vscode.Uri.file(path.join(docs, 'README.md')), isDir: false }, 'CHANGELOG.md');
+    await vscode.commands.executeCommand('multiGitExplorer.newFile', { uri: vscode.Uri.file(path.join(docs, 'README.md')), isDir: false }, 'CHANGELOG.md');
     assert.ok(existsSync(path.join(docs, 'CHANGELOG.md')));
 
     // Existing names and paths outside the folder are refused.
-    await vscode.commands.executeCommand('multiRepoExplorer.newFile', target, 'README.md');
-    await vscode.commands.executeCommand('multiRepoExplorer.newFile', target, '../escape.md');
+    await vscode.commands.executeCommand('multiGitExplorer.newFile', target, 'README.md');
+    await vscode.commands.executeCommand('multiGitExplorer.newFile', target, '../escape.md');
     assert.ok(!existsSync(at('escape.md')));
   } finally {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
@@ -358,29 +358,29 @@ async function withScratch(fn: (dir: string, node: (rel: string, isDir?: boolean
 
 test('Copy, Cut and Paste copy and move items like the built-in Explorer', () =>
   withScratch(async (dir, node) => {
-    await vscode.commands.executeCommand('multiRepoExplorer.copy', node('a.txt'));
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.copy', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('sub', true));
     assert.ok(existsSync(path.join(dir, 'sub', 'a.txt')), 'pasted into the folder');
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('a.txt'));
     assert.ok(existsSync(path.join(dir, 'a copy.txt')), 'pasting next to the original names a copy');
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('a.txt'));
     assert.ok(existsSync(path.join(dir, 'a copy 2.txt')));
 
-    await vscode.commands.executeCommand('multiRepoExplorer.copy', node('sub', true));
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.copy', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('sub', true));
     assert.ok(!existsSync(path.join(dir, 'sub', 'sub')), 'a folder is not pasted into itself');
 
-    await vscode.commands.executeCommand('multiRepoExplorer.cut', node('a copy.txt'), [node('a copy.txt'), node('a copy 2.txt')]);
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.cut', node('a copy.txt'), [node('a copy.txt'), node('a copy 2.txt')]);
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('sub', true));
     assert.ok(existsSync(path.join(dir, 'sub', 'a copy.txt')) && existsSync(path.join(dir, 'sub', 'a copy 2.txt')), 'both moved');
     assert.ok(!existsSync(path.join(dir, 'a copy.txt')), 'cut removes the original');
   }));
 
 test('Rename and Delete change files, and drag and drop moves them', ({ files }) =>
   withScratch(async (dir, node) => {
-    await vscode.commands.executeCommand('multiRepoExplorer.rename', node('a.txt'), 'b.txt');
+    await vscode.commands.executeCommand('multiGitExplorer.rename', node('a.txt'), 'b.txt');
     assert.ok(existsSync(path.join(dir, 'b.txt')) && !existsSync(path.join(dir, 'a.txt')));
-    await vscode.commands.executeCommand('multiRepoExplorer.rename', node('b.txt'), 'sub');
+    await vscode.commands.executeCommand('multiGitExplorer.rename', node('b.txt'), 'sub');
     assert.ok(existsSync(path.join(dir, 'b.txt')), 'a taken name is refused');
 
     const transfer = new vscode.DataTransfer();
@@ -388,7 +388,7 @@ test('Rename and Delete change files, and drag and drop moves them', ({ files })
     await files.dragAndDrop.handleDrop!(node('sub', true), transfer, new vscode.CancellationTokenSource().token);
     assert.ok(existsSync(path.join(dir, 'sub', 'b.txt')), 'dropped into the folder');
 
-    await vscode.commands.executeCommand('multiRepoExplorer.delete', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.delete', node('sub', true));
     assert.ok(!existsSync(path.join(dir, 'sub')));
     assert.deepEqual(dialogs, ["Are you sure you want to permanently delete 'sub'?"], 'deleting without the trash always asks');
   }));
@@ -396,20 +396,20 @@ test('Rename and Delete change files, and drag and drop moves them', ({ files })
 test('Copy Path, Copy Relative Path, compare and open to the side', () =>
   withScratch(async (dir, node) => {
     writeFileSync(path.join(dir, 'b.txt'), 'b\n');
-    await vscode.commands.executeCommand('multiRepoExplorer.copyPath', node('a.txt'), [node('a.txt'), node('b.txt')]);
+    await vscode.commands.executeCommand('multiGitExplorer.copyPath', node('a.txt'), [node('a.txt'), node('b.txt')]);
     assert.equal(await vscode.env.clipboard.readText(), `${path.join(dir, 'a.txt')}\n${path.join(dir, 'b.txt')}`);
-    await vscode.commands.executeCommand('multiRepoExplorer.copyRelativePath', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.copyRelativePath', node('a.txt'));
     assert.equal(await vscode.env.clipboard.readText(), path.join('docs', 'scratch', 'a.txt'));
 
-    await vscode.commands.executeCommand('multiRepoExplorer.selectForCompare', node('a.txt'));
-    await vscode.commands.executeCommand('multiRepoExplorer.compareWithSelected', node('b.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.selectForCompare', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.compareWithSelected', node('b.txt'));
     const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
     assert.ok(tab?.input instanceof vscode.TabInputTextDiff, 'a diff opened');
     assert.equal(tab.label, 'a.txt ↔ b.txt');
 
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(path.join(dir, 'b.txt')));
-    await vscode.commands.executeCommand('multiRepoExplorer.openToSide', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.openToSide', node('a.txt'));
     assert.equal(vscode.window.tabGroups.all.length, 2, 'opened in a second editor group');
   }));
 
@@ -420,7 +420,7 @@ test('Copy Remote File URL links to the file on the remote website', async () =>
   execFileSync('git', ['remote', 'set-url', 'origin', 'git@github.com:acme/api-gateway.git'], { cwd: root });
   try {
     const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: root }).toString().trim();
-    await vscode.commands.executeCommand('multiRepoExplorer.copyRemoteUrl', { uri: vscode.Uri.file(path.join(root, 'src', 'index.ts')), isDir: false });
+    await vscode.commands.executeCommand('multiGitExplorer.copyRemoteUrl', { uri: vscode.Uri.file(path.join(root, 'src', 'index.ts')), isDir: false });
     assert.equal(await vscode.env.clipboard.readText(), `https://github.com/acme/api-gateway/blob/${branch}/src/index.ts`);
   } finally {
     execFileSync('git', ['remote', 'set-url', 'origin', original], { cwd: root });
@@ -431,20 +431,20 @@ test('Copy Remote File URL links to the file on the remote website', async () =>
 test('keyboard shortcuts, which pass no row, act on the selected rows', ({ explorer }) =>
   withScratch(async dir => {
     await explorer.reveal(vscode.Uri.file(path.join(dir, 'a.txt')), false);
-    await vscode.commands.executeCommand('multiRepoExplorer.copyPath');
+    await vscode.commands.executeCommand('multiGitExplorer.copyPath');
     assert.equal(await vscode.env.clipboard.readText(), path.join(dir, 'a.txt'));
-    await vscode.commands.executeCommand('multiRepoExplorer.copy');
+    await vscode.commands.executeCommand('multiGitExplorer.copy');
     await explorer.reveal(vscode.Uri.file(path.join(dir, 'sub')), true);
-    await vscode.commands.executeCommand('multiRepoExplorer.paste');
+    await vscode.commands.executeCommand('multiGitExplorer.paste');
     assert.ok(existsSync(path.join(dir, 'sub', 'a.txt')), 'pasted into the selected folder');
   }));
 
 test('rows of deleted files are left alone by commands that need the file', () =>
   withScratch(async (dir, node) => {
     const deleted: ExplorerNode = { ...node('gone.txt'), change: { path: 'gone.txt', letter: 'D', staged: false, unstaged: true } };
-    await vscode.commands.executeCommand('multiRepoExplorer.rename', deleted, 'back.txt');
-    await vscode.commands.executeCommand('multiRepoExplorer.copy', deleted);
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.rename', deleted, 'back.txt');
+    await vscode.commands.executeCommand('multiGitExplorer.copy', deleted);
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('sub', true));
     assert.ok(!existsSync(path.join(dir, 'back.txt')) && !existsSync(path.join(dir, 'sub', 'gone.txt')));
     assert.deepEqual(dialogs, [], 'no dialog either');
   }));
@@ -452,8 +452,8 @@ test('rows of deleted files are left alone by commands that need the file', () =
 test('moving onto an existing name asks before replacing it', () =>
   withScratch(async (dir, node) => {
     writeFileSync(path.join(dir, 'sub', 'a.txt'), 'old\n');
-    await vscode.commands.executeCommand('multiRepoExplorer.cut', node('a.txt'));
-    await vscode.commands.executeCommand('multiRepoExplorer.paste', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.cut', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.paste', node('sub', true));
     assert.deepEqual(dialogs, ["'a.txt' already exists in 'sub'. Do you want to replace it?"]);
     assert.equal(readFileSync(path.join(dir, 'sub', 'a.txt'), 'utf8'), 'a\n', 'replaced');
     assert.ok(!existsSync(path.join(dir, 'a.txt')));
@@ -461,12 +461,12 @@ test('moving onto an existing name asks before replacing it', () =>
 
 test('Open in Integrated Terminal, Find in Folder and Open Timeline run on a row', () =>
   withScratch(async (dir, node) => {
-    await vscode.commands.executeCommand('multiRepoExplorer.openInTerminal', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.openInTerminal', node('a.txt'));
     const terminal = vscode.window.terminals.find(t => t.name === 'scratch');
     assert.ok(terminal, 'a terminal named after the folder the file is in');
     terminal.dispose();
-    await vscode.commands.executeCommand('multiRepoExplorer.findInFolder', node('sub', true));
-    await vscode.commands.executeCommand('multiRepoExplorer.openTimeline', node('a.txt'));
+    await vscode.commands.executeCommand('multiGitExplorer.findInFolder', node('sub', true));
+    await vscode.commands.executeCommand('multiGitExplorer.openTimeline', node('a.txt'));
     const tab = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
     assert.ok(tab instanceof vscode.TabInputText && tab.uri.fsPath === path.join(dir, 'a.txt'), 'the file is open for the Timeline view');
   }));
@@ -483,13 +483,13 @@ test('a file removed with git rm --cached shows as untracked, not deleted', asyn
 });
 
 test('every command in package.json is registered', async () => {
-  const manifest = vscode.extensions.getExtension('prateep-r.multi-repo-explorer')!.packageJSON;
+  const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));
   for (const { command } of manifest.contributes.commands) assert.ok(registered.has(command), command);
 });
 
 export async function run(): Promise<void> {
-  const api = await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep-r.multi-repo-explorer')!.activate();
+  const api = await vscode.extensions.getExtension<MultiGitExplorerApi>('prateep-r.multi-git-explorer')!.activate();
   let failed = 0;
   for (const [name, fn] of tests) {
     try {

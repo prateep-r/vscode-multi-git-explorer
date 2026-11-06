@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   const workspace = process.argv[2];
   if (!workspace) throw new Error('usage: run.js <sample-workspace>');
   const code = process.env.VSCODE_PATH ?? DEFAULT_CODE[process.platform];
-  const profile = mkdtempSync(path.join(tmpdir(), 'multi-repo-explorer-e2e-'));
+  const profile = mkdtempSync(path.join(tmpdir(), 'multi-git-explorer-e2e-'));
   const shots = path.resolve(__dirname, '..', '..', '.e2e-screenshots');
   rmSync(shots, { recursive: true, force: true });
   mkdirSync(path.join(profile, 'user', 'User'), { recursive: true });

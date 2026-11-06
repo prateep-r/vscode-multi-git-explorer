@@ -1,4 +1,4 @@
-// The parts of the built-in Git extension's API (vscode.git) that Multi-Repo Explorer uses.
+// The parts of the built-in Git extension's API (vscode.git) that Multi-Git Explorer uses.
 // Full definition: https://github.com/microsoft/vscode/blob/main/extensions/git/src/api/git.d.ts
 
 import type { Uri } from 'vscode';

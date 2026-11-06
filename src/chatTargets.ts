@@ -78,7 +78,7 @@ export function registerChatTargets(tree: vscode.TreeView<ExplorerNode>): vscode
   const updateAvailability = () => {
     for (const target of TARGETS) {
       const installed = vscode.extensions.getExtension(target.extensionId) !== undefined;
-      void vscode.commands.executeCommand('setContext', `multiRepoExplorer.has.${target.key}`, installed);
+      void vscode.commands.executeCommand('setContext', `multiGitExplorer.has.${target.key}`, installed);
     }
   };
   updateAvailability();
@@ -86,7 +86,7 @@ export function registerChatTargets(tree: vscode.TreeView<ExplorerNode>): vscode
   return [
     vscode.extensions.onDidChange(updateAvailability),
     ...TARGETS.flatMap(target => [
-      vscode.commands.registerCommand(`multiRepoExplorer.addTo.${target.key}`, async (clicked?: Row, selected?: Row[]) => {
+      vscode.commands.registerCommand(`multiGitExplorer.addTo.${target.key}`, async (clicked?: Row, selected?: Row[]) => {
         const rows = pickedRows(clicked, selected);
         const folders = rows.filter(r => r.isDir);
         const failed: Picked[] = [];
@@ -101,7 +101,7 @@ export function registerChatTargets(tree: vscode.TreeView<ExplorerNode>): vscode
         if (folders.length || failed.length) await copyMentions([...failed, ...folders], target);
       }),
     ]),
-    vscode.commands.registerCommand('multiRepoExplorer.copyToAiChat', (clicked?: Row, selected?: Row[]) =>
+    vscode.commands.registerCommand('multiGitExplorer.copyToAiChat', (clicked?: Row, selected?: Row[]) =>
       copyMentions(pickedRows(clicked, selected)),
     ),
   ];

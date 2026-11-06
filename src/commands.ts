@@ -29,7 +29,7 @@ export function registerCommands(
     else if (arg && 'uri' in arg) fsPath = arg.uri.fsPath;
     else if (arg && arg.type === 'repo') fsPath = arg.root;
     const repo = fsPath ? (store.get(fsPath) ?? store.repoContaining(fsPath)) : store.activeRepo();
-    if (!repo) void vscode.window.showWarningMessage('Multi-Repo Explorer: this folder is not a git repository.');
+    if (!repo) void vscode.window.showWarningMessage('Multi-Git Explorer: this folder is not a git repository.');
     return repo;
   };
 
@@ -55,14 +55,14 @@ export function registerCommands(
   };
 
   return [
-    vscode.commands.registerCommand('multiRepoExplorer.refresh', async () => {
+    vscode.commands.registerCommand('multiGitExplorer.refresh', async () => {
       await store.discover();
       store.refreshAll(Priority.User);
     }),
 
-    vscode.commands.registerCommand('multiRepoExplorer.fetchAll', () => fetchAll(store)),
+    vscode.commands.registerCommand('multiGitExplorer.fetchAll', () => fetchAll(store)),
 
-    vscode.commands.registerCommand('multiRepoExplorer.filter', async () => {
+    vscode.commands.registerCommand('multiGitExplorer.filter', async () => {
       const text = await vscode.window.showInputBox({
         title: 'Filter repos',
         prompt: 'Show repos whose path or branch contains this text',
@@ -72,9 +72,9 @@ export function registerCommands(
       if (text !== undefined) reposView.setFilter(text);
     }),
 
-    vscode.commands.registerCommand('multiRepoExplorer.clearFilter', () => reposView.setFilter('')),
+    vscode.commands.registerCommand('multiGitExplorer.clearFilter', () => reposView.setFilter('')),
 
-    vscode.commands.registerCommand('multiRepoExplorer.filterExplorer', () => pickExplorerFilters(explorer)),
+    vscode.commands.registerCommand('multiGitExplorer.filterExplorer', () => pickExplorerFilters(explorer)),
 
     // Each filter has an "off" and an "on" command so the title-bar button can show its state.
     ...(['changes', 'unpushed', 'behind'] as const).flatMap(filter =>
@@ -83,18 +83,18 @@ export function registerCommands(
       ),
     ),
 
-    vscode.commands.registerCommand('multiRepoExplorer.clearExplorerFilter', () => explorer.setFilters([])),
+    vscode.commands.registerCommand('multiGitExplorer.clearExplorerFilter', () => explorer.setFilters([])),
 
-    vscode.commands.registerCommand('multiRepoExplorer.openChange', (node: ExplorerNode, options?: vscode.TextDocumentShowOptions) =>
+    vscode.commands.registerCommand('multiGitExplorer.openChange', (node: ExplorerNode, options?: vscode.TextDocumentShowOptions) =>
       openChange(store, node, options),
     ),
 
-    vscode.commands.registerCommand('multiRepoExplorer.openChangedFile', (node: ExplorerNode) =>
+    vscode.commands.registerCommand('multiGitExplorer.openChangedFile', (node: ExplorerNode) =>
       vscode.commands.executeCommand('vscode.open', node.uri),
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.openInScm',
+      'multiGitExplorer.openInScm',
       withRepo(async repo => {
         // Make sure VS Code's Git knows this repo, then show the Source Control view.
         // VS Code has no public API to select one repo in that view, so it may
@@ -105,12 +105,12 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.openChanges',
+      'multiGitExplorer.openChanges',
       withRepo(async repo => {
         const gitRepo = await openInGitExtension(repo);
         const api = await gitApi();
         if (!gitRepo || !api) {
-          void vscode.window.showWarningMessage(`Multi-Repo Explorer: couldn't open ${repo.name} in VS Code's Git.`);
+          void vscode.window.showWarningMessage(`Multi-Git Explorer: couldn't open ${repo.name} in VS Code's Git.`);
           return;
         }
         await gitRepo.status();
@@ -138,16 +138,16 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.switchBranch',
+      'multiGitExplorer.switchBranch',
       withRepo(repo => pickAndSwitchBranch(store, repo)),
     ),
 
-    vscode.commands.registerCommand('multiRepoExplorer.fetch', withRepo(repo => runWithProgress(repo, 'Fetching', ['fetch']))),
+    vscode.commands.registerCommand('multiGitExplorer.fetch', withRepo(repo => runWithProgress(repo, 'Fetching', ['fetch']))),
 
-    vscode.commands.registerCommand('multiRepoExplorer.pull', withRepo(repo => runWithProgress(repo, 'Pulling', ['pull']))),
+    vscode.commands.registerCommand('multiGitExplorer.pull', withRepo(repo => runWithProgress(repo, 'Pulling', ['pull']))),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.push',
+      'multiGitExplorer.push',
       withRepo(async repo => {
         if (repo.status && !repo.status.branch.upstream && !repo.status.branch.detached) {
           const remote = defaultRemote((await git(repo, ['remote']).catch(() => '')).split('\n').filter(Boolean));
@@ -162,24 +162,24 @@ export function registerCommands(
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.openTerminal',
+      'multiGitExplorer.openTerminal',
       withRepo(repo => vscode.window.createTerminal({ name: repo.name, cwd: repo.root }).show()),
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.openInNewWindow',
+      'multiGitExplorer.openInNewWindow',
       withRepo(repo => vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(repo.root), { forceNewWindow: true })),
     ),
 
     vscode.commands.registerCommand(
-      'multiRepoExplorer.copyBranch',
+      'multiGitExplorer.copyBranch',
       withRepo(async repo => {
         await vscode.env.clipboard.writeText(repo.view.branchLabel.replace(/ \(detached\)$/, ''));
         vscode.window.setStatusBarMessage(`Copied "${repo.view.branchLabel}"`, 2000);
       }),
     ),
 
-    vscode.commands.registerCommand('multiRepoExplorer.scanFolder', (arg: CommandArg) => {
+    vscode.commands.registerCommand('multiGitExplorer.scanFolder', (arg: CommandArg) => {
       const uri = arg instanceof vscode.Uri ? arg : arg && 'uri' in arg ? arg.uri : undefined;
       if (uri) return store.scanFolder(uri.fsPath);
       return undefined;
@@ -188,9 +188,9 @@ export function registerCommands(
 }
 
 const FILTER_COMMANDS: Record<ExplorerFilter, string> = {
-  changes: 'multiRepoExplorer.filterChanges',
-  unpushed: 'multiRepoExplorer.filterUnpushed',
-  behind: 'multiRepoExplorer.filterBehind',
+  changes: 'multiGitExplorer.filterChanges',
+  unpushed: 'multiGitExplorer.filterUnpushed',
+  behind: 'multiGitExplorer.filterBehind',
 };
 
 const FILTER_DETAILS: Record<ExplorerFilter, [string, string]> = {
@@ -208,7 +208,7 @@ async function pickExplorerFilters(explorer: RepoExplorerProvider): Promise<void
     filter,
   }));
   const picked = await vscode.window.showQuickPick(items, {
-    title: 'Show in Multi-Repo Explorer',
+    title: 'Show in Multi-Git Explorer',
     placeHolder: 'Pick what to show. Pick nothing to show everything.',
     canPickMany: true,
   });
@@ -352,10 +352,10 @@ async function pickAndSwitchBranch(store: RepoStore, repo: RepoEntry): Promise<v
 async function fetchAll(store: RepoStore): Promise<void> {
   const repos = store.all().filter(r => r.cheap?.hasRemote);
   if (repos.length === 0) {
-    void vscode.window.showInformationMessage('Multi-Repo Explorer: no repos with a remote to fetch.');
+    void vscode.window.showInformationMessage('Multi-Git Explorer: no repos with a remote to fetch.');
     return;
   }
-  const concurrency = vscode.workspace.getConfiguration('multiRepoExplorer').get('maxConcurrency', 6);
+  const concurrency = vscode.workspace.getConfiguration('multiGitExplorer').get('maxConcurrency', 6);
   const failed: string[] = [];
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Fetching repos', cancellable: true },

@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- **On the VS Code Marketplace** as [`prateep-r.multi-repo-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-repo-explorer), so VS Code installs and updates it for you. A copy installed from GitHub Releases is the same extension, and now updates from the Marketplace.
+- **Renamed to Multi-Git Explorer**, and on the VS Code Marketplace as [`prateep-r.multi-git-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-git-explorer), so VS Code installs and updates it for you.
+  - Settings are now `multiGitExplorer.*` instead of `multiRepoExplorer.*`. Your old settings are copied over the first time it starts.
+  - If Multi-Repo Explorer (`prateep-r.multi-repo-explorer`) is still installed, it offers to uninstall it, so you don't get two side bars.
 - A Marketplace icon.
 
 ## 1.2.0

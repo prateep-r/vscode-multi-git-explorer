@@ -63,23 +63,23 @@ export function registerFileCommands(
   };
 
   return [
-    vscode.commands.registerCommand('multiRepoExplorer.newFile', (target?: ExplorerNode, name?: unknown) => create('file', target, name)),
-    vscode.commands.registerCommand('multiRepoExplorer.newFolder', (target?: ExplorerNode, name?: unknown) => create('folder', target, name)),
-    vscode.commands.registerCommand('multiRepoExplorer.rename', (clicked?: ExplorerNode, newName?: unknown) => {
+    vscode.commands.registerCommand('multiGitExplorer.newFile', (target?: ExplorerNode, name?: unknown) => create('file', target, name)),
+    vscode.commands.registerCommand('multiGitExplorer.newFolder', (target?: ExplorerNode, name?: unknown) => create('folder', target, name)),
+    vscode.commands.registerCommand('multiGitExplorer.rename', (clicked?: ExplorerNode, newName?: unknown) => {
       // Renames one row, like the built-in Explorer; a name may be passed instead of asked for.
       const node = picked(clicked ?? tree.selection[0])[0];
       return node ? files.rename(node, typeof newName === 'string' ? newName : undefined) : undefined;
     }),
-    vscode.commands.registerCommand('multiRepoExplorer.delete', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
+    vscode.commands.registerCommand('multiGitExplorer.delete', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
       files.delete(picked(clicked, selected)),
     ),
-    vscode.commands.registerCommand('multiRepoExplorer.cut', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
+    vscode.commands.registerCommand('multiGitExplorer.cut', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
       files.setClipboard(picked(clicked, selected), true),
     ),
-    vscode.commands.registerCommand('multiRepoExplorer.copy', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
+    vscode.commands.registerCommand('multiGitExplorer.copy', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
       files.setClipboard(picked(clicked, selected), false),
     ),
-    vscode.commands.registerCommand('multiRepoExplorer.paste', (clicked?: ExplorerNode) => {
+    vscode.commands.registerCommand('multiGitExplorer.paste', (clicked?: ExplorerNode) => {
       const target = clicked ? folderOf(clicked) : explorer.selectedFolder();
       return target ? files.paste(target) : undefined;
     }),
@@ -118,7 +118,7 @@ interface Move {
 }
 
 /** The tree's mime type, which VS Code derives from the view id. */
-const TREE_MIME = 'application/vnd.code.tree.multirepoexplorer.explorer';
+const TREE_MIME = 'application/vnd.code.tree.multigitexplorer.explorer';
 
 /** File changes made from the file tree; also its drag and drop controller. */
 export class FileOperations implements vscode.Disposable {
@@ -215,7 +215,7 @@ export class FileOperations implements vscode.Disposable {
       .map(n => ({ uri: n.uri, isDir: n.isDir }));
     if (items.length === 0) return;
     this.clipboard = { items, cut };
-    await vscode.commands.executeCommand('setContext', 'multiRepoExplorer.canPaste', true);
+    await vscode.commands.executeCommand('setContext', 'multiGitExplorer.canPaste', true);
     const what = items.length === 1 ? path.basename(items[0].uri.fsPath) : `${items.length} items`;
     vscode.window.setStatusBarMessage(`${cut ? 'Cut' : 'Copied'} ${what}. Paste into a folder in the file tree.`, 3000);
   }
@@ -230,7 +230,7 @@ export class FileOperations implements vscode.Disposable {
         pasted.push(...moves.map(m => ({ uri: m.to, isDir: clipboard.items.find(i => i.uri.fsPath === m.from.fsPath)!.isDir })));
         // A cut can only be pasted once, like the built-in Explorer.
         this.clipboard = undefined;
-        void vscode.commands.executeCommand('setContext', 'multiRepoExplorer.canPaste', false);
+        void vscode.commands.executeCommand('setContext', 'multiGitExplorer.canPaste', false);
       }
     } else {
       for (const item of clipboard.items) {

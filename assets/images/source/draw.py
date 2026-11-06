@@ -144,7 +144,7 @@ PROJECT = 'FILES<span class="d">sample-ws</span>'
 REPOS_ACTS = ci('cloud-download') + ci('filter') + ci('refresh') + ci('collapse-all')
 
 # 1. Overview
-side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-GIT EXPLORER</div>'
     + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all')) + repo_explorer()
     + sec('GIT REPOSITORIES', '299', REPOS_ACTS) + GIT_REPOS.replace('SELAUTH', ''))
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
@@ -180,7 +180,7 @@ def frow(indent, name, letter, extra_desc='', strike=False):
     return (f'<div class="row" style="padding-left:{8 + indent * 8}px"><span class="tw"></span><span class="ic">{TS if name.endswith(".ts") else MD if name.endswith(".md") else ci("file")}</span>'
             f'<span class="lb {color}">{lab}</span><span class="ds">{extra_desc}</span><span class="bd {color}">{letter}</span></div>')
 FILTER_ON = '<span style="color:#ffffff">' + ci('circle-filled') + '</span>'
-side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-GIT EXPLORER</div>'
     + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'frontend', '1 repo · ●1')
@@ -238,7 +238,7 @@ DIFF_EDITOR = ('<div class="tabs"><div class="tab" style="font-style:italic">' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;font:13px/19px Menlo,monospace;color:#cccccc;flex:1">'
     '<div style="border-right:1px solid #2b2b2b;padding-top:4px">' + pane(LEFT, 'l') + '</div>'
     '<div style="padding-top:4px">' + pane(RIGHT, 'r') + '</div></div>')
-side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-GIT EXPLORER</div>'
     + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'services', '4 repos · !2 ●2')
@@ -284,7 +284,7 @@ menu = menu_html(250, 190, [
     FILE_GROUPS[0],
     ['Select for Compare', 'Compare Selected', 'Open Timeline'],
 ] + FILE_GROUPS[1:], 'Add to Claude Chat')
-side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-GIT EXPLORER</div>'
     + '<div class="sec"><span class="tw">' + ci('chevron-down') + '</span>' + PROJECT + '<span class="acts">' + ci('new-file') + ci('new-folder') + FILTER_ON + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all') + '</span></div>'
     + '<div style="padding:6px 20px 8px;color:#9d9d9d;font-size:12px">Showing changed files · 5 of 299 repos</div>'
     + row(0, 'open', 'services', '4 repos · !2 ●2')
@@ -316,7 +316,7 @@ REPO_GROUPS = [['Switch Branch...'], ['Copy to AI Chat'],
                ['Open Repo in New Window', 'Copy Branch Name'], ['New File...', 'New Folder...']]
 def repo_menu(left, top, highlight):
     return menu_html(left, top, REPO_GROUPS + FILE_GROUPS[:1] + [[('Find in Folder...', '⇧⌥F')]] + FILE_GROUPS[1:], highlight)
-side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-GIT EXPLORER</div>'
     + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all'))
     + repo_explorer() + repo_menu(250, 178, 'Switch Branch...'))
 html = chrome('470px', side, EDITOR, STATUS_LEFT, STATUS_RIGHT, 'sample-ws — Visual Studio Code')
@@ -343,7 +343,7 @@ picker = ('<div style="position:absolute;left:520px;top:6px;width:600px;backgrou
     + qp_real('cloud', 'origin/feat/payments', 'not checked out · 5 hours ago')
     + qp_real('cloud', 'origin/release/2.4', 'not checked out · 2 weeks ago')
     + '</div>')
-side = ('<div class="vt">MULTI-REPO EXPLORER</div>'
+side = ('<div class="vt">MULTI-GIT EXPLORER</div>'
     + sec(PROJECT, '', ci('new-file') + ci('new-folder') + ci('circle-outline') + ci('arrow-up') + ci('arrow-down') + ci('refresh') + ci('collapse-all'))
     + row(0, 'closed', 'archive', '287 repos · all clean')
     + row(0, 'closed', 'frontend', '3 repos · ●1')

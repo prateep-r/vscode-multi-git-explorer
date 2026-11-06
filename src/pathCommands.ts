@@ -29,7 +29,7 @@ export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<Exp
   let compareWith: vscode.Uri | undefined;
   const updateSelection = () => {
     const twoFiles = tree.selection.length === 2 && tree.selection.every(n => !n.isDir && onDisk(n));
-    void vscode.commands.executeCommand('setContext', 'multiRepoExplorer.twoFilesSelected', twoFiles);
+    void vscode.commands.executeCommand('setContext', 'multiGitExplorer.twoFilesSelected', twoFiles);
   };
 
   const revealInOS = (nodes: ExplorerNode[]) =>
@@ -39,37 +39,37 @@ export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<Exp
     tree.onDidChangeSelection(updateSelection),
 
     // One command per title, since the built-in Explorer names this differently on each system.
-    command('multiRepoExplorer.revealInFinder', revealInOS),
-    command('multiRepoExplorer.revealInFileExplorer', revealInOS),
-    command('multiRepoExplorer.openContainingFolder', revealInOS),
+    command('multiGitExplorer.revealInFinder', revealInOS),
+    command('multiGitExplorer.revealInFileExplorer', revealInOS),
+    command('multiGitExplorer.openContainingFolder', revealInOS),
 
-    command('multiRepoExplorer.openInTerminal', nodes => {
+    command('multiGitExplorer.openInTerminal', nodes => {
       for (const dir of new Set(nodes.map(n => folderOf(n).fsPath))) {
         vscode.window.createTerminal({ name: path.basename(dir), cwd: dir }).show();
       }
     }),
 
-    command('multiRepoExplorer.findInFolder', nodes =>
+    command('multiGitExplorer.findInFolder', nodes =>
       vscode.commands.executeCommand('workbench.action.findInFiles', {
         filesToInclude: [...new Set(nodes.map(n => searchPath(folderOf(n))))].join(', '),
         triggerSearch: true,
       }),
     ),
 
-    command('multiRepoExplorer.openToSide', async nodes => {
+    command('multiGitExplorer.openToSide', async nodes => {
       for (const n of nodes.filter(n => !n.isDir)) {
         await vscode.commands.executeCommand('vscode.open', n.uri, { viewColumn: vscode.ViewColumn.Beside, preview: false });
       }
     }),
 
-    command('multiRepoExplorer.revealInExplorer', nodes => vscode.commands.executeCommand('revealInExplorer', nodes[0].uri)),
+    command('multiGitExplorer.revealInExplorer', nodes => vscode.commands.executeCommand('revealInExplorer', nodes[0].uri)),
 
-    command('multiRepoExplorer.copyPath', nodes => copy(nodes.map(n => n.uri.fsPath), 'path'), false),
+    command('multiGitExplorer.copyPath', nodes => copy(nodes.map(n => n.uri.fsPath), 'path'), false),
 
-    command('multiRepoExplorer.copyRelativePath', nodes => copy(nodes.map(n => relativePath(n.uri)), 'relative path'), false),
+    command('multiGitExplorer.copyRelativePath', nodes => copy(nodes.map(n => relativePath(n.uri)), 'relative path'), false),
 
     command(
-      'multiRepoExplorer.copyRemoteUrl',
+      'multiGitExplorer.copyRemoteUrl',
       async nodes => {
         const urls = await remoteUrls(store, nodes);
         if (urls.length) await copy(urls, 'link');
@@ -78,14 +78,14 @@ export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<Exp
     ),
 
     command(
-      'multiRepoExplorer.openOnRemote',
+      'multiGitExplorer.openOnRemote',
       async nodes => {
         for (const url of await remoteUrls(store, nodes)) await vscode.env.openExternal(vscode.Uri.parse(url, true));
       },
       false,
     ),
 
-    command('multiRepoExplorer.openTimeline', async nodes => {
+    command('multiGitExplorer.openTimeline', async nodes => {
       const file = nodes.find(n => !n.isDir);
       if (!file) return;
       // The Timeline view follows the active editor, so open the file first.
@@ -93,14 +93,14 @@ export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<Exp
       await vscode.commands.executeCommand('files.openTimeline');
     }),
 
-    command('multiRepoExplorer.selectForCompare', nodes => {
+    command('multiGitExplorer.selectForCompare', nodes => {
       compareWith = nodes[0].uri;
-      void vscode.commands.executeCommand('setContext', 'multiRepoExplorer.compareSelected', true);
+      void vscode.commands.executeCommand('setContext', 'multiGitExplorer.compareSelected', true);
     }),
 
-    command('multiRepoExplorer.compareWithSelected', nodes => (compareWith ? compare(compareWith, nodes[0].uri) : undefined)),
+    command('multiGitExplorer.compareWithSelected', nodes => (compareWith ? compare(compareWith, nodes[0].uri) : undefined)),
 
-    command('multiRepoExplorer.compareSelected', nodes => {
+    command('multiGitExplorer.compareSelected', nodes => {
       const files = nodes.filter(n => !n.isDir);
       return files.length === 2 ? compare(files[0].uri, files[1].uri) : undefined;
     }),
@@ -152,7 +152,7 @@ async function remoteUrls(store: RepoStore, nodes: readonly ExplorerNode[]): Pro
       notes.add(`${repo.name} has no remote on a website that a link can be made for.`);
       continue;
     }
-    const hosts = vscode.workspace.getConfiguration('multiRepoExplorer').get<Record<string, string>>('remoteHosts', {});
+    const hosts = vscode.workspace.getConfiguration('multiGitExplorer').get<Record<string, string>>('remoteHosts', {});
     const relPath = repoRelative(repo.root, node.uri.fsPath);
     urls.push(webUrl(web, guessHostKind(web, hosts), { relPath, isDir: node.isDir, ref: target.ref, isCommit: target.isCommit }));
     if (target.note) notes.add(target.note);

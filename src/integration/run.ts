@@ -19,10 +19,10 @@ async function main(): Promise<void> {
   if (!workspace || (flag && (flag !== '--chat' || !chatExtensions))) {
     throw new Error('usage: run.js <sample-workspace> [--chat <extensions-dir>]');
   }
-  const profile = mkdtempSync(path.join(tmpdir(), 'multi-repo-explorer-vscode-'));
+  const profile = mkdtempSync(path.join(tmpdir(), 'multi-git-explorer-vscode-'));
   // The sample workspace puts one repo 4 levels deep, to test folders past the depth limit.
   mkdirSync(path.join(profile, 'user', 'User'), { recursive: true });
-  writeFileSync(path.join(profile, 'user', 'User', 'settings.json'), JSON.stringify({ 'multiRepoExplorer.scanDepth': 3 }));
+  writeFileSync(path.join(profile, 'user', 'User', 'settings.json'), JSON.stringify({ 'multiGitExplorer.scanDepth': 3 }));
 
   await runTests({
     vscodeExecutablePath: process.env.VSCODE_PATH,

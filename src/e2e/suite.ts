@@ -92,9 +92,9 @@ async function answerDialog(page: Page, message: RegExp, button: string): Promis
   await dialog.waitFor({ state: 'detached' });
 }
 
-test('the side bar opens on Multi-Repo Explorer, with Files and Git Repositories', async page => {
+test('the side bar opens on Multi-Git Explorer, with Files and Git Repositories', async page => {
   const title = page.locator('.sidebar .composite.title h2');
-  await assertEventually('the Multi-Repo Explorer side bar', async () => /multi-repo explorer/i.test((await title.textContent()) ?? ''));
+  await assertEventually('the Multi-Git Explorer side bar', async () => /multi-git explorer/i.test((await title.textContent()) ?? ''));
   const views = (await page.locator('.sidebar .pane-header h3.title').allTextContents()).map(s => s.trim());
   assert.deepEqual(views, ['Files', 'Git Repositories']);
 });

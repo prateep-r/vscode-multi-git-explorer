@@ -24,7 +24,7 @@ const SUMMARY_SYMBOLS: [GroupKey[], string][] = [
   [['checking'], '…'],
 ];
 
-const FILTER_STATE_KEY = 'multiRepoExplorer.explorerFilter';
+const FILTER_STATE_KEY = 'multiGitExplorer.explorerFilter';
 const FILTER_ORDER: ExplorerFilter[] = ['changes', 'unpushed', 'behind'];
 const FILTERED_REFRESH_MS = 300;
 /**
@@ -123,11 +123,11 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     this.setFilters([...next]);
   }
 
-  /** Drive which title-bar buttons show as on (`multiRepoExplorer.filter.<name>`). */
+  /** Drive which title-bar buttons show as on (`multiGitExplorer.filter.<name>`). */
   private updateContextKeys(): void {
-    void vscode.commands.executeCommand('setContext', 'multiRepoExplorer.explorerFiltered', this.filtering);
+    void vscode.commands.executeCommand('setContext', 'multiGitExplorer.explorerFiltered', this.filtering);
     for (const filter of FILTER_ORDER) {
-      void vscode.commands.executeCommand('setContext', `multiRepoExplorer.filter.${filter}`, this.filters.has(filter));
+      void vscode.commands.executeCommand('setContext', `multiGitExplorer.filter.${filter}`, this.filters.has(filter));
     }
   }
 
@@ -196,7 +196,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         // Listed because it changed: clicking shows what changed, like Source Control.
         item.description = describeChange(node.change);
         item.contextValue = this.withHosted(node.change.letter === 'D' ? 'file change deleted' : 'file change', fsPath);
-        item.command = { command: 'multiRepoExplorer.openChange', title: 'Open Changes', arguments: [node, CLICK_OPEN] };
+        item.command = { command: 'multiGitExplorer.openChange', title: 'Open Changes', arguments: [node, CLICK_OPEN] };
       } else {
         item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri, CLICK_OPEN] };
       }
@@ -336,9 +336,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return names;
   }
 
-  /** Folder names in `multiRepoExplorer.exclude`. */
+  /** Folder names in `multiGitExplorer.exclude`. */
   private excludedNames(): Set<string> {
-    return new Set(vscode.workspace.getConfiguration('multiRepoExplorer').get<string[]>('exclude', []));
+    return new Set(vscode.workspace.getConfiguration('multiGitExplorer').get<string[]>('exclude', []));
   }
 
   private isExcluded(fsPath: string): boolean {

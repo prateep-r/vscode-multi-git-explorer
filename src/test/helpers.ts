@@ -24,7 +24,7 @@ export function git(cwd: string, ...args: string[]): string {
 }
 
 export function makeTempDir(): { dir: string; cleanup: () => void } {
-  const dir = mkdtempSync(path.join(tmpdir(), 'multi-repo-explorer-test-'));
+  const dir = mkdtempSync(path.join(tmpdir(), 'multi-git-explorer-test-'));
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
 

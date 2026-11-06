@@ -7,7 +7,7 @@
 # bumps package.json, runs the unit tests, checks the extension packages,
 # commits "Release x.y.z", tags vx.y.z, and pushes. The tag starts the Publish
 # workflow (.github/workflows/publish.yml), which publishes to the VS Code
-# Marketplace and creates the GitHub release with multi-repo-explorer.vsix.
+# Marketplace and creates the GitHub release with multi-git-explorer.vsix.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

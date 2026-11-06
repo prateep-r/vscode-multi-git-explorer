@@ -6,15 +6,15 @@ import type { RepoStore } from '../store';
  * Right: totals across all repos, and progress while the first check runs.
  */
 export class StatusBar implements vscode.Disposable {
-  private readonly current = vscode.window.createStatusBarItem('multiRepoExplorer.current', vscode.StatusBarAlignment.Left, 99);
-  private readonly totals = vscode.window.createStatusBarItem('multiRepoExplorer.totals', vscode.StatusBarAlignment.Right, 100);
+  private readonly current = vscode.window.createStatusBarItem('multiGitExplorer.current', vscode.StatusBarAlignment.Left, 99);
+  private readonly totals = vscode.window.createStatusBarItem('multiGitExplorer.totals', vscode.StatusBarAlignment.Right, 100);
   private readonly disposables: vscode.Disposable[];
   private updateTimer?: NodeJS.Timeout;
 
   constructor(private readonly store: RepoStore) {
-    this.current.name = 'Multi-Repo Explorer: Current Repo';
-    this.totals.name = 'Multi-Repo Explorer: All Repos';
-    this.totals.command = 'multiRepoExplorer.repos.focus';
+    this.current.name = 'Multi-Git Explorer: Current Repo';
+    this.totals.name = 'Multi-Git Explorer: All Repos';
+    this.totals.command = 'multiGitExplorer.repos.focus';
     this.disposables = [
       this.current,
       this.totals,
@@ -52,7 +52,7 @@ export class StatusBar implements vscode.Disposable {
     const sync = [view.ahead && `↑${view.ahead}`, view.behind && `↓${view.behind}`].filter(Boolean).join(' ');
     this.current.text = `$(git-branch) ${repo.name}: ${view.branchLabel}${sync ? ` ${sync}` : ''}`;
     this.current.tooltip = view.tooltip;
-    this.current.command = { command: 'multiRepoExplorer.openInScm', title: 'Open in Source Control', arguments: [vscode.Uri.file(repo.root)] };
+    this.current.command = { command: 'multiGitExplorer.openInScm', title: 'Open in Source Control', arguments: [vscode.Uri.file(repo.root)] };
     this.current.show();
   }
 

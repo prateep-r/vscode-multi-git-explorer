@@ -1,5 +1,5 @@
 VSCE := npx --no-install vsce
-VSIX := multi-repo-explorer.vsix
+VSIX := multi-git-explorer.vsix
 
 .DEFAULT_GOAL := help
 .PHONY: help install compile test package release release-patch release-minor release-major
@@ -16,7 +16,7 @@ compile: ## Compile TypeScript into out/
 test: ## Run the unit tests
 	npm test
 
-package: ## Build multi-repo-explorer.vsix
+package: ## Build multi-git-explorer.vsix
 	rm -f $(VSIX)
 	$(VSCE) package -o $(VSIX)
 

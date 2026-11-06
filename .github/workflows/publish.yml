@@ -38,14 +38,14 @@ jobs:
 
       - run: npm test
 
-      - run: npx vsce package -o multi-repo-explorer.vsix
+      - run: npx vsce package -o multi-git-explorer.vsix
 
       - name: Publish to the VS Code Marketplace
-        run: npx vsce publish --oidc --packagePath multi-repo-explorer.vsix
+        run: npx vsce publish --oidc --packagePath multi-git-explorer.vsix
 
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           awk -v heading="## ${GITHUB_REF_NAME#v}" '$0 == heading {f = 1; next} /^## / {f = 0} f' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" multi-repo-explorer.vsix --title "$GITHUB_REF_NAME" --notes-file notes.md
+          gh release create "$GITHUB_REF_NAME" multi-git-explorer.vsix --title "$GITHUB_REF_NAME" --notes-file notes.md

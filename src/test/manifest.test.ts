@@ -36,12 +36,12 @@ function matches(when: string | undefined, context: Record<string, string | bool
 /** The command names (without the prefix) in the right-click menu of a row. */
 function menuFor(view: string, viewItem: string, extra: Record<string, boolean> = {}): string[] {
   const context = { view, viewItem, isMac: true, ...extra };
-  return itemMenu.filter(i => i.group !== 'inline' && !i.group?.startsWith('inline') && matches(i.when, context)).map(i => i.command.replace('multiRepoExplorer.', ''));
+  return itemMenu.filter(i => i.group !== 'inline' && !i.group?.startsWith('inline') && matches(i.when, context)).map(i => i.command.replace('multiGitExplorer.', ''));
 }
 
-const FILES = 'multiRepoExplorer.explorer';
-const REPOS = 'multiRepoExplorer.repos';
-const CHATS = { 'multiRepoExplorer.has.claude': true, 'multiRepoExplorer.has.codex': true };
+const FILES = 'multiGitExplorer.explorer';
+const REPOS = 'multiGitExplorer.repos';
+const CHATS = { 'multiGitExplorer.has.claude': true, 'multiGitExplorer.has.codex': true };
 const repoRow = describeRepo({
   name: 'app',
   isSubmodule: false,
@@ -90,7 +90,7 @@ test('a file row gets file commands but no git commands', () => {
   }
   for (const c of ['switchBranch', 'fetch', 'findInFolder', 'newFile', 'copyRemoteUrl']) assert.ok(!menu.includes(c), c);
   assert.ok(menuFor(FILES, 'file hosted').includes('copyRemoteUrl'), 'links need a remote');
-  assert.ok(menuFor(FILES, 'file', { 'multiRepoExplorer.compareSelected': true }).includes('compareWithSelected'));
+  assert.ok(menuFor(FILES, 'file', { 'multiGitExplorer.compareSelected': true }).includes('compareWithSelected'));
 });
 
 test('a deleted file can be linked and its path copied, but not opened or changed', () => {
@@ -114,6 +114,6 @@ test('a folder past the depth limit offers Scan This Folder', () => {
 
 test('shortcuts only act when the file tree has focus, outside its find box', () => {
   for (const k of contributes.keybindings) {
-    assert.match(k.when, /^focusedView == multiRepoExplorer\.explorer && !inputFocus/, k.command);
+    assert.match(k.when, /^focusedView == multiGitExplorer\.explorer && !inputFocus/, k.command);
   }
 });

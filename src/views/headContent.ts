@@ -3,7 +3,7 @@ import { runGit } from '../core/git';
 import { gitPath } from '../workspace';
 
 /** Read-only documents holding a file as it is in HEAD, for the left side of diffs. */
-export const HEAD_SCHEME = 'multi-repo-explorer-head';
+export const HEAD_SCHEME = 'multi-git-explorer-head';
 
 /**
  * A URI for `relPath` at HEAD in the repo at `root`. It keeps the real file's

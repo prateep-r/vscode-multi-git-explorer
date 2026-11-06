@@ -6,12 +6,12 @@ import { toViewUri } from './viewUri';
 export type ReposNode = { type: 'group'; key: GroupKey } | { type: 'repo'; root: string };
 
 const GROUP_ICONS: Record<GroupKey, [string, string]> = {
-  conflict: ['warning', 'multiRepoExplorer.conflictForeground'],
-  error: ['error', 'multiRepoExplorer.errorForeground'],
-  dirty: ['circle-filled', 'multiRepoExplorer.dirtyForeground'],
-  unpushed: ['arrow-up', 'multiRepoExplorer.aheadForeground'],
-  behind: ['arrow-down', 'multiRepoExplorer.behindForeground'],
-  checking: ['sync', 'multiRepoExplorer.pendingForeground'],
+  conflict: ['warning', 'multiGitExplorer.conflictForeground'],
+  error: ['error', 'multiGitExplorer.errorForeground'],
+  dirty: ['circle-filled', 'multiGitExplorer.dirtyForeground'],
+  unpushed: ['arrow-up', 'multiGitExplorer.aheadForeground'],
+  behind: ['arrow-down', 'multiGitExplorer.behindForeground'],
+  checking: ['sync', 'multiGitExplorer.pendingForeground'],
   clean: ['check', 'gitDecoration.addedResourceForeground'],
 };
 
@@ -55,7 +55,7 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
 
   setFilter(text: string): void {
     this.filterText = text.trim().toLowerCase();
-    void vscode.commands.executeCommand('setContext', 'multiRepoExplorer.filtered', this.filterText !== '');
+    void vscode.commands.executeCommand('setContext', 'multiGitExplorer.filtered', this.filterText !== '');
     if (this.treeView) this.treeView.message = this.filterText ? `Filter: "${text.trim()}"` : undefined;
     this._onDidChangeTreeData.fire(undefined);
     this.updateTitle();

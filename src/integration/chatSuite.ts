@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type { MultiRepoExplorerApi } from '../extension';
+import type { MultiGitExplorerApi } from '../extension';
 import type { ExplorerNode } from '../views/repoExplorer';
 
 const sample = process.env.SAMPLE_WORKSPACE!;
@@ -49,7 +49,7 @@ test('both chat extensions are installed and their commands exist', async () => 
 
 test('Add to Claude Chat opens the file, then hands it to Claude Code', async () => {
   const before = webviewTabs().length;
-  await vscode.commands.executeCommand('multiRepoExplorer.addTo.claude', fileNode('services/api-gateway/README.md'));
+  await vscode.commands.executeCommand('multiGitExplorer.addTo.claude', fileNode('services/api-gateway/README.md'));
   const opened = vscode.window.tabGroups.all.flatMap(g => g.tabs).map(t => t.input);
   assert.ok(
     opened.some(i => i instanceof vscode.TabInputText && i.uri.fsPath === at('services/api-gateway/README.md')),
@@ -61,7 +61,7 @@ test('Add to Claude Chat opens the file, then hands it to Claude Code', async ()
 
 test('Add to Claude Chat with two files handles both', async () => {
   const files = [fileNode('services/api-gateway/src/index.ts'), fileNode('services/api-gateway/src/routes.ts')];
-  await vscode.commands.executeCommand('multiRepoExplorer.addTo.claude', files[0], files);
+  await vscode.commands.executeCommand('multiGitExplorer.addTo.claude', files[0], files);
   const open = vscode.window.tabGroups.all.flatMap(g => g.tabs).map(t => t.input);
   const lastFile = open.find(i => i instanceof vscode.TabInputText && i.uri.fsPath === files[1].uri.fsPath);
   assert.ok(lastFile, 'the second file was opened too');
@@ -69,7 +69,7 @@ test('Add to Claude Chat with two files handles both', async () => {
 
 test('Add to Codex Chat runs without opening the file', async () => {
   await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-  await vscode.commands.executeCommand('multiRepoExplorer.addTo.codex', fileNode('services/billing/README.md'));
+  await vscode.commands.executeCommand('multiGitExplorer.addTo.codex', fileNode('services/billing/README.md'));
   const editors = vscode.window.tabGroups.all.flatMap(g => g.tabs).map(t => t.input);
   assert.ok(
     !editors.some(i => i instanceof vscode.TabInputText && i.uri.fsPath === at('services/billing/README.md')),
@@ -78,11 +78,11 @@ test('Add to Codex Chat runs without opening the file', async () => {
 });
 
 test('Copy to AI Chat copies @path mentions for folders and files', async () => {
-  await vscode.commands.executeCommand('multiRepoExplorer.copyToAiChat', dirNode('services/api-gateway'));
+  await vscode.commands.executeCommand('multiGitExplorer.copyToAiChat', dirNode('services/api-gateway'));
   assert.equal(await vscode.env.clipboard.readText(), '@services/api-gateway/');
-  await vscode.commands.executeCommand('multiRepoExplorer.copyToAiChat', fileNode('services/billing/README.md'));
+  await vscode.commands.executeCommand('multiGitExplorer.copyToAiChat', fileNode('services/billing/README.md'));
   assert.equal(await vscode.env.clipboard.readText(), '@services/billing/README.md');
-  await vscode.commands.executeCommand('multiRepoExplorer.copyToAiChat', dirNode('services/auth-service'), [
+  await vscode.commands.executeCommand('multiGitExplorer.copyToAiChat', dirNode('services/auth-service'), [
     dirNode('services/auth-service'),
     dirNode('frontend/web-app'),
   ]);
@@ -90,7 +90,7 @@ test('Copy to AI Chat copies @path mentions for folders and files', async () => 
 });
 
 export async function run(): Promise<void> {
-  await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep-r.multi-repo-explorer')!.activate();
+  await vscode.extensions.getExtension<MultiGitExplorerApi>('prateep-r.multi-git-explorer')!.activate();
   const clipboard = await vscode.env.clipboard.readText();
   let failed = 0;
   try {
