@@ -278,14 +278,35 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return selection.some(n => n.uri.fsPath === focused.uri.fsPath) ? [...selection] : [focused];
   }
 
-  /** Selects a file or folder in the tree, expanding the folders above it. */
+  /**
+   * Selects a file or folder in the tree, expanding the folders above it.
+   * Returns once the selection has changed, which VS Code reports after
+   * `reveal` resolves. Like the built-in Explorer, it tries twice, since the
+   * tree may be refreshing meanwhile.
+   */
   async reveal(uri: vscode.Uri, isDir: boolean): Promise<void> {
-    await this.resolvePath(uri.fsPath);
-    const node = isDir ? (this.chainMember.get(uri.fsPath) ?? this.dirNode(uri)) : { uri, isDir: false };
-    try {
-      await this.treeView?.reveal(node, { select: true, focus: false, expand: isDir });
-    } catch {
-      // Not shown in the tree, for example because of the filter buttons.
+    const tree = this.treeView;
+    if (!tree) return;
+    const selected = () => tree.selection.some(n => n.uri.fsPath === uri.fsPath);
+    for (let attempt = 0; attempt < 2 && !selected(); attempt++) {
+      await this.resolvePath(uri.fsPath);
+      const node = isDir ? (this.chainMember.get(uri.fsPath) ?? this.dirNode(uri)) : (this.nestParents.get(uri.fsPath) ?? { uri, isDir: false });
+      const changed = new Promise<void>(resolve => {
+        const timer = setTimeout(done, 1000);
+        const sub = tree.onDidChangeSelection(() => selected() && done());
+        function done() {
+          clearTimeout(timer);
+          sub.dispose();
+          resolve();
+        }
+      });
+      try {
+        await tree.reveal(node, { select: true, focus: false, expand: isDir });
+      } catch {
+        // Not shown in the tree, for example because of the filter buttons.
+        return;
+      }
+      if (!selected()) await changed;
     }
   }
 

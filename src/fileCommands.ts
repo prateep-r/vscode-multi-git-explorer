@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { checkNewName, checkNewPath, copyName } from './core/fileNames';
 import { isAtOrInside } from './core/paths';
+import { parseUriList } from './core/uriList';
 import type { RepoStore } from './store';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import { toViewUri } from './views/viewUri';
@@ -370,19 +371,126 @@ export class FileOperations implements vscode.Disposable {
     if (items.some(i => i.isDir)) await this.store.discover();
   }
 
-  /** Drag and drop inside the file tree moves items; dragging out hands over their file URIs. */
+  /**
+   * Copies files dropped from outside the tree, such as from Finder, into
+   * `folder`, as the built-in Explorer's ExternalFileImport does: folders
+   * dropped on a workspace folder can be added to the workspace instead,
+   * existing names are replaced only after asking, and a single dropped file
+   * opens when `explorer.autoOpenDroppedFile` is on.
+   */
+  async importDropped(sources: readonly vscode.Uri[], folder: vscode.Uri): Promise<void> {
+    let inaccessible = 0;
+    const found: Item[] = [];
+    for (const uri of sources) {
+      try {
+        found.push({ uri, isDir: ((await vscode.workspace.fs.stat(uri)).type & vscode.FileType.Directory) !== 0 });
+      } catch {
+        inaccessible++;
+      }
+    }
+    const folders = found.filter(f => f.isDir);
+    if (folders.length && isWorkspaceFolder(folder.fsPath)) {
+      const add = folders.length > 1 ? 'Add Folders to Workspace' : 'Add Folder to Workspace';
+      const copy = folders.length > 1 ? 'Copy Folders' : 'Copy Folder';
+      const name = path.basename(folders[0].uri.fsPath);
+      const choice = await vscode.window.showInformationMessage(
+        folders.length > 1
+          ? 'Do you want to copy the folders or add the folders to the workspace?'
+          : `Do you want to copy '${name}' or add '${name}' as a folder to the workspace?`,
+        { modal: true },
+        add,
+        copy,
+      );
+      if (choice === add) {
+        const count = vscode.workspace.workspaceFolders?.length ?? 0;
+        vscode.workspace.updateWorkspaceFolders(count, 0, ...folders.map(f => ({ uri: f.uri })));
+        return;
+      }
+      if (choice !== copy) return;
+    }
+
+    const caseSensitive = process.platform === 'linux';
+    const key = (name: string) => (caseSensitive ? name : name.toLowerCase());
+    let taken = new Set<string>();
+    try {
+      taken = new Set((await vscode.workspace.fs.readDirectory(folder)).map(([name]) => key(name)));
+    } catch {
+      // A folder that can't be read has nothing to replace.
+    }
+    const copies: { from: Item; to: vscode.Uri }[] = [];
+    for (const item of found) {
+      const name = path.basename(item.uri.fsPath);
+      const to = vscode.Uri.file(path.join(folder.fsPath, name));
+      if (to.fsPath === item.uri.fsPath) continue;
+      if (taken.has(key(name))) {
+        const choice = await vscode.window.showWarningMessage(
+          `A file or folder with the name '${name}' already exists in the destination folder. Do you want to replace it?`,
+          { modal: true, detail: 'This action is irreversible!' },
+          'Replace',
+        );
+        if (choice !== 'Replace') continue;
+      }
+      copies.push({ from: item, to });
+    }
+    if (inaccessible) {
+      void vscode.window.showErrorMessage(
+        inaccessible > 1 ? 'Some or all of the dropped files could not be accessed for import.' : 'The dropped file could not be accessed for import.',
+      );
+    }
+    const failed: string[] = [];
+    const copied: Item[] = [];
+    for (const { from, to } of copies) {
+      try {
+        await vscode.workspace.fs.copy(from.uri, to, { overwrite: true });
+        copied.push({ uri: to, isDir: from.isDir });
+      } catch (error) {
+        failed.push(`${path.basename(to.fsPath)}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (failed.length) void vscode.window.showErrorMessage(`Couldn't copy ${failed.join('; ')}`);
+    if (copied.length === 0) return;
+    await this.afterChange(copied);
+    const last = copied[copied.length - 1];
+    await this.explorer.reveal(last.uri, last.isDir);
+    if (copied.length === 1 && !last.isDir && vscode.workspace.getConfiguration('explorer').get('autoOpenDroppedFile') !== false) {
+      await vscode.commands.executeCommand('vscode.open', last.uri, { preview: false });
+    }
+  }
+
+  /**
+   * Drag and drop inside the file tree moves items; files dropped from
+   * elsewhere, such as Finder, are copied in; dragging out hands over their
+   * file URIs.
+   */
   readonly dragAndDrop: vscode.TreeDragAndDropController<ExplorerNode> = {
     dragMimeTypes: ['text/uri-list'],
-    dropMimeTypes: [TREE_MIME],
+    dropMimeTypes: [TREE_MIME, 'text/uri-list', 'files'],
     handleDrag: (dragged, dataTransfer) => {
       const source = this.explorer.withNestedFiles(dragged);
       dataTransfer.set(TREE_MIME, new vscode.DataTransferItem(source));
       dataTransfer.set('text/uri-list', new vscode.DataTransferItem(source.map(n => n.uri.toString()).join('\r\n')));
     },
     handleDrop: async (target, dataTransfer) => {
+      // Dropped below the rows, it goes into the last workspace folder, as in the built-in Explorer.
+      const folder = target ? folderOf(target) : localFolders().at(-1)?.uri;
+      if (!folder) return;
       const nodes = dataTransfer.get(TREE_MIME)?.value as ExplorerNode[] | undefined;
-      const folder = target ? folderOf(target) : localFolders()[0]?.uri;
-      if (nodes?.length && folder) await this.drop(nodes, folder);
+      if (nodes?.length) return this.drop(nodes, folder);
+      const dropped = new Map<string, vscode.Uri>();
+      const list = dataTransfer.get('text/uri-list');
+      for (const text of list ? parseUriList(await list.asString()) : []) {
+        try {
+          const uri = vscode.Uri.parse(text, true);
+          if (uri.scheme === 'file') dropped.set(uri.fsPath, uri);
+        } catch {
+          // Not a URI.
+        }
+      }
+      for (const [, item] of dataTransfer) {
+        const uri = item.asFile()?.uri;
+        if (uri?.scheme === 'file') dropped.set(uri.fsPath, uri);
+      }
+      if (dropped.size) await this.importDropped([...dropped.values()], folder);
     },
   };
 }

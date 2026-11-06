@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { MultiGitExplorerApi } from '../extension';
@@ -705,6 +706,34 @@ test('explorer.fileNesting nests related files under their parent, like the buil
       assert.ok((await top()).some(n => path.basename(n.uri.fsPath) === 'app.js'), 'off: nothing nests');
     } finally {
       for (const key of ['fileNesting.enabled', 'fileNesting.patterns', 'fileNesting.expand', 'sortOrder']) await set(key, undefined);
+    }
+  }));
+
+test('files dropped from outside the tree, such as from Finder, are copied in like the built-in Explorer does', ({ files }) =>
+  withScratch(async (dir, node) => {
+    const outside = mkdtempSync(path.join(tmpdir(), 'multi-git-explorer-drop-'));
+    try {
+      writeFileSync(path.join(outside, 'new.txt'), 'new\n');
+      writeFileSync(path.join(outside, 'a.txt'), 'replacement\n');
+      mkdirSync(path.join(outside, 'folder'));
+      const drop = (target: ExplorerNode | undefined, names: string[]) => {
+        const data = new vscode.DataTransfer();
+        data.set('text/uri-list', new vscode.DataTransferItem(names.map(n => vscode.Uri.file(path.join(outside, n)).toString()).join('\r\n')));
+        return files.dragAndDrop.handleDrop!(target, data, new vscode.CancellationTokenSource().token);
+      };
+      await drop(node('sub', true), ['new.txt']);
+      assert.equal(readFileSync(path.join(dir, 'sub', 'new.txt'), 'utf8'), 'new\n', 'copied into the folder dropped on');
+      assert.ok(existsSync(path.join(outside, 'new.txt')), 'the original stays where it was');
+      await waitFor('the dropped file to open', () => vscode.window.activeTextEditor?.document.uri.fsPath === path.join(dir, 'sub', 'new.txt'));
+
+      await drop(node('.', true), ['a.txt']);
+      assert.match(dialogs.at(-1) ?? '', /'a\.txt' already exists in the destination folder\. Do you want to replace it\?/);
+      assert.equal(readFileSync(path.join(dir, 'a.txt'), 'utf8'), 'replacement\n', 'replaced after asking');
+
+      await drop(node('a.txt'), ['folder']);
+      assert.ok(existsSync(path.join(dir, 'folder')), 'dropped on a file, it goes into the file\'s folder');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
     }
   }));
 
