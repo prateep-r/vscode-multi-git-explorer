@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 - The side bar opens on the Repo Explorer when a window with a folder opens, instead of the built-in Explorer. Turn this off with `multiRepoExplorer.showOnStartup`.
 - Repos are searched for 10 folder levels deep instead of 3, so repos kept in folders like `apps/services/team/project/` show their branch. `multiRepoExplorer.scanDepth` no longer has an upper limit of 10, so it can be raised for deeper repos.
