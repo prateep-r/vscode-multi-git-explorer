@@ -2,7 +2,8 @@ import { existsSync } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { FILTER_LABELS, describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
-import { isAtOrInside, isInside, repoRelative } from '../core/paths';
+import { compactChain } from '../core/compact';
+import { firstPartBelow, isAtOrInside, isInside, repoRelative } from '../core/paths';
 import type { ChangedFile } from '../core/porcelain';
 import { compareEntries, readSortConfig, type Sortable } from '../core/sort';
 import type { GroupKey } from '../core/state';
@@ -13,10 +14,18 @@ import { folderOf, isWorkspaceFolder, localFolders } from '../workspace';
 import { toViewUri } from './viewUri';
 
 export interface ExplorerNode {
+  /** What commands act on. For a compact row, the last folder of `compact`. */
   uri: vscode.Uri;
   isDir: boolean;
   /** For a changed file (or untracked folder) listed while filtering. */
   change?: ChangedFile;
+  /** For a compact row (`explorer.compactFolders`): its folders, outermost first. */
+  compact?: vscode.Uri[];
+}
+
+/** The first folder of a row: itself, or the outermost folder of a compact row. Rows are keyed by it. */
+export function headOf(node: ExplorerNode): string {
+  return (node.compact?.[0] ?? node.uri).fsPath;
 }
 
 /** Group symbols used in a parent folder's summary, most serious first. */
@@ -49,8 +58,10 @@ const CLICK_OPEN: vscode.TextDocumentShowOptions = { preview: true, preserveFocu
 export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNode>, vscode.Disposable {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<ExplorerNode | ExplorerNode[] | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  /** Folder nodes handed out so far, so updates can target them. */
+  /** Folder nodes handed out so far, by their first folder, so updates can target them. */
   private readonly dirNodes = new Map<string, ExplorerNode>();
+  /** Every folder of a compact row, to its row. */
+  private readonly chainMember = new Map<string, ExplorerNode>();
   /** Folders past the depth limit that were searched because they were opened. */
   private readonly autoScanned = new Set<string>();
   private filters: Set<ExplorerFilter>;
@@ -88,6 +99,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       vscode.workspace.onDidChangeConfiguration(e => {
         if (e.affectsConfiguration('files.exclude')) {
           this.excludeRules.clear();
+          this.refreshAll();
+        } else if (e.affectsConfiguration('explorer.compactFolders') || e.affectsConfiguration('editor.accessibilitySupport')) {
+          this.resetCompaction();
           this.refreshAll();
         } else if (e.affectsConfiguration('explorer.excludeGitIgnore')) {
           this.ignoreFiles.clear();
@@ -140,6 +154,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   setFilters(filters: ExplorerFilter[]): void {
+    // Rows are shared by both trees, and what makes a chain differs between them.
+    this.resetCompaction();
     this.filters = new Set(filters);
     void this.state.update(FILTER_STATE_KEY, this.activeFilters);
     this.updateContextKeys();
@@ -170,6 +186,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (!node && folders.length !== 1) {
       const nodes = folders.map(f => this.dirNode(f.uri));
       return this.filtering ? nodes.filter(n => this.matchingRepos().some(r => isAtOrInside(r.root, n.uri.fsPath))) : nodes;
+    }
+    if (node?.isDir && !node.change && (await this.updateChain(node))) {
+      // The row's name changed, so have VS Code ask for it again.
+      setTimeout(() => this._onDidChangeTreeData.fire(node), 0);
     }
     const uri = node?.uri ?? folders[0]?.uri;
     if (!uri) return [];
@@ -238,7 +258,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
 
   /** Selects a file or folder in the tree, expanding the folders above it. */
   async reveal(uri: vscode.Uri, isDir: boolean): Promise<void> {
-    const node = isDir ? this.dirNode(uri) : { uri, isDir: false };
+    await this.resolvePath(uri.fsPath);
+    const node = isDir ? (this.chainMember.get(uri.fsPath) ?? this.dirNode(uri)) : { uri, isDir: false };
     try {
       await this.treeView?.reveal(node, { select: true, focus: false, expand: isDir });
     } catch {
@@ -249,17 +270,87 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   getParent(node: ExplorerNode): ExplorerNode | undefined {
     // Must match getChildren: with one folder its contents are the top level, otherwise the folders are.
     const folders = localFolders();
-    if (isWorkspaceFolder(node.uri.fsPath)) return undefined;
-    const parent = vscode.Uri.file(path.dirname(node.uri.fsPath));
+    const head = headOf(node);
+    if (isWorkspaceFolder(head)) return undefined;
+    const parent = vscode.Uri.file(path.dirname(head));
     if (folders.length === 1 && folders[0].uri.fsPath === parent.fsPath) return undefined;
+    // A compact row is the parent of what's in its last folder.
     return this.dirNode(parent);
+  }
+
+  /**
+   * Lists the folders down to `target` the way the tree does, so the chains
+   * of compact rows on the way are known before VS Code is asked to reveal it.
+   */
+  private async resolvePath(target: string): Promise<void> {
+    const root = closestFolder(target);
+    if (!root || root === target) return;
+    let node: ExplorerNode | undefined = localFolders().length === 1 ? undefined : this.dirNode(vscode.Uri.file(root));
+    for (let depth = 0; depth < 256; depth++) {
+      const children = await this.getChildren(node);
+      const last = node ? node.uri.fsPath : root;
+      if (!isInside(target, last)) return;
+      const next = path.join(last, firstPartBelow(target, last));
+      if (next === target) return;
+      const child = children.find(c => c.isDir && headOf(c) === next);
+      if (!child) return;
+      node = child;
+    }
+  }
+
+  private compactionOn(): boolean {
+    // Like the built-in Explorer, compact folders aren't used with a screen reader.
+    return (
+      vscode.workspace.getConfiguration('explorer').get<boolean>('compactFolders') !== false &&
+      vscode.workspace.getConfiguration('editor').get('accessibilitySupport') !== 'on'
+    );
+  }
+
+  /**
+   * Works out the folders a row shows, as the built-in Explorer does when a
+   * folder is opened: it takes in its only child folder, and that one's, and
+   * so on. Workspace folders take in nothing. Returns whether the row changed.
+   */
+  private async updateChain(node: ExplorerNode): Promise<boolean> {
+    const head = headOf(node);
+    const chain =
+      this.compactionOn() && !isWorkspaceFolder(head)
+        ? await compactChain(head, dir => (this.filtering ? this.onlyFilteredChildFolder(dir) : onlyChildFolder(dir)))
+        : [head];
+    const current = node.compact?.map(u => u.fsPath) ?? [head];
+    if (chain.length === current.length && chain.every((p, i) => p === current[i])) return false;
+    for (const member of current) if (this.chainMember.get(member) === node) this.chainMember.delete(member);
+    node.uri = vscode.Uri.file(chain[chain.length - 1]);
+    if (chain.length > 1) {
+      node.compact = chain.map(p => vscode.Uri.file(p));
+      for (const member of chain) this.chainMember.set(member, node);
+    } else {
+      delete node.compact;
+    }
+    return true;
+  }
+
+  /** While filtering: the only folder a folder lists, if that's all it lists. Untracked folders end a chain. */
+  private async onlyFilteredChildFolder(dir: string): Promise<string | undefined> {
+    const children = await this.filteredChildren(vscode.Uri.file(dir));
+    return children.length === 1 && children[0].isDir && !children[0].change ? children[0].uri.fsPath : undefined;
+  }
+
+  /** Turns every compact row back into its first folder. */
+  private resetCompaction(): void {
+    for (const node of new Set(this.chainMember.values())) {
+      if (node.compact) node.uri = node.compact[0];
+      delete node.compact;
+    }
+    this.chainMember.clear();
   }
 
   getTreeItem(node: ExplorerNode): vscode.TreeItem {
     const fsPath = node.uri.fsPath;
     // Separate ids per mode, so filtered folders open expanded without
-    // changing what the user expanded in the unfiltered tree.
-    const id = `${this.filtering ? `f:${this.activeFilters.join(',')}` : 'all'}:${fsPath}`;
+    // changing what the user expanded in the unfiltered tree. A compact row
+    // is keyed by its first folder, so it stays open as its chain changes.
+    const id = `${this.filtering ? `f:${this.activeFilters.join(',')}` : 'all'}:${headOf(node)}`;
 
     if (!node.isDir) {
       const item = new vscode.TreeItem(toViewUri(fsPath), vscode.TreeItemCollapsibleState.None);
@@ -282,6 +373,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       expanded ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
     );
     item.id = id;
+    if (node.compact) item.label = node.compact.map(u => path.basename(u.fsPath)).join('/');
     const repo = this.store.get(fsPath);
     if (repo) {
       item.description = repo.view.description;
@@ -393,6 +485,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   private dirNode(uri: vscode.Uri): ExplorerNode {
+    const chained = this.chainMember.get(uri.fsPath);
+    if (chained) return chained;
     let node = this.dirNodes.get(uri.fsPath);
     if (!node) {
       node = { uri, isDir: true };
@@ -595,7 +689,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     const changed = new Set<ExplorerNode>();
     for (const root of roots) {
       for (let dir = root; ; dir = path.dirname(dir)) {
-        const node = this.dirNodes.get(dir);
+        const node = this.chainMember.get(dir) ?? this.dirNodes.get(dir);
         if (node) changed.add(node);
         if (path.dirname(dir) === dir) break;
       }
@@ -605,6 +699,12 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
 
   private onFolderChanged(dir: string): void {
     if (this.filtering) return;
+    const chained = this.chainMember.get(dir);
+    if (chained) {
+      // What's in the folder may lengthen or break the chain.
+      void this.updateChain(chained).then(() => this._onDidChangeTreeData.fire(chained));
+      return;
+    }
     const node = this.dirNodes.get(dir);
     const isTopLevel = isWorkspaceFolder(dir);
     if (node && !isTopLevel) this._onDidChangeTreeData.fire(node);
@@ -644,6 +744,16 @@ function closestFolder(fsPath: string): string | undefined {
     if (isAtOrInside(fsPath, root) && (!best || root.length > best.length)) best = root;
   }
   return best;
+}
+
+/** The only entry of a folder on disk, if it's a folder. Hidden entries count, as in the built-in Explorer. */
+async function onlyChildFolder(dir: string): Promise<string | undefined> {
+  try {
+    const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(dir));
+    return entries.length === 1 && (entries[0][1] & vscode.FileType.Directory) !== 0 ? path.join(dir, entries[0][0]) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** The `.gitignore` of the nearest folder at or above `fsPath` that has one. */

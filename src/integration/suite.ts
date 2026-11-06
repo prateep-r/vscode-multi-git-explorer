@@ -638,6 +638,45 @@ test('.gitignored files are dimmed like the git extension does, and hidden with 
   assert.ok((await names(repo)).includes('dist'));
 });
 
+test('explorer.compactFolders shows single-child folders as one row, like the built-in Explorer', ({ explorer }) =>
+  withScratch(async (dir, node) => {
+    mkdirSync(path.join(dir, 'src', 'main', 'java'), { recursive: true });
+    writeFileSync(path.join(dir, 'src', 'main', 'java', 'App.java'), '');
+    const config = vscode.workspace.getConfiguration('explorer');
+    const tree = (explorer as unknown as { treeView: vscode.TreeView<ExplorerNode> }).treeView;
+    const label = (n: ExplorerNode) => explorer.getTreeItem(n).label;
+    try {
+      await config.update('compactFolders', true, vscode.ConfigurationTarget.Global);
+      const src = (await explorer.getChildren(node('.', true))).find(n => path.basename(headOfRow(n)) === 'src')!;
+      const children = await explorer.getChildren(src);
+      assert.equal(label(src), 'src/main/java', 'opening it takes in the single child folders');
+      assert.equal(src.uri.fsPath, path.join(dir, 'src', 'main', 'java'), 'commands act on the last folder');
+      assert.deepEqual(children.map(n => path.basename(n.uri.fsPath)), ['App.java']);
+      assert.equal(explorer.getParent(children[0]), src, 'the files inside belong to the compact row');
+
+      await explorer.reveal(vscode.Uri.file(path.join(dir, 'src', 'main', 'java', 'App.java')), false);
+      assert.equal(tree.selection[0]?.uri.fsPath, path.join(dir, 'src', 'main', 'java', 'App.java'), 'revealing into a compact row');
+
+      // A second entry in a middle folder breaks the chain there.
+      writeFileSync(path.join(dir, 'src', 'main', 'notes.md'), '');
+      await waitFor('the chain to break', () => src.compact?.length === 2);
+      assert.equal(label(src), 'src/main');
+      assert.deepEqual((await explorer.getChildren(src)).map(n => path.basename(n.uri.fsPath)), ['java', 'notes.md']);
+
+      await config.update('compactFolders', false, vscode.ConfigurationTarget.Global);
+      const plain = (await explorer.getChildren(node('.', true))).find(n => path.basename(n.uri.fsPath) === 'src')!;
+      await explorer.getChildren(plain);
+      assert.equal(plain.compact, undefined, 'off when explorer.compactFolders is false');
+    } finally {
+      await config.update('compactFolders', undefined, vscode.ConfigurationTarget.Global);
+    }
+  }));
+
+/** The first folder of a row, even a compact one. */
+function headOfRow(n: ExplorerNode): string {
+  return (n.compact?.[0] ?? n.uri).fsPath;
+}
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

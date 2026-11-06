@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Compact folders**, following `explorer.compactFolders`: when you open a folder that holds only one folder, the two show as one row, such as `src/main/java`, like the built-in Explorer. Commands on the row act on its last folder.
 - **`.gitignore`d files are dimmed**, as VS Code's git extension dims them in the built-in Explorer, and **hidden when `explorer.excludeGitIgnore` is on**, read the same way as the built-in Explorer reads `.gitignore`.
 - **The active editor's file is selected in the file tree**, with the folders above it expanded, following `explorer.autoReveal` and `explorer.autoRevealExclude` like the built-in Explorer.
 - **Problems show on files and folders**, like the built-in Explorer: files with errors or warnings are colored and show how many, and the folders above them are colored too. Follows `problems.decorations.enabled`.

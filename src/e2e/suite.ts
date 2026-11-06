@@ -197,6 +197,29 @@ test('opening a file with Quick Open selects it in the tree, expanding the folde
   await page.keyboard.press('W');
 });
 
+test('a folder holding only one folder shows as one row once opened, and New File on it goes in the last folder', async (page, workspace) => {
+  const dir = path.join(workspace, 'docs', 'e2e-compact');
+  mkdirSync(path.join(dir, 'src', 'main', 'java'), { recursive: true });
+  writeFileSync(path.join(dir, 'src', 'main', 'java', 'App.java'), '');
+  await expand(page, 'docs');
+  // Opening the folder takes in the single child folders below it, so the row's name changes.
+  await row(page, 'e2e-compact').locator('.monaco-tl-twistie').click();
+  const compact = row(page, 'e2e-compact/src/main/java');
+  await compact.waitFor();
+  await row(page, 'App.java').waitFor();
+  await compact.click({ button: 'right' });
+  const labels = await menuLabels(page);
+  assert.ok(labels.includes('New File...') || labels.includes('New File…'), labels.join(', '));
+  await page.locator('.context-view .monaco-menu .action-label', { hasText: /^New File/ }).click();
+  const input = page.locator('.quick-input-widget input.input');
+  await input.waitFor();
+  await input.fill('Main.java');
+  await page.keyboard.press('Enter');
+  await assertEventually('Main.java in the last folder', () => existsSync(path.join(dir, 'src', 'main', 'java', 'Main.java')));
+  await page.keyboard.press(`${MOD}+K`);
+  await page.keyboard.press('W');
+});
+
 test('copy and paste with the keyboard make a copy next to the file', async (page, workspace) => {
   const dir = path.join(workspace, 'docs', 'e2e');
   await select(page, 'b.txt');
