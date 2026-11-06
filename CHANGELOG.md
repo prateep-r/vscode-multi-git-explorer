@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **On the VS Code Marketplace** as [`prateep.multi-repo-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep.multi-repo-explorer), so VS Code installs and updates it for you. If you installed it from GitHub Releases before, its ID is `prateep-r.multi-repo-explorer`: uninstall that one, so you don't get two Multi-Repo Explorers.
+- A Marketplace icon.
+
 ## 1.2.0
 
 - **Right-click menu like the built-in Explorer** in the file tree: Open to the Side, Reveal in Finder, Open in Integrated Terminal, Reveal in Explorer View, Find in Folder, Select for Compare / Compare with Selected, Open Timeline, Cut / Copy / Paste, Copy Path / Copy Relative Path, Rename and Delete, with the built-in Explorer's keyboard shortcuts.

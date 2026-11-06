@@ -8,3 +8,5 @@ tsconfig.json
 out/integration/**
 assets/**
 out/e2e/**
+Makefile
+.github/**

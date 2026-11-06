@@ -240,7 +240,25 @@ Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper
 
 ## Install
 
-The extension is published on [GitHub Releases](https://github.com/prateep-r/vscode-multi-repo-explorer/releases), not on the VS Code Marketplace. Download and install the latest version with one command:
+Install [Multi-Repo Explorer](https://marketplace.visualstudio.com/items?itemName=prateep.multi-repo-explorer) from the VS Code Marketplace: search for **Multi-Repo Explorer** in the Extensions view, or run:
+
+```bash
+code --install-extension prateep.multi-repo-explorer
+```
+
+VS Code keeps it up to date.
+
+Requirements: VS Code 1.95 or later, and `git` on your `PATH` (or set in `git.path`).
+
+**Moving from a GitHub Releases install**: versions downloaded from GitHub Releases before the Marketplace listing have the ID `prateep-r.multi-repo-explorer`. Uninstall that one first, so you don't get two Multi-Repo Explorers. Your settings carry over; the file tree's filter starts cleared.
+
+```bash
+code --uninstall-extension prateep-r.multi-repo-explorer
+```
+
+### Install from GitHub Releases
+
+For Cursor, Windsurf, VSCodium, or a machine without Marketplace access, download the `.vsix` from [GitHub Releases](https://github.com/prateep-r/vscode-multi-repo-explorer/releases) and install it with one command:
 
 **macOS / Linux**
 
@@ -258,14 +276,12 @@ Then run **Developer: Reload Window** in VS Code.
 
 Or do it by hand: download [`multi-repo-explorer.vsix`](https://github.com/prateep-r/vscode-multi-repo-explorer/releases/latest/download/multi-repo-explorer.vsix), then in VS Code open the Command Palette and run **Extensions: Install from VSIX…**. It also works in Cursor, Windsurf, and VSCodium: use `cursor`, `windsurf`, or `codium` in place of `code` in the commands above.
 
-Requirements: VS Code 1.95 or later, and `git` on your `PATH` (or set in `git.path`).
-
-**Updating**: the extension doesn't update itself. Run the same command again to get the latest version. See what changed in the [changelog](CHANGELOG.md).
+**Updating**: a `.vsix` install doesn't update itself. Run the same command again to get the latest version. See what changed in the [changelog](CHANGELOG.md).
 
 **Uninstalling**:
 
 ```bash
-code --uninstall-extension prateep-r.multi-repo-explorer
+code --uninstall-extension prateep.multi-repo-explorer
 ```
 
 If you built a version before 1.0.0 from source, its ID is `local.multi-repo-explorer`. Uninstall that one first, so you don't get two Multi-Repo Explorers. Its settings started with `multiRepoGit.`; they are now `multiRepoExplorer.`, so rename any you changed.
@@ -374,6 +390,22 @@ npm run compile        # or: npm run watch
 ```
 
 Press <kbd>F5</kbd> in VS Code to run the extension in a new window (the *Extension Development Host*).
+
+Run `make` to list the shortcuts for these and for releasing.
+
+### Releasing
+
+Write what changed under `## Unreleased` at the top of [CHANGELOG.md](CHANGELOG.md) as you go. To release it, from a clean `main` that's in sync with GitHub:
+
+```bash
+make release-patch    # bug fixes:  1.2.0 -> 1.2.1
+make release-minor    # features:   1.2.0 -> 1.3.0
+make release-major    # breaking:   1.2.0 -> 2.0.0
+```
+
+This runs the unit tests, renames `## Unreleased` to the new version, bumps `package.json`, commits `Release x.y.z`, tags `vx.y.z`, and pushes. The tag starts the [Publish workflow](.github/workflows/publish.yml), which publishes to the VS Code Marketplace and creates the GitHub release with `multi-repo-explorer.vsix` attached.
+
+The workflow signs in to the Marketplace with [trusted publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace), so there's no token to keep. It needs a trusted publishing policy on the `prateep` publisher (**Manage Publishers & Extensions → Trusted Publishing**) for owner `prateep-r`, repository `vscode-multi-repo-explorer`, and workflow `publish.yml`. If the workflow fails, fix the cause and select **Re-run jobs** on the run; the tag doesn't need to change unless the code does.
 
 ### Tests
 
