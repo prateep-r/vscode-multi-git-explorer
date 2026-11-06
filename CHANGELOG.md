@@ -6,6 +6,7 @@
   - Settings are now `multiGitExplorer.*` instead of `multiRepoExplorer.*`. Your old settings are copied over the first time it starts.
   - If Multi-Repo Explorer (`prateep-r.multi-repo-explorer`) is still installed, it offers to uninstall it, so you don't get two side bars.
 - A Marketplace icon.
+- A clearer README and Marketplace page, focused on using the extension. Notes for contributors moved to `CONTRIBUTING.md`.
 
 ## 1.2.0
 

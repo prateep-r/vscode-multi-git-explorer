@@ -11,3 +11,4 @@ out/e2e/**
 Makefile
 .github/**
 .claude/**
+CONTRIBUTING.md

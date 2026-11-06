@@ -1,18 +1,31 @@
 # Multi-Git Explorer
 
-**A VS Code extension that shows the branch and git status of every repository in your workspace — at a glance, even with hundreds of repos.**
+[![Release](https://img.shields.io/github/v/release/prateep-r/vscode-multi-git-explorer?label=release)](https://github.com/prateep-r/vscode-multi-git-explorer/releases/latest)
+[![VS Code](https://img.shields.io/badge/VS%20Code-1.95%2B-007ACC?logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
+[![License: MIT](https://img.shields.io/github/license/prateep-r/vscode-multi-git-explorer)](LICENSE)
 
-If you keep many git repos in one folder (microservices, a polyrepo, a `~/projects` folder…), it's hard to remember which repo is on which branch, which ones have uncommitted work, and which ones you forgot to push. This extension writes all of that next to the folder names, lets you narrow the tree down to what changed, and lets you review, switch branches, or hand files to an AI chat from a right-click.
+**See the branch and git status of every repository in your workspace at a glance, even with hundreds of repos.**
+
+When you keep many repositories in one folder (microservices, a polyrepo, or a `~/projects` folder), it is hard to keep track of which repo is on which branch, which ones have uncommitted work, and which ones you forgot to push. Multi-Git Explorer shows all of this next to the folder names. You can narrow the tree down to what changed, review diffs, switch branches, and send files to an AI chat, all from a right-click.
 
 ![Files and Git Repositories views](assets/images/overview.png)
 
-1. **Files**: your files, with each repo's branch and status written after its name, and your project's folder name beside the title.
-2. **Git Repositories**: every repo, grouped by what needs your attention. Problems are listed first.
-3. **Status bar**: the branch of the repo you're editing in (left) and totals for all repos (right).
+1. **Files**: your workspace, with each repo's branch and status after its name.
+2. **Git Repositories**: every repo, grouped by what needs attention, with problems first.
+3. **Status bar**: the branch of the repo you are editing in (left) and totals for all repos (right).
+
+## Highlights
+
+- **Every repo's state on one screen.** It shows the branch, uncommitted changes, unpushed and behind commits, conflicts, and merges or rebases in progress.
+- **Filters for what changed.** Show only repos with changed files, unpushed commits, or new commits on the remote.
+- **One-click review.** Open a diff of any changed file against `HEAD`, or every change in a repo in one view.
+- **Branch switching.** Switch to a local or remote branch, or create one, with your uncommitted changes stashed only if you agree.
+- **Familiar file tree.** It has the built-in Explorer's right-click menu, keyboard shortcuts, and drag and drop.
+- **Built for scale.** 300 repos are found in about 50 ms and fully checked in about 4 seconds. Showing status never fetches, pushes, or changes your repos.
 
 ## Contents
 
-- [Quick start](#quick-start)
+- [Getting started](#getting-started)
 - [Features](#features)
   - [See every repo's branch and status](#see-every-repos-branch-and-status)
   - [Show only what changed](#show-only-what-changed)
@@ -21,130 +34,137 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
   - [Right-click menus](#right-click-menus)
   - [Keyboard shortcuts](#keyboard-shortcuts)
   - [Send files to an AI chat](#send-files-to-an-ai-chat)
-  - [Badges in the built-in Explorer (optional)](#badges-in-the-built-in-explorer-optional)
+  - [Badges in the built-in Explorer](#badges-in-the-built-in-explorer)
   - [Light and dark themes](#light-and-dark-themes)
-- [What the symbols mean](#what-the-symbols-mean)
-- [Install](#install)
+- [Status reference](#status-reference)
+- [Installation](#installation)
 - [Settings](#settings)
-- [What it changes](#what-it-changes)
+- [What the extension changes](#what-the-extension-changes)
 - [Performance](#performance)
 - [Troubleshooting](#troubleshooting)
 - [Known limitations](#known-limitations)
-- [Development](#development)
+- [Feedback](#feedback)
+- [License](#license)
 
-## Quick start
+## Getting started
 
-1. [Install the extension](#install).
+**Requirements:** VS Code 1.95 or later, and `git` on your `PATH` (or set in `git.path`).
+
+1. Install **Multi-Git Explorer** from the Extensions view, or see [Installation](#installation).
 2. Open the folder that holds your repos (**File → Open Folder…**).
 3. Click the **Multi-Git Explorer** icon (two pages with an M) in the Activity Bar. It opens by itself the next time you open the window.
 
-Repos are found automatically, up to 10 folder levels deep. Every repo shows its branch right away; the rest of its status fills in within a few seconds.
+Repos are found automatically, up to 10 folder levels deep. Each repo shows its branch right away, and the rest of its status fills in within a few seconds.
 
 ## Features
 
 ### See every repo's branch and status
 
-- **Files** works like the built-in Explorer: expand folders, click files to open them, and use **New File** / **New Folder** in its title bar (or right-click a folder) to add items. The right-click menu has the built-in Explorer's commands too, such as Rename, Delete, Cut/Copy/Paste and Copy Path, and you can drag items into another folder ([details](#right-click-menus)). Type a path such as `src/utils/date.ts` to create the folders on the way. Each repo shows its branch and status after its name. Folders that contain repos show a summary like `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them. Changed files carry the same letters as Source Control (`M`, `A`, `U`…).
-- **Git Repositories** lists every repo, grouped: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, *Clean*. Use the filter icon in its title bar to find a repo by path or branch name. Hover a row for buttons to open it in Source Control or in a terminal.
-- **Status bar**: the left item shows the branch of the file you're editing; click it to open that repo in Source Control. The right item counts repos by state; click it to jump to Git Repositories.
-- **Tooltips**: hover a repo for the full picture — upstream, ahead/behind, changed files, stashes, and when it was last fetched.
+- **Files** works like the built-in Explorer. Expand folders, click files to open them, and use **New File** and **New Folder** in its title bar or on a folder's right-click menu. Typing a path such as `src/utils/date.ts` creates the folders on the way.
+- **Each repo** shows its branch and status after its name. Folders that contain repos show a summary such as `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them. Changed files carry the same letters as Source Control (`M`, `A`, `U`, and so on).
+- **Git Repositories** lists every repo in groups: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, and *Clean*. Use the filter icon in its title bar to find a repo by path or branch name. Hover a row for buttons that open it in Source Control or in a terminal.
+- **The status bar** shows the branch of the file you're editing on the left; click it to open that repo in Source Control. The item on the right counts repos by state; click it to jump to Git Repositories.
+- **Tooltips** on a repo show the full picture: upstream, ahead and behind counts, changed files, stashes, and when it was last fetched.
 
 ### Show only what changed
 
-The title bar of the file tree (the one with your project's name) has three filter buttons. Click one to turn it on, and click it again to turn it off. The icon is filled while it's on. You can turn on more than one, and repos matching any of them are shown.
+The title bar of the file tree has three filter buttons. Click a button to turn its filter on, and click it again to turn it off. The icon is filled while the filter is on. You can combine filters; a repo is shown if it matches any of them.
 
-| Button | Off | On | Shows |
+| Filter | Icon when off | Icon when on | Shows |
 | --- | --- | --- | --- |
-| Changed files | ○ | ● | Repos with uncommitted or conflicted files, listing only those files and the folders they're in |
+| Changed files | ○ | ● | Repos with uncommitted or conflicted files, listing only those files and their folders |
 | Not pushed | ↑ | ⬆︎ in a circle | Repos with commits that aren't pushed yet |
-| Behind remote | ↓ | ⬇︎ in a circle | Repos with new commits on the remote (as of the last fetch) |
+| Behind remote | ↓ | ⬇︎ in a circle | Repos with new commits on the remote, as of the last fetch |
 
 ![The file tree filtered to changed files](assets/images/filter.png)
 
-Changed files get the same letters as VS Code's Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, `!` conflict. Next to the letter you may see `staged`, `partly staged`, or `conflict`. Folders named in `multiGitExplorer.exclude` and anything hidden by `files.exclude` stay hidden while filtering, even if git sees changes in them. The filter is remembered per workspace.
+Changed files use the same letters as Source Control: `M` modified, `A` added, `D` deleted, `R` renamed, `U` untracked, and `!` conflict. A note such as `staged`, `partly staged`, or `conflict` may follow the letter.
 
-To search files by name or content, right-click a folder or repo and choose **Find in Folder…**. It opens VS Code's **Search** view limited to that folder.
+Folders listed in `multiGitExplorer.exclude` and anything hidden by `files.exclude` stay hidden while filtering, even if git sees changes in them. The filter is remembered per workspace.
+
+To search by file name or content, right-click a folder or repo and choose **Find in Folder…**. It opens the Search view limited to that folder.
 
 ### Review a change
 
-With **Changed files** on, **click a file to review it.** It opens a diff of the last commit (`HEAD`) against your working copy, so you see staged and unstaged changes together.
+With **Changed files** on, click a file to review it. A diff opens comparing the last commit (`HEAD`) with your working copy, so staged and unstaged changes appear together.
 
 ![Diff of a changed file, opened from the file tree](assets/images/diff.png)
 
 - Added lines are green and removed lines are red. Within a changed line, the exact part that changed is highlighted.
-- New files show as fully added and deleted files as fully removed. Renamed files are compared with their old name.
+- New files appear fully added and deleted files fully removed. Renamed files are compared with their old name.
 - Files with conflicts open as normal files, so you can resolve them.
-- The diff opens as a preview tab, so clicking the next file replaces it instead of piling up tabs.
+- The diff opens as a preview tab, so the next file you click replaces it instead of opening another tab.
 - To edit the file, use the **Open File** button on its row.
-- To review every changed file of a repo in one tab, right-click the repo and choose **View All Changes**.
+- To review every changed file in a repo in one tab, right-click the repo and choose **View All Changes**.
 
 ### Switch branches
 
-Right-click a repo and choose **Switch Branch…** (the first item in the menu).
+Right-click a repo and choose **Switch Branch…**, the first item in the menu.
 
 ![Branch picker](assets/images/switch-branch.png)
 
-- **Local branches** are listed newest first, with how far each is ahead of or behind its upstream, and whether the upstream was deleted.
-- **Remote branches** you haven't checked out yet are listed after them. Picking one creates a local branch that tracks it.
-- **Create new branch…** starts a branch from where you are; **Create new branch from…** lets you pick another branch to start from. Names are checked against git's rules as you type.
-- **Uncommitted changes** come along to the new branch when git allows it. If they would be overwritten, you're asked whether to **Stash and Switch**; your changes are kept in a stash that you can bring back with `git stash pop`.
-- Switching is refused while a merge or rebase is in progress, so you finish or abort it first.
+- **Local branches** are listed newest first. Each shows how far it is ahead of or behind its upstream, and whether the upstream was deleted.
+- **Remote branches** you haven't checked out yet follow. Picking one creates a local branch that tracks it.
+- **Create new branch…** starts a branch from where you are. **Create new branch from…** lets you choose the starting branch. Names are checked against git's rules as you type.
+- **Uncommitted changes** move to the new branch when git allows it. If they would be overwritten, you're asked whether to **Stash and Switch**. Your changes are then kept in a stash, which you can restore with `git stash pop`.
+- Switching is not allowed while a merge or rebase is in progress, so finish or abort it first.
 
 ### Right-click menus
 
 ![Right-click menu on a repo](assets/images/menu.png)
 
-Right-clicking in **Files** shows the commands of the built-in Explorer, and git commands on repos. Select several rows first (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click or <kbd>Shift</kbd>+click) to act on them all at once.
+The **Files** menu has the built-in Explorer's commands, plus git commands on repos. To act on several rows at once, select them first with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click or <kbd>Shift</kbd>+click.
 
-On a **repo**, these come first:
+**Repo commands** appear at the top of a repo's menu:
 
 | Command | What it does |
 | --- | --- |
-| Switch Branch… | Picks a branch to switch to, or creates one ([details](#switch-branches)) |
+| Switch Branch… | Switches to a branch, or creates one ([details](#switch-branches)) |
 | Open in Source Control | Opens the repo in VS Code's Git and shows the Source Control view |
-| View All Changes | Opens every changed file of the repo in one diff view |
+| View All Changes | Opens every changed file in the repo in one diff view |
 | Fetch / Pull / Push | Runs the git command for this repo. Push sets an upstream if the branch has none |
-| Open Repo in New Window | Opens just this repo in a new VS Code window |
+| Open Repo in New Window | Opens only this repo in a new VS Code window |
 | Copy Branch Name | Copies the current branch name |
 
-Fetch shows only for repos with a remote, Pull only for branches with an upstream, and Push only when there is something to push.
+Fetch appears only for repos with a remote, Pull only for branches with an upstream, and Push only when there is something to push.
 
-On **any file, folder or repo**, like the built-in Explorer:
+**File and folder commands** work like the built-in Explorer:
 
 | Command | Shows on | What it does |
 | --- | --- | --- |
 | Open Changes / Open File | Changed files | Opens the diff against `HEAD`, or the file itself |
 | Open to the Side | Files | Opens the file in an editor beside the current one |
 | Add to Claude Chat / Add to Codex Chat | Files | Adds the files to that chat ([details](#send-files-to-an-ai-chat)) |
-| Copy to AI Chat | Everything | Copies `@path` mentions to paste into any AI chat |
-| New File… / New Folder… | Folders, repos | Creates an item. A path like `src/utils/date.ts` creates the folders on the way |
-| Reveal in Finder | Everything | Shows the item in Finder. Called *Reveal in File Explorer* on Windows and *Open Containing Folder* on Linux |
-| Open in Integrated Terminal | Everything | Opens a terminal in the folder, or in the folder a file is in |
-| Reveal in Explorer View | Everything | Selects the same item in the built-in Explorer, for menus of other extensions that only appear there |
+| Copy to AI Chat | All rows | Copies `@path` mentions to paste into any AI chat |
+| New File… / New Folder… | Folders, repos | Creates an item. A path such as `src/utils/date.ts` creates the folders on the way |
+| Reveal in Finder | All rows | Shows the item in Finder. Called *Reveal in File Explorer* on Windows and *Open Containing Folder* on Linux |
+| Open in Integrated Terminal | All rows | Opens a terminal in the folder, or in the folder that contains the file |
+| Reveal in Explorer View | All rows | Selects the same item in the built-in Explorer, where other extensions' menu items appear |
 | Find in Folder… | Folders, repos | Opens the Search view limited to the folder |
 | Select for Compare, then Compare with Selected | Files | Shows the differences between two files. With two files selected, use **Compare Selected** |
 | Open Timeline | Files | Opens the file and shows its history (commits and local saves) in the Timeline view |
-| Cut / Copy / Paste | Everything | Moves or copies items into another folder. Pasting where the name is taken makes `name copy.ext`; moving onto a taken name asks before replacing it |
-| Copy Path / Copy Relative Path | Everything | Copies the full path, or the path from the project folder. Several rows are copied one per line |
-| Copy Remote File URL / Open on Remote (Web) | Rows in a repo with a remote | Copies or opens the link to the item on its website ([details](#links-to-the-remote-website)) |
-| Rename… | Everything but workspace folders | Renames the item in an input box, with the name selected without its extension. Open editors follow it, and languages such as TypeScript update imports |
-| Delete | Everything but workspace folders | Moves the items to the Trash after asking ([details](#what-it-changes)) |
+| Cut / Copy / Paste | All rows | Moves or copies items to another folder. Pasting onto a taken name creates `name copy.ext`; moving onto a taken name asks before replacing it |
+| Copy Path / Copy Relative Path | All rows | Copies the full path, or the path from the project folder. Several rows are copied one per line |
+| Copy Remote File URL / Open on Remote (Web) | Rows in a repo with a remote | Copies or opens the item's page on its git host ([details](#links-to-the-remote-website)) |
+| Rename… | All rows except workspace folders | Renames the item. Open editors follow it, and languages such as TypeScript update imports |
+| Delete | All rows except workspace folders | Moves the items to the Trash after asking ([details](#what-the-extension-changes)) |
 
-Rows of deleted files, shown while **Changed files** is on, only get the commands that don't need the file: Open Changes, Copy Path, Copy Relative Path, the remote links and Copy to AI Chat.
+While **Changed files** is on, rows for deleted files offer only the commands that don't need the file: Open Changes, Copy Path, Copy Relative Path, the remote links, and Copy to AI Chat.
 
-Drag items onto a folder to move them there. You're asked first unless `explorer.confirmDragAndDrop` is off. Moving or renaming changes files the same way as the built-in Explorer, so editors and imports follow along.
+**More ways to work with the tree:**
 
-On a **folder** deeper than the scan limit there is also **Scan This Folder**; expanding the folder does the same.
+- **Drag and drop** items onto a folder to move them. You're asked first unless `explorer.confirmDragAndDrop` is off. Editors and imports follow the move, just as in the built-in Explorer.
+- **Scan This Folder** appears on folders deeper than the scan limit. Expanding the folder does the same.
+- **Git Repositories** has **Fetch All Repos**, **Filter Repos**, and **Refresh** in its title bar. Its rows have the repo commands above, plus **Open Terminal Here** and **Copy to AI Chat**.
+- **The Command Palette** lists every command under *Multi-Git Explorer*.
 
-The title bar of **Git Repositories** has **Fetch All Repos**, **Filter Repos**, and **Refresh**. Git Repositories rows have the repo commands above, plus **Open Terminal Here** and **Copy to AI Chat**. The commands are also in the Command Palette under *Multi-Git Explorer*.
-
-> Other extensions add their own items (such as *New Java File* or *Run Tests*) only to the built-in Explorer's menu, and VS Code doesn't let them appear here. Use **Reveal in Explorer View** to get to them.
+> Other extensions add their own items (such as *New Java File* or *Run Tests*) only to the built-in Explorer's menu, and VS Code doesn't allow them here. Use **Reveal in Explorer View** to reach them.
 
 #### Links to the remote website
 
-**Copy Remote File URL** and **Open on Remote (Web)** link to the branch's upstream, so the link shows what you last pushed. A branch that was never pushed links to the remote's default branch instead, and a detached HEAD links to its commit.
+**Copy Remote File URL** and **Open on Remote (Web)** link to the branch's upstream, so the page shows what you last pushed. A branch that was never pushed links to the remote's default branch instead, and a detached HEAD links to its commit.
 
-The kind of site is guessed from the host name: `github`, `bitbucket.org`, `dev.azure.com`, Bitbucket Server's `/scm/` paths, and Gitea or Codeberg. Other self-hosted sites are treated as GitLab. If yours is different, such as GitHub Enterprise on its own domain, set it in `multiGitExplorer.remoteHosts`:
+The type of git host is detected from the host name: `github`, `bitbucket.org`, `dev.azure.com`, Bitbucket Server's `/scm/` paths, and Gitea or Codeberg. Other self-hosted servers are treated as GitLab. If yours is different, such as GitHub Enterprise on its own domain, set it in `multiGitExplorer.remoteHosts`:
 
 ```jsonc
 "multiGitExplorer.remoteHosts": {
@@ -154,9 +174,9 @@ The kind of site is guessed from the host name: `github`, `bitbucket.org`, `dev.
 
 ### Keyboard shortcuts
 
-These work when the **Files** tree has focus: click a row first. Clicking a file opens it as a preview and keeps focus in the tree, like the built-in Explorer, so the shortcuts act on the row rather than the editor.
+These shortcuts work when the **Files** tree has focus, so click a row first. As in the built-in Explorer, clicking a file opens a preview and keeps focus in the tree, so the shortcuts act on the row rather than the editor.
 
-| Command | Mac | Windows / Linux |
+| Command | macOS | Windows / Linux |
 | --- | --- | --- |
 | Open to the Side | <kbd>Cmd</kbd>+<kbd>Enter</kbd> | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> |
 | Rename… | <kbd>F2</kbd> | <kbd>F2</kbd> |
@@ -167,61 +187,63 @@ These work when the **Files** tree has focus: click a row first. Clicking a file
 | Reveal in Finder / File Explorer / containing folder | <kbd>Alt</kbd>+<kbd>Cmd</kbd>+<kbd>R</kbd> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> (Windows), <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> (Linux) |
 | Find in Folder… | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> |
 
-With several rows selected, the shortcuts act on all of them, except Rename, which renames one. They don't fire while you type in the tree's find box. Change them under **Preferences → Keyboard Shortcuts** by searching for *Multi-Git Explorer*.
+With several rows selected, a shortcut acts on all of them, except Rename, which renames one. Shortcuts don't fire while you type in the tree's find box. To change them, open **Preferences → Keyboard Shortcuts** and search for *Multi-Git Explorer*.
 
 ### Send files to an AI chat
 
-Right-click in **Files** to hand files to an AI chat. Select several rows first to send them all at once. Together with the **Changed files** button, this makes it quick to ask for a review of what you're about to push.
+Right-click in **Files** to send files to an AI chat, or select several rows first to send them all at once. Combined with the **Changed files** filter, this is a quick way to ask for a review of what you're about to push.
 
 ![Adding changed files to the chat](assets/images/chat.png)
 
-| Right-click on | Menu | What happens |
+| Right-click on | Command | Result |
 | --- | --- | --- |
-| A file | **Add to Claude Chat** / **Add to Codex Chat** | The file is added to the chat's message box. Shows when [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code) or [Codex](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt) is installed |
-| Anything | **Copy to AI Chat** | Copies `@path` mentions, such as `@src/utils/ @README.md`, to paste with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>V</kbd>. If Claude Code or Codex is the only chat installed, it's opened for you |
+| A file | **Add to Claude Chat** / **Add to Codex Chat** | Adds the file to the chat's message box. Appears when [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code) or [Codex](https://marketplace.visualstudio.com/items?itemName=openai.chatgpt) is installed |
+| Any row | **Copy to AI Chat** | Copies `@path` mentions, such as `@src/utils/ @README.md`, to paste with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>V</kbd>. If Claude Code or Codex is the only chat installed, it opens for you |
 
 - Nothing is sent until you press <kbd>Enter</kbd> in the chat.
-- `@path` mentions work in Claude Code, Codex, Cursor, Windsurf and Gemini. GitHub Copilot Chat uses `#file:` instead, so it doesn't pick them up.
-- Folders are copied rather than added because neither extension offers a way to add a folder for you.
+- `@path` mentions work in Claude Code, Codex, Cursor, Windsurf, and Gemini. GitHub Copilot Chat uses `#file:` instead, so it doesn't read them.
+- Folders are copied rather than added, because neither chat extension offers a way to add a folder.
 - Claude Code can only mention the file open in the editor, so **Add to Claude Chat** briefly opens each file in a preview tab first. If a chat extension refuses a file, its `@path` is copied instead.
 
-Tested with Claude Code 2.1.318 and Codex 26.1021. Both extensions decide how they show what they receive, so this may change as they update.
+Tested with Claude Code 2.1.318 and Codex 26.1021. Each chat extension decides how to show what it receives, so this may change as they update.
 
-### Badges in the built-in Explorer (optional)
+### Badges in the built-in Explorer
 
-The built-in Explorer is left unchanged by default. Turn on `multiGitExplorer.decorateExplorer` to also give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu with the repo commands above.
+The built-in Explorer is left unchanged by default. Turn on `multiGitExplorer.decorateExplorer` to give repo folders there a color, a short badge, a tooltip, and a **Git Repo** right-click menu with the repo commands.
 
 ![Badges and tooltip in the built-in Explorer](assets/images/explorer.png)
 
-> VS Code lets extensions show only a color and a badge of up to two characters in the built-in Explorer. To see branch names next to folders, use **Multi-Git Explorer**.
+> VS Code lets extensions show only a color and a badge of up to two characters in the built-in Explorer. To see branch names next to folders, use the **Multi-Git Explorer** view.
 
 ### Light and dark themes
 
-Colors come from your theme. Changed files use the theme's own git colors (the same as the built-in Explorer and Source Control), and repo states use colors with separate light, dark, and high-contrast values. The screenshots above use *Dark Modern*; here is the same workspace with *Light Modern*:
+Colors follow your theme. Changed files use the theme's git colors, the same as the built-in Explorer and Source Control. Repo states use colors with separate values for light, dark, and high-contrast themes. The screenshots above use *Dark Modern*; here is the same workspace with *Light Modern*:
 
 ![Files and Git Repositories with a light theme](assets/images/overview-light.png)
 
 ![Reviewing a change with a light theme](assets/images/diff-light.png)
 
-To change any of these colors, see [Settings](#settings).
+To customize the colors, see [Colors](#colors).
 
-## What the symbols mean
+## Status reference
+
+**Badges** show a repo's most important state:
 
 | Badge | Color | Meaning |
 | --- | --- | --- |
-| *(none)* | normal | Clean and in sync with its upstream |
-| `4`, `9+` | yellow | Files with uncommitted changes |
-| `↑2` | blue | 2 commits not pushed yet |
-| `↑` | blue | The branch has never been pushed (no upstream) |
-| `↓4` | purple | 4 commits behind the remote, as of the last fetch |
-| `↕` | purple | Diverged: commits to push *and* to pull |
-| `!` | red | Files with merge conflicts |
-| `M` `R` `C` `V` | red | Merge, rebase, cherry-pick or revert in progress |
-| `D` | yellow | Detached HEAD (not on a branch) |
-| `…` | gray | Still checking |
-| `⚠` | red | The status could not be read. Hover for the error |
+| *(none)* | Default | Clean and in sync with its upstream |
+| `4`, `9+` | Yellow | Files with uncommitted changes |
+| `↑2` | Blue | 2 commits not pushed yet |
+| `↑` | Blue | The branch has never been pushed (no upstream) |
+| `↓4` | Purple | 4 commits behind the remote, as of the last fetch |
+| `↕` | Purple | Diverged: commits to push *and* to pull |
+| `!` | Red | Files with merge conflicts |
+| `M` `R` `C` `V` | Red | Merge, rebase, cherry-pick, or revert in progress |
+| `D` | Yellow | Detached HEAD (not on a branch) |
+| `…` | Gray | Still checking |
+| `⚠` | Red | The status could not be read. Hover for the error |
 
-When a repo has several states at once, the badge shows the most important one. The text after the name shows all of them:
+**The text after a repo's name** shows all of its states:
 
 | Text | Meaning |
 | --- | --- |
@@ -232,29 +254,35 @@ When a repo has several states at once, the badge shows the most important one. 
 | `✕1` | 1 file with conflicts |
 | `↑2 ↓3` | 2 commits to push, 3 to pull |
 | `≡1` | 1 stash entry |
-| `MERGING`, `REBASING 1/2` | An operation is in progress (rebase step 1 of 2) |
+| `MERGING`, `REBASING 1/2` | An operation is in progress (here, rebase step 1 of 2) |
 | `no upstream` | The branch has never been pushed |
-| `submodule` | The repo is a submodule of the repo around it |
+| `submodule` | The repo is a submodule of the repo that contains it |
 
-Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper than the scan limit; expand it, or right-click and choose **Scan This Folder**, to search it), or `excluded`. Local-only repos without a remote are never flagged as unpushed.
+**Folders that aren't repos** show one of:
 
-## Install
+| Text | Meaning |
+| --- | --- |
+| `no git` | No repos inside |
+| `not scanned` | Deeper than the scan limit. Expand it, or right-click and choose **Scan This Folder** |
+| `excluded` | Listed in `multiGitExplorer.exclude` |
 
-Install [Multi-Git Explorer](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-git-explorer) from the VS Code Marketplace: search for **Multi-Git Explorer** in the Extensions view, or run:
+Repos without a remote are never flagged as unpushed.
+
+## Installation
+
+### VS Code Marketplace
+
+Search for **Multi-Git Explorer** in the Extensions view, or run:
 
 ```bash
 code --install-extension prateep-r.multi-git-explorer
 ```
 
-VS Code keeps it up to date.
+VS Code keeps it up to date automatically.
 
-**Coming from Multi-Repo Explorer**: this extension used to be called Multi-Repo Explorer, with the ID `prateep-r.multi-repo-explorer` (or `local.multi-repo-explorer` if you built it before 1.0.0). Uninstall the old one, so you don't get two side bars. Multi-Git Explorer offers to do it when it finds the old one, and copies your `multiRepoExplorer.*` settings to `multiGitExplorer.*` the first time it starts.
+### Cursor, Windsurf, VSCodium, or offline machines
 
-Requirements: VS Code 1.95 or later, and `git` on your `PATH` (or set in `git.path`).
-
-### Install from GitHub Releases
-
-For Cursor, Windsurf, VSCodium, or a machine without Marketplace access, download the `.vsix` from [GitHub Releases](https://github.com/prateep-r/vscode-multi-git-explorer/releases) and install it with one command:
+Download `multi-git-explorer.vsix` from [GitHub Releases](https://github.com/prateep-r/vscode-multi-git-explorer/releases/latest) and install it with one command.
 
 **macOS / Linux**
 
@@ -268,30 +296,24 @@ curl -fsSL -o /tmp/multi-git-explorer.vsix https://github.com/prateep-r/vscode-m
 iwr https://github.com/prateep-r/vscode-multi-git-explorer/releases/latest/download/multi-git-explorer.vsix -OutFile $env:TEMP\multi-git-explorer.vsix; code --install-extension $env:TEMP\multi-git-explorer.vsix --force
 ```
 
-Then run **Developer: Reload Window** in VS Code.
+Then run **Developer: Reload Window**. In Cursor, Windsurf, or VSCodium, use `cursor`, `windsurf`, or `codium` in place of `code`.
 
-Or do it by hand: download [`multi-git-explorer.vsix`](https://github.com/prateep-r/vscode-multi-git-explorer/releases/latest/download/multi-git-explorer.vsix), then in VS Code open the Command Palette and run **Extensions: Install from VSIX…**. It also works in Cursor, Windsurf, and VSCodium: use `cursor`, `windsurf`, or `codium` in place of `code` in the commands above.
+To install by hand instead, download [`multi-git-explorer.vsix`](https://github.com/prateep-r/vscode-multi-git-explorer/releases/latest/download/multi-git-explorer.vsix) and run **Extensions: Install from VSIX…** from the Command Palette.
 
-**Updating**: a `.vsix` install doesn't update itself. Run the same command again to get the latest version. See what changed in the [changelog](CHANGELOG.md).
+A `.vsix` install doesn't update itself. Run the same command again to get the latest version, and see the [changelog](CHANGELOG.md) for what changed.
 
-**Uninstalling**:
+### Migrating from Multi-Repo Explorer
+
+This extension was previously called Multi-Repo Explorer, with the ID `prateep-r.multi-repo-explorer` (or `local.multi-repo-explorer` for builds before 1.0.0).
+
+- Uninstall the old extension so you don't get two side bars. Multi-Git Explorer offers to do this when it finds the old one.
+- Your `multiRepoExplorer.*` settings are copied to `multiGitExplorer.*` the first time the extension starts.
+- Builds before 1.0.0 used settings named `multiRepoGit.*`. These are not copied, so rename any you changed to `multiGitExplorer.*`.
+
+### Uninstalling
 
 ```bash
 code --uninstall-extension prateep-r.multi-git-explorer
-```
-
-If you built a version before 1.0.0 from source, its settings started with `multiRepoGit.`; they are now `multiGitExplorer.`, so rename any you changed.
-
-### Build from source
-
-Needs Node.js 20 or later.
-
-```bash
-git clone https://github.com/prateep-r/vscode-multi-git-explorer.git
-cd vscode-multi-git-explorer
-npm install
-npx @vscode/vsce package -o multi-git-explorer.vsix
-code --install-extension multi-git-explorer.vsix --force
 ```
 
 ## Settings
@@ -301,14 +323,16 @@ code --install-extension multi-git-explorer.vsix --force
 | `multiGitExplorer.scanDepth` | `10` | How many folder levels below each workspace folder to search for repos. There is no upper limit, so raise it if your repos are deeper |
 | `multiGitExplorer.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched, and are hidden while filtering |
 | `multiGitExplorer.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
-| `multiGitExplorer.showOnStartup` | `true` | Show the Multi-Git Explorer in the side bar when a window with a folder opens, instead of the built-in Explorer |
-| `multiGitExplorer.remoteHosts` | `{}` | The kind of website of each git host, for remote links ([details](#links-to-the-remote-website)) |
-| `multiGitExplorer.maxConcurrency` | `6` | Maximum number of git processes at the same time |
+| `multiGitExplorer.showOnStartup` | `true` | Show Multi-Git Explorer in the side bar instead of the built-in Explorer when a window with a folder opens |
+| `multiGitExplorer.remoteHosts` | `{}` | The type of each git host, for remote links ([details](#links-to-the-remote-website)) |
+| `multiGitExplorer.maxConcurrency` | `6` | Maximum number of git processes running at the same time |
 | `multiGitExplorer.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
 | `multiGitExplorer.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |
-| `multiGitExplorer.backgroundRefreshMinutes` | `5` | Re-check all repos this often. `0` turns it off |
+| `multiGitExplorer.backgroundRefreshMinutes` | `5` | How often to re-check all repos, in minutes. `0` turns it off |
 
-You can change the colors with `workbench.colorCustomizations`:
+### Colors
+
+Change the colors with `workbench.colorCustomizations`:
 
 ```jsonc
 "workbench.colorCustomizations": {
@@ -317,157 +341,68 @@ You can change the colors with `workbench.colorCustomizations`:
 }
 ```
 
-Available colors: `multiGitExplorer.conflictForeground`, `multiGitExplorer.dirtyForeground`, `multiGitExplorer.aheadForeground`, `multiGitExplorer.behindForeground`, `multiGitExplorer.pendingForeground`, `multiGitExplorer.errorForeground`.
+Available colors: `multiGitExplorer.conflictForeground`, `multiGitExplorer.dirtyForeground`, `multiGitExplorer.aheadForeground`, `multiGitExplorer.behindForeground`, `multiGitExplorer.pendingForeground`, and `multiGitExplorer.errorForeground`.
 
-## What it changes
+## What the extension changes
 
-Showing status only **reads** your repos. It never changes files, branches, or the index, and it never takes git's `index.lock`, so it can't get in the way of your own git commands. Nothing is fetched or pushed in the background.
+Showing status only **reads** your repos. It never changes files, branches, or the index, and it never takes git's `index.lock`, so it can't interfere with your own git commands. Nothing is fetched or pushed in the background.
 
-Things change only when you ask:
+Changes happen only when you run a command:
 
-| What | Commands | Safeguards |
+| Area | Commands | Safeguards |
 | --- | --- | --- |
-| Branches | **Switch Branch…**, and **Stash and Switch** when you confirm it | Refused during a merge or rebase. Uncommitted changes that would be overwritten are stashed only if you agree |
+| Branches | **Switch Branch…**, and **Stash and Switch** when you confirm it | Not allowed during a merge or rebase. Uncommitted changes that would be overwritten are stashed only if you agree |
 | Remotes | **Fetch**, **Pull**, **Push**, **Fetch All Repos** | Push sets an upstream only for a branch that has none |
-| Files | **New File/Folder**, **Rename**, **Paste**, drag and drop, **Delete** | Taken names are refused, or a copy name is picked; moving onto a taken name asks first. Dragging asks first unless `explorer.confirmDragAndDrop` is off |
+| Files | **New File/Folder**, **Rename**, **Paste**, drag and drop, **Delete** | Taken names are refused or given a copy name; moving onto a taken name asks first. Dragging asks first unless `explorer.confirmDragAndDrop` is off |
 
-**Delete** follows the built-in Explorer's settings. With `files.enableTrash` on (the default), items go to the Trash (the Recycle Bin on Windows), and you're asked first unless `explorer.confirmDelete` is off. With it off, they're deleted for good and you're always asked. A workspace folder can't be renamed, moved or deleted from the tree.
+**Delete** follows the built-in Explorer's settings. With `files.enableTrash` on (the default), items go to the Trash (the Recycle Bin on Windows), and you're asked first unless `explorer.confirmDelete` is off. With it off, items are deleted permanently and you're always asked first. Workspace folders can't be renamed, moved, or deleted from the tree.
 
-Moving and renaming go through VS Code the same way as in the built-in Explorer, so open editors follow the file, and extensions such as TypeScript can update the imports that point to it. When a folder is moved, copied or deleted, repos are looked for again, since it may have held one.
+Moving and renaming go through VS Code the same way as in the built-in Explorer, so open editors follow the file, and extensions such as TypeScript can update imports that point to it. After a folder is moved, copied, or deleted, the extension searches for repos again, since it may have contained one.
 
 ## Performance
 
-Tested with 300 repos: they are found in about 50 ms, every repo shows its branch right away, and all statuses are checked in about 4 seconds in the background.
+Tested with 300 repos: they are found in about 50 ms, every repo shows its branch immediately, and all statuses are checked in about 4 seconds in the background.
 
-- **Branch and in-progress state** (merge, rebase…) are read directly from files in `.git`, without running git.
-- **`git status`** runs through a queue, a few at a time. Repos you're working in go first, then repos on screen, then the rest.
+- **Branch and in-progress state** (merge, rebase, and so on) are read directly from files in `.git`, without running git.
+- **`git status`** runs through a queue, a few repos at a time. Repos you're working in go first, then repos on screen, then the rest.
 - **Changes are picked up automatically**, including commits made in a terminal outside VS Code. The extension uses VS Code's own file watcher and debounces changes per repo.
-- **Nothing is fetched automatically.** "Behind remote" is based on your last fetch. Use **Fetch All Repos** to update it.
+- **Nothing is fetched automatically.** "Behind remote" is based on your last fetch; use **Fetch All Repos** to update it.
 
 ## Troubleshooting
 
-| Problem | What to try |
+| Problem | Solution |
 | --- | --- |
-| A repo is missing | It may be deeper than `multiGitExplorer.scanDepth`: look for `not scanned` on a folder above it and expand it (or choose **Scan This Folder**), or raise the setting. Also check that its folder isn't in `multiGitExplorer.exclude` |
-| A repo shows `⚠` | Hover it to see git's error. Open **View → Output** and pick *Multi-Git Explorer* for the full log |
-| Checking is slow | Turn off `multiGitExplorer.countUntracked`, or add big generated folders to `multiGitExplorer.exclude` |
+| A repo is missing | It may be deeper than `multiGitExplorer.scanDepth`. Look for `not scanned` on a folder above it and expand it (or choose **Scan This Folder**), or raise the setting. Also check that its folder isn't in `multiGitExplorer.exclude` |
+| A repo shows `⚠` | Hover it to see git's error. For the full log, open **View → Output** and choose *Multi-Git Explorer* |
+| Checking is slow | Turn off `multiGitExplorer.countUntracked`, or add large generated folders to `multiGitExplorer.exclude` |
 | "Behind remote" looks wrong | It's based on your last fetch. Run **Fetch All Repos** |
-| Fetch or Push fails asking for a password | Commands run without a terminal, so set up a git credential helper or SSH key |
-| No **Add to Claude Chat** / **Add to Codex Chat** | Install that extension, then reload the window |
-| Menu items show twice | An old build is installed too. Run `code --list-extensions \| grep multi-`, uninstall `prateep-r.multi-repo-explorer` or `local.multi-repo-explorer`, and reload the window |
+| Fetch or Push asks for a password and fails | Commands run without a terminal, so set up a git credential helper or an SSH key |
+| **Add to Claude Chat** or **Add to Codex Chat** is missing | Install that extension, then reload the window |
+| Menu items appear twice | An old build is also installed. Run `code --list-extensions \| grep multi-`, uninstall `prateep-r.multi-repo-explorer` or `local.multi-repo-explorer`, and reload the window |
 | A shortcut copies text in the editor instead of the file | Click the row in **Files** first, so the tree has focus |
-| A remote link goes to the wrong kind of page | The site's kind was guessed from its host name. Set it in `multiGitExplorer.remoteHosts` |
+| A remote link opens the wrong kind of page | The host type was guessed from its name. Set it in `multiGitExplorer.remoteHosts` |
 | A remote link says the branch isn't pushed | The branch isn't on the remote yet, so the link points to the default branch. Push it, then copy the link again |
 
-The Output log also shows how many repos were found and how long it took.
+The Output log also shows how many repos were found and how long the search took.
 
 ## Known limitations
 
-- **Open in Source Control** shows the Source Control view but can't select the repo for you. VS Code has no API for that. Use **Open Repo in New Window** to get a Source Control view with only that repo.
-- The branch name can't be made clickable in the tree; use the right-click menu.
-- A repo nested inside another repo is only found if it's a submodule, or if the outer repo is itself a workspace folder.
+- **Open in Source Control** shows the Source Control view but can't select the repo, because VS Code has no API for that. Use **Open Repo in New Window** for a Source Control view with only that repo.
+- The branch name in the tree can't be made clickable; use the right-click menu instead.
+- A repo nested inside another repo is found only if it's a submodule, or if the outer repo is itself a workspace folder.
 - Binary files open in the diff as text.
-- Only local folders are supported (not Remote SSH, WSL, or virtual workspaces).
-- **Rename** and **New File** ask for the name in an input box at the top, since VS Code doesn't let extensions edit a name in place in a tree.
+- Only local folders are supported, not Remote SSH, WSL, or virtual workspaces.
+- **Rename** and **New File** ask for the name in an input box at the top of the window, since VS Code doesn't let extensions edit names in place in a tree.
 - File changes made from the tree can't be undone with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> as in the built-in Explorer. Deleted items can be restored from the Trash.
 - Cut items aren't dimmed until you paste them.
-- Drag and drop works inside **Files**. Dropping files from Finder or the built-in Explorer onto it isn't supported.
+- Drag and drop works within **Files** only. Dropping files from Finder or the built-in Explorer isn't supported.
 - Other extensions' items in the built-in Explorer's menu (such as *New Java File* or *Run Tests*) can't appear here. Use **Reveal in Explorer View**.
-- **Copy to AI Chat** writes `@path`, which GitHub Copilot Chat doesn't read; it uses `#file:` instead.
-- **Find in Folder** can't search a folder whose name contains a comma, since the Search view splits its *files to include* at commas.
+- **Copy to AI Chat** writes `@path` mentions, which GitHub Copilot Chat doesn't read; it uses `#file:` instead.
+- **Find in Folder** can't search a folder whose name contains a comma, because the Search view splits its *files to include* field at commas.
 
-## Development
+## Feedback
 
-Needs Node.js 20 or later, git, and an installed VS Code for the tests that run inside it.
-
-```bash
-npm install
-npm run compile        # or: npm run watch
-```
-
-Press <kbd>F5</kbd> in VS Code to run the extension in a new window (the *Extension Development Host*).
-
-Run `make` to list the shortcuts for these and for releasing.
-
-### Releasing
-
-Write what changed under `## Unreleased` at the top of [CHANGELOG.md](CHANGELOG.md) as you go. To release it, from a clean `main` that's in sync with GitHub:
-
-```bash
-make release-patch    # bug fixes:  1.2.0 -> 1.2.1
-make release-minor    # features:   1.2.0 -> 1.3.0
-make release-major    # breaking:   1.2.0 -> 2.0.0
-```
-
-This runs the unit tests, renames `## Unreleased` to the new version, bumps `package.json`, commits `Release x.y.z`, tags `vx.y.z`, and pushes. The tag starts the [Publish workflow](.github/workflows/publish.yml), which publishes to the VS Code Marketplace and creates the GitHub release with `multi-git-explorer.vsix` attached.
-
-The workflow signs in to the Marketplace with [trusted publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace), so there's no token to keep. It needs a trusted publishing policy on the `prateep-r` publisher (**Manage Publishers & Extensions → Trusted Publishing**) for owner `prateep-r`, repository `vscode-multi-git-explorer`, and workflow `publish.yml`. If the workflow fails, fix the cause and select **Re-run jobs** on the run; the tag doesn't need to change unless the code does.
-
-### Tests
-
-There are four kinds, from fastest to closest to real use:
-
-| Kind | Command | What it covers | Time |
-| --- | --- | --- | --- |
-| Unit | `npm test` | Logic in `src/core/` with no VS Code: parsing `git status`, reading `.git`, discovery, the queue, state and badges, filtering, file names and paths, remote links, and the menus and shortcuts in `package.json` checked against every kind of row | ~2 s |
-| Integration | `npm run test:integration -- <workspace>` | The extension inside a real VS Code, through its API: discovery and status of 300 repos, the views, filters, diffs, switching branches, the file watcher, and every right-click command | ~1 min |
-| Chat | `npm run test:integration -- <workspace> --chat <extensions>` | Handing files to the real Claude Code and Codex extensions | ~30 s |
-| End to end | `npm run test:e2e -- <workspace>` | A real VS Code window driven like a user: clicking, right-clicking and reading the menus, keyboard shortcuts, dialogs, drag and drop, and the filter buttons | ~1 min |
-
-The integration, chat and end-to-end tests run on a sample workspace with repos in every state (conflicts, rebases, detached HEADs, stashes, unpushed and behind branches…). They change files in it, so make a fresh one for each run:
-
-```bash
-scripts/make-sample-repos.sh /tmp/sample-ws 300    # 300 repos; the end-to-end tests need only 40
-export VSCODE_PATH="/Applications/Visual Studio Code.app/Contents/MacOS/Code"
-npm run test:integration -- /tmp/sample-ws
-
-# Chat hand-off, with Claude Code and Codex copied into a separate extensions folder:
-mkdir -p /tmp/chat-ext && cp -R ~/.vscode/extensions/{anthropic.claude-code,openai.chatgpt}-* /tmp/chat-ext/
-rm -rf /tmp/sample-ws && scripts/make-sample-repos.sh /tmp/sample-ws 300
-npm run test:integration -- /tmp/sample-ws --chat /tmp/chat-ext
-
-rm -rf /tmp/e2e-ws && scripts/make-sample-repos.sh /tmp/e2e-ws 40
-npm run test:e2e -- /tmp/e2e-ws
-```
-
-- Every run uses its own temporary VS Code profile, so your settings and extensions aren't touched. The integration tests set `multiGitExplorer.scanDepth` to 3 there, since the sample workspace has one repo 4 levels deep to test folders past the limit.
-- If you run the tests from a terminal inside VS Code (or another Electron app), clear `ELECTRON_RUN_AS_NODE` first: `env -u ELECTRON_RUN_AS_NODE npm run …`.
-- The chat and integration tests borrow the system clipboard and put back what was there.
-- The end-to-end tests start VS Code with `--remote-debugging-port` and drive it with [Playwright](https://playwright.dev) over the DevTools protocol. They turn on custom (HTML) menus and dialogs in the test profile so they can be read and clicked. `VSCODE_PATH` is optional; the usual install location is used otherwise. When a test fails, a screenshot is saved in `.e2e-screenshots/`.
-
-### README images
-
-The images are drawn as HTML from the sample workspace's real output. After changing how something looks, redraw them all with `assets/images/source/render.sh` (needs Python 3 and Google Chrome).
-
-### Releasing
-
-Raise `version` in `package.json`, add it to `CHANGELOG.md`, commit and push, then:
-
-```bash
-npx @vscode/vsce package -o multi-git-explorer.vsix
-gh release create v1.2.0 multi-git-explorer.vsix --title v1.2.0 --notes "..."
-```
-
-Keep the file name `multi-git-explorer.vsix` without a version, so the `releases/latest/download/multi-git-explorer.vsix` link in [Install](#install) always gets the newest one.
-
-### Source layout
-
-| Path | Contents |
-| --- | --- |
-| `src/core/` | Logic with no VS Code dependency, unit-tested: `porcelain.ts` (parsing `git status`), `gitDir.ts` (reading `.git`), `discovery.ts`, `queue.ts`, `state.ts` (which state, badge and text a repo shows), `filter.ts`, `branches.ts`, `paths.ts`, `fileNames.ts`, `remoteLink.ts` and `remoteUrl.ts` (web links), `mention.ts` (`@path` mentions) |
-| `src/store.ts` | Keeps every repo's state up to date: discovery, refresh queue, file watching |
-| `src/views/` | The Files and Git Repositories views, decorations, status bar, and the read-only `HEAD` documents used for diffs |
-| `src/commands.ts` | Git and toolbar commands |
-| `src/fileCommands.ts` | New File, Rename, Delete, Cut/Copy/Paste, and drag and drop in the file tree |
-| `src/pathCommands.ts` | Reveal, terminal, Find in Folder, Copy Path, compare, Timeline, and links to the remote website |
-| `src/chatTargets.ts` | Hand-off to Claude Code and Codex, and Copy to AI Chat |
-| `src/workspace.ts` | Helpers shared by the commands: workspace folders, `git.path`, and which rows a command acts on |
-| `src/test/` | Unit tests (`node:test`) |
-| `src/integration/` | Integration and chat tests, run inside VS Code by `@vscode/test-electron` |
-| `src/e2e/` | End-to-end tests, driving a VS Code window with Playwright |
-| `scripts/make-sample-repos.sh` | Makes the sample workspace the tests run on |
-| `media/` | The Activity Bar icon (shipped with the extension) |
-| `assets/images/` | README images and the script that draws them (not shipped) |
+Found a bug or have an idea? [Open an issue on GitHub](https://github.com/prateep-r/vscode-multi-git-explorer/issues).
 
 ## License
 
