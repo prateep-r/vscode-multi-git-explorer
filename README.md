@@ -302,14 +302,6 @@ To install by hand instead, download [`multi-git-explorer.vsix`](https://github.
 
 A `.vsix` install doesn't update itself. Run the same command again to get the latest version, and see the [changelog](CHANGELOG.md) for what changed.
 
-### Migrating from Multi-Repo Explorer
-
-This extension was previously called Multi-Repo Explorer, with the ID `prateep-r.multi-repo-explorer` (or `local.multi-repo-explorer` for builds before 1.0.0).
-
-- Uninstall the old extension so you don't get two side bars. Multi-Git Explorer offers to do this when it finds the old one.
-- Your `multiRepoExplorer.*` settings are copied to `multiGitExplorer.*` the first time the extension starts.
-- Builds before 1.0.0 used settings named `multiRepoGit.*`. These are not copied, so rename any you changed to `multiGitExplorer.*`.
-
 ### Uninstalling
 
 ```bash
@@ -378,7 +370,6 @@ Tested with 300 repos: they are found in about 50 ms, every repo shows its branc
 | "Behind remote" looks wrong | It's based on your last fetch. Run **Fetch All Repos** |
 | Fetch or Push asks for a password and fails | Commands run without a terminal, so set up a git credential helper or an SSH key |
 | **Add to Claude Chat** or **Add to Codex Chat** is missing | Install that extension, then reload the window |
-| Menu items appear twice | An old build is also installed. Run `code --list-extensions \| grep multi-`, uninstall `prateep-r.multi-repo-explorer` or `local.multi-repo-explorer`, and reload the window |
 | A shortcut copies text in the editor instead of the file | Click the row in **Files** first, so the tree has focus |
 | A remote link opens the wrong kind of page | The host type was guessed from its name. Set it in `multiGitExplorer.remoteHosts` |
 | A remote link says the branch isn't pushed | The branch isn't on the remote yet, so the link points to the default branch. Push it, then copy the link again |

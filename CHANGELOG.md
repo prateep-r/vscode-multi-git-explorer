@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- A shorter README and Marketplace page, without the notes on moving from Multi-Repo Explorer.
+
 ## 1.2.1
 
 - **Renamed to Multi-Git Explorer**, and on the VS Code Marketplace as [`prateep-r.multi-git-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-git-explorer), so VS Code installs and updates it for you.
