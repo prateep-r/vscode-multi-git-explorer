@@ -67,7 +67,7 @@ rm -rf /tmp/e2e-ws && scripts/make-sample-repos.sh /tmp/e2e-ws 40
 npm run test:e2e -- /tmp/e2e-ws
 ```
 
-- Every run uses its own temporary VS Code profile, so your settings and extensions aren't touched. The integration tests set `multiGitExplorer.scanDepth` to 3 there, since the sample workspace has one repo 4 levels deep to test folders past the limit.
+- Every run uses its own temporary VS Code profile, so your settings and extensions aren't touched. The integration tests set `multiGitExplorer.scanDepth` to 3 there, since the sample workspace has one repo 4 levels deep to test folders past the limit, and turn off `explorer.autoReveal` and `explorer.compactFolders`, which the tests of them turn back on.
 - If you run the tests from a terminal inside VS Code (or another Electron app), clear `ELECTRON_RUN_AS_NODE` first: `env -u ELECTRON_RUN_AS_NODE npm run …`.
 - The chat and integration tests borrow the system clipboard and put back what was there.
 - The end-to-end tests start VS Code with `--remote-debugging-port` and drive it with [Playwright](https://playwright.dev) over the DevTools protocol. They turn on custom (HTML) menus and dialogs in the test profile so they can be read and clicked. `VSCODE_PATH` is optional; the usual install location is used otherwise. When a test fails, a screenshot is saved in `.e2e-screenshots/`.
@@ -80,11 +80,13 @@ The images are drawn as HTML from the sample workspace's real output. After chan
 
 | Path | Contents |
 | --- | --- |
-| `src/core/` | Logic with no VS Code dependency, unit-tested: `porcelain.ts` (parsing `git status`), `gitDir.ts` (reading `.git`), `discovery.ts`, `queue.ts`, `state.ts` (which state, badge and text a repo shows), `filter.ts`, `branches.ts`, `paths.ts`, `fileNames.ts`, `remoteLink.ts` and `remoteUrl.ts` (web links), `mention.ts` (`@path` mentions) |
+| `src/core/` | Logic with no VS Code dependency, unit-tested: `porcelain.ts` (parsing `git status`), `gitDir.ts` (reading `.git`), `discovery.ts`, `queue.ts`, `state.ts` (which state, badge and text a repo shows), `filter.ts`, `branches.ts`, `paths.ts`, `fileNames.ts`, `remoteLink.ts` and `remoteUrl.ts` (web links), `mention.ts` (`@path` mentions), and the built-in Explorer's rules: `visibility.ts` (`files.exclude`), `sort.ts`, `compact.ts`, `nesting.ts`, `reveal.ts`, `problems.ts`, `undo.ts`, `uriList.ts` |
+| `src/core/vs/` | Files copied from VS Code 1.145.1 (MIT, see `ThirdPartyNotices.txt`) with only their imports changed, so the matching is exactly the built-in Explorer's: `glob.ts`, `ignoreFile.ts`, `explorerFileNestingTrie.ts`, `comparers.ts`, and `base.ts` for the helpers they import. Their tests are in `src/test/vs/` |
 | `src/store.ts` | Keeps every repo's state up to date: discovery, refresh queue, file watching |
-| `src/views/` | The Files and Git Repositories views, decorations, status bar, and the read-only `HEAD` documents used for diffs |
+| `src/views/` | The Files and Git Repositories views, decorations (repo states, problems, ignored and cut items), selecting the active file (`autoReveal.ts`), status bar, and the read-only `HEAD` documents used for diffs |
 | `src/commands.ts` | Git and toolbar commands |
-| `src/fileCommands.ts` | New File, Rename, Delete, Cut/Copy/Paste, and drag and drop in the file tree |
+| `src/fileCommands.ts` | New File, Rename, Delete, Cut/Copy/Paste, and drag and drop in the file tree, including files dropped from outside |
+| `src/undo.ts` | Undo and redo of the file tree's changes |
 | `src/pathCommands.ts` | Reveal, terminal, Find in Folder, Copy Path, compare, Timeline, and links to the remote website |
 | `src/chatTargets.ts` | Hand-off to Claude Code and Codex, and Copy to AI Chat |
 | `src/workspace.ts` | Helpers shared by the commands: workspace folders, `git.path`, and which rows a command acts on |

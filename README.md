@@ -20,7 +20,7 @@ When you keep many repositories in one folder (microservices, a polyrepo, or a `
 - **Filters for what changed.** Show only repos with changed files, unpushed commits, or new commits on the remote.
 - **One-click review.** Open a diff of any changed file against `HEAD`, or every change in a repo in one view.
 - **Branch switching.** Switch to a local or remote branch, or create one, with your uncommitted changes stashed only if you agree.
-- **Familiar file tree.** It has the built-in Explorer's right-click menu, keyboard shortcuts, and drag and drop.
+- **Works like the built-in Explorer.** The same right-click menu, keyboard shortcuts, drag and drop, and undo, and it follows the built-in Explorer's settings: `files.exclude`, sort order, compact folders, file nesting and more.
 - **Built for scale.** 300 repos are found in about 50 ms and fully checked in about 4 seconds. Showing status never fetches, pushes, or changes your repos.
 
 ## Contents
@@ -33,8 +33,10 @@ When you keep many repositories in one folder (microservices, a polyrepo, or a `
   - [Switch branches](#switch-branches)
   - [Right-click menus](#right-click-menus)
   - [Keyboard shortcuts](#keyboard-shortcuts)
+  - [Undo and redo](#undo-and-redo)
   - [Send files to an AI chat](#send-files-to-an-ai-chat)
   - [Badges in the built-in Explorer](#badges-in-the-built-in-explorer)
+  - [Built-in Explorer settings it follows](#built-in-explorer-settings-it-follows)
   - [Light and dark themes](#light-and-dark-themes)
 - [Status reference](#status-reference)
 - [Installation](#installation)
@@ -65,6 +67,8 @@ Repos are found automatically, up to 10 folder levels deep. Each repo shows its 
 - **Git Repositories** lists every repo in groups: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, and *Clean*. Use the filter icon in its title bar to find a repo by path or branch name. Hover a row for buttons that open it in Source Control or in a terminal.
 - **The status bar** shows the branch of the file you're editing on the left; click it to open that repo in Source Control. The item on the right counts repos by state; click it to jump to Git Repositories.
 - **Tooltips** on a repo show the full picture: upstream, ahead and behind counts, changed files, stashes, and when it was last fetched.
+- **The file you're editing is selected** in **Files**, with the folders above it opened, as the built-in Explorer does.
+- **Problems, ignored files and cut items** look as they do in the built-in Explorer: files with errors or warnings are colored with a count, and so are the folders above them; files in `.gitignore` are dimmed; cut items are dimmed until you paste them.
 
 ### Show only what changed
 
@@ -134,6 +138,7 @@ Fetch appears only for repos with a remote, Pull only for branches with an upstr
 | --- | --- | --- |
 | Open Changes / Open File | Changed files | Opens the diff against `HEAD`, or the file itself |
 | Open to the Side | Files | Opens the file in an editor beside the current one |
+| Open With… | Files | Opens the file with another editor, such as the image viewer or a hex editor |
 | Add to Claude Chat / Add to Codex Chat | Files | Adds the files to that chat ([details](#send-files-to-an-ai-chat)) |
 | Copy to AI Chat | All rows | Copies `@path` mentions to paste into any AI chat |
 | New File… / New Folder… | Folders, repos | Creates an item. A path such as `src/utils/date.ts` creates the folders on the way |
@@ -148,12 +153,14 @@ Fetch appears only for repos with a remote, Pull only for branches with an upstr
 | Copy Remote File URL / Open on Remote (Web) | Rows in a repo with a remote | Copies or opens the item's page on its git host ([details](#links-to-the-remote-website)) |
 | Rename… | All rows except workspace folders | Renames the item. Open editors follow it, and languages such as TypeScript update imports |
 | Delete | All rows except workspace folders | Moves the items to the Trash after asking ([details](#what-the-extension-changes)) |
+| Add Folder to Workspace… / Remove Folder from Workspace | Workspace folders | Adds another folder to the workspace, or removes this one |
 
 While **Changed files** is on, rows for deleted files offer only the commands that don't need the file: Open Changes, Copy Path, Copy Relative Path, the remote links, and Copy to AI Chat.
 
 **More ways to work with the tree:**
 
 - **Drag and drop** items onto a folder to move them. You're asked first unless `explorer.confirmDragAndDrop` is off. Editors and imports follow the move, just as in the built-in Explorer.
+- **Drop files from Finder** (or from anywhere outside the tree) to copy them in. As in the built-in Explorer, you're asked before a file with the same name is replaced, folders dropped on a workspace folder can be added to the workspace instead, and a single dropped file opens (`explorer.autoOpenDroppedFile`).
 - **Scan This Folder** appears on folders deeper than the scan limit. Expanding the folder does the same.
 - **Git Repositories** has **Fetch All Repos**, **Filter Repos**, and **Refresh** in its title bar. Its rows have the repo commands above, plus **Open Terminal Here** and **Copy to AI Chat**.
 - **The Command Palette** lists every command under *Multi-Git Explorer*.
@@ -174,20 +181,35 @@ The type of git host is detected from the host name: `github`, `bitbucket.org`, 
 
 ### Keyboard shortcuts
 
-These shortcuts work when the **Files** tree has focus, so click a row first. As in the built-in Explorer, clicking a file opens a preview and keeps focus in the tree, so the shortcuts act on the row rather than the editor.
+These shortcuts work when the **Files** tree has focus. As in the built-in Explorer, they act on the row you moved to with the arrow keys, or on all selected rows when that row is one of them. Clicking a file opens a preview and keeps focus in the tree, so the shortcuts act on the row rather than the editor.
 
 | Command | macOS | Windows / Linux |
 | --- | --- | --- |
+| Open, keeping focus in the tree | <kbd>Space</kbd> | <kbd>Space</kbd> |
+| Open, moving focus to the editor | <kbd>Cmd</kbd>+<kbd>Down</kbd> | <kbd>Enter</kbd> |
 | Open to the Side | <kbd>Cmd</kbd>+<kbd>Enter</kbd> | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> |
-| Rename… | <kbd>F2</kbd> | <kbd>F2</kbd> |
-| Delete | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> | <kbd>Delete</kbd> |
+| Rename… | <kbd>Enter</kbd> or <kbd>F2</kbd> | <kbd>F2</kbd> |
+| Delete | <kbd>Cmd</kbd>+<kbd>Backspace</kbd> or <kbd>Delete</kbd> | <kbd>Delete</kbd> |
+| Delete permanently | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>Backspace</kbd> | <kbd>Shift</kbd>+<kbd>Delete</kbd> |
 | Cut / Copy / Paste | <kbd>Cmd</kbd>+<kbd>X</kbd> / <kbd>C</kbd> / <kbd>V</kbd> | <kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>C</kbd> / <kbd>V</kbd> |
+| Cancel a cut | <kbd>Escape</kbd> | <kbd>Escape</kbd> |
+| Undo / Redo | <kbd>Cmd</kbd>+<kbd>Z</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> (Windows), <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> |
 | Copy Path | <kbd>Alt</kbd>+<kbd>Cmd</kbd>+<kbd>C</kbd> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> |
 | Copy Relative Path | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>Cmd</kbd>+<kbd>C</kbd> | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> |
 | Reveal in Finder / File Explorer / containing folder | <kbd>Alt</kbd>+<kbd>Cmd</kbd>+<kbd>R</kbd> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> (Windows), <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd> (Linux) |
 | Find in Folder… | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> |
 
-With several rows selected, a shortcut acts on all of them, except Rename, which renames one. Shortcuts don't fire while you type in the tree's find box. To change them, open **Preferences → Keyboard Shortcuts** and search for *Multi-Git Explorer*.
+On a folder, <kbd>Space</kbd> and <kbd>Enter</kbd> open or close it, as in any tree. Rename acts on one row. Shortcuts don't fire while you type in the tree's find box. To change them, open **Preferences → Keyboard Shortcuts** and search for *Multi-Git Explorer*.
+
+### Undo and redo
+
+Press <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> in **Files** to undo the last change made there: a new file or folder, rename, move, paste, delete, or dropped files. Redo with <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> (<kbd>Ctrl</kbd>+<kbd>Y</kbd> on Windows). As in the built-in Explorer:
+
+- Undoing a delete brings back files up to 5 MB with their contents. Folders come back empty; with `files.enableTrash` on, what was in them can be restored from the Trash.
+- Undoing asks first as `explorer.confirmUndo` says: always for a new file or folder, for a paste or dropped files unless it's `light`, and for a rename or move only when it's `verbose`.
+- `explorer.enableUndo` turns it off.
+
+A change is not undone if its files have changed since, for example in a terminal.
 
 ### Send files to an AI chat
 
@@ -214,6 +236,24 @@ The built-in Explorer is left unchanged by default. Turn on `multiGitExplorer.de
 ![Badges and tooltip in the built-in Explorer](assets/images/explorer.png)
 
 > VS Code lets extensions show only a color and a badge of up to two characters in the built-in Explorer. To see branch names next to folders, use the **Multi-Git Explorer** view.
+
+### Built-in Explorer settings it follows
+
+**Files** reads the built-in Explorer's settings, so both trees look and behave the same. Change them under **Settings → Features → Explorer**.
+
+| Setting | What it does in Files |
+| --- | --- |
+| `files.exclude` | Hides matching items, with every glob pattern, `when` clauses and `!` exceptions. An excluded file stays shown while an editor shows it |
+| `explorer.excludeGitIgnore` | Also hides items that `.gitignore` ignores |
+| `explorer.sortOrder`, `explorer.sortOrderLexicographicOptions`, `explorer.sortOrderReverse` | How items are sorted |
+| `explorer.compactFolders` | A folder that holds only one folder shows as one row with it once opened, such as `src/main/java` |
+| `explorer.fileNesting.enabled`, `.patterns`, `.expand` | Nests related files under their parent, such as `package-lock.json` under `package.json` |
+| `explorer.autoReveal`, `explorer.autoRevealExclude` | Selects the file you're editing |
+| `explorer.confirmDelete`, `explorer.confirmDragAndDrop`, `files.enableTrash` | Whether deleting and dragging ask first, and whether deleted items go to the Trash |
+| `explorer.enableUndo`, `explorer.confirmUndo` | Undo and redo |
+| `explorer.autoOpenDroppedFile` | Opens a single file dropped from outside the tree |
+| `explorer.copyRelativePathSeparator` | The separator Copy Relative Path uses |
+| `problems.decorations.enabled`, `git.decorations.enabled` | Colors for problems, and dimming of ignored files |
 
 ### Light and dark themes
 
@@ -385,9 +425,11 @@ The Output log also shows how many repos were found and how long the search took
 - Binary files open in the diff as text.
 - Only local folders are supported, not Remote SSH, WSL, or virtual workspaces.
 - **Rename** and **New File** ask for the name in an input box at the top of the window, since VS Code doesn't let extensions edit names in place in a tree.
-- File changes made from the tree can't be undone with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> as in the built-in Explorer. Deleted items can be restored from the Trash.
-- Cut items aren't dimmed until you paste them.
-- Drag and drop works within **Files** only. Dropping files from Finder or the built-in Explorer isn't supported.
+- A compact row such as `src/main/java` acts on its last folder. Unlike in the built-in Explorer, you can't pick one of the other folders in it.
+- Cut items have their name dimmed, but not their icon.
+- Holding <kbd>Option</kbd>/<kbd>Alt</kbd> while dragging doesn't copy, as VS Code doesn't tell extensions which keys are held. Use Copy and Paste. Files dropped from outside the tree are always copied.
+- Selecting the file you're editing doesn't move the tree's keyboard focus to it, and `explorer.autoReveal` set to `focusNoScroll` still scrolls to it.
+- Undo covers changes made in **Files**. Those made in the built-in Explorer are undone there.
 - Other extensions' items in the built-in Explorer's menu (such as *New Java File* or *Run Tests*) can't appear here. Use **Reveal in Explorer View**.
 - **Copy to AI Chat** writes `@path` mentions, which GitHub Copilot Chat doesn't read; it uses `#file:` instead.
 - **Find in Folder** can't search a folder whose name contains a comma, because the Search view splits its *files to include* field at commas.
