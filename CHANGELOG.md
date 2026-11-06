@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 - **Right-click menu like the built-in Explorer** in the file tree: Open to the Side, Reveal in Finder, Open in Integrated Terminal, Reveal in Explorer View, Find in Folder, Select for Compare / Compare with Selected, Open Timeline, Cut / Copy / Paste, Copy Path / Copy Relative Path, Rename and Delete, with the built-in Explorer's keyboard shortcuts.
 - **Drag and drop** items onto a folder to move them.
