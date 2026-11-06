@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The side bar opens on the Repo Explorer when a window with a folder opens, instead of the built-in Explorer. Turn this off with `multiRepoExplorer.showOnStartup`.
+
 ## 1.0.0
 
 The first release.

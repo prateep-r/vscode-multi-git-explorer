@@ -234,6 +234,7 @@ code --install-extension multi-repo-explorer.vsix --force
 | `multiRepoExplorer.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
 | `multiRepoExplorer.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched, and are hidden while filtering |
 | `multiRepoExplorer.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
+| `multiRepoExplorer.showOnStartup` | `true` | Show the Repo Explorer in the side bar when a window with a folder opens, instead of the built-in Explorer |
 | `multiRepoExplorer.maxConcurrency` | `6` | Maximum number of git processes at the same time |
 | `multiRepoExplorer.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
 | `multiRepoExplorer.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |

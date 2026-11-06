@@ -626,6 +626,11 @@
           "default": false,
           "description": "Also show repo colors, badges, and the Git Repo right-click menu in the built-in Explorer. Off by default, so the built-in Explorer stays unchanged."
         },
+        "multiRepoExplorer.showOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Repo Explorer in the side bar when a window with a folder opens, instead of the built-in Explorer."
+        },
         "multiRepoExplorer.maxConcurrency": {
           "type": "number",
           "default": 6,
