@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.2
 
 - A shorter README and Marketplace page, without the notes on moving from Multi-Repo Explorer.
 
