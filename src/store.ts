@@ -175,7 +175,7 @@ export class RepoStore implements vscode.Disposable {
 
   private discoveryOptions() {
     return {
-      maxDepth: config().get('scanDepth', 3),
+      maxDepth: config().get('scanDepth', 10),
       exclude: new Set(config().get<string[]>('exclude', [])),
     };
   }

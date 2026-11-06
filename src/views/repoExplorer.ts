@@ -39,6 +39,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   /** Folder nodes handed out so far, so updates can target them. */
   private readonly dirNodes = new Map<string, ExplorerNode>();
+  /** Folders past the depth limit that were searched because they were opened. */
+  private readonly autoScanned = new Set<string>();
   private filters: Set<ExplorerFilter>;
   private treeView?: vscode.TreeView<ExplorerNode>;
   private refreshTimer?: NodeJS.Timeout;
@@ -133,7 +135,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     }
     const uri = node?.uri ?? folders[0]?.uri;
     if (!uri) return [];
-    if (!this.filtering) return this.readDir(uri);
+    if (!this.filtering) {
+      if (node) this.scanOnExpand(uri.fsPath);
+      return this.readDir(uri);
+    }
     if (node?.change) {
       // An untracked folder is new as a whole, so everything inside it is a change.
       const excluded = this.excludedNames();
@@ -220,10 +225,32 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       item.description = 'excluded';
     } else {
       item.description = 'not scanned';
-      item.tooltip = 'Past the scan depth limit. Right-click to scan this folder.';
+      item.tooltip = 'Past the scan depth limit. Expand it, or right-click and choose Scan This Folder.';
       item.contextValue = 'folder unscanned';
     }
     return item;
+  }
+
+  /** Whether a folder was past the depth limit, so its repos aren't known yet. */
+  private isUnscanned(fsPath: string): boolean {
+    return (
+      !this.store.get(fsPath) &&
+      !this.store.repoContaining(fsPath) &&
+      !this.store.isScanned(fsPath) &&
+      !this.isExcluded(fsPath) &&
+      this.store.reposUnder(fsPath).length === 0
+    );
+  }
+
+  /**
+   * Opening a folder that was past the depth limit searches it, so the repos
+   * inside show their branch. Each folder is tried once, so a folder that can't
+   * be read doesn't search again on every refresh.
+   */
+  private scanOnExpand(fsPath: string): void {
+    if (this.autoScanned.has(fsPath) || !this.isUnscanned(fsPath)) return;
+    this.autoScanned.add(fsPath);
+    void this.store.scanFolder(fsPath);
   }
 
   private matchingRepos(): RepoEntry[] {

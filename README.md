@@ -37,7 +37,7 @@ If you keep many git repos in one folder (microservices, a polyrepo, a `~/projec
 2. Open the folder that holds your repos (**File → Open Folder…**).
 3. Click the **Repo Explorer** icon (two pages with an M) in the Activity Bar.
 
-Repos are found automatically, up to 3 folder levels deep. Every repo shows its branch right away; the rest of its status fills in within a few seconds.
+Repos are found automatically, up to 10 folder levels deep. Every repo shows its branch right away; the rest of its status fills in within a few seconds.
 
 ## Features
 
@@ -181,7 +181,7 @@ When a repo has several states at once, the badge shows the most important one. 
 | `no upstream` | The branch has never been pushed |
 | `submodule` | The repo is a submodule of the repo around it |
 
-Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper than the scan limit; right-click and choose **Scan This Folder**), or `excluded`. Local-only repos without a remote are never flagged as unpushed.
+Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper than the scan limit; expand it, or right-click and choose **Scan This Folder**, to search it), or `excluded`. Local-only repos without a remote are never flagged as unpushed.
 
 ## Install
 
@@ -231,7 +231,7 @@ code --install-extension multi-repo-explorer.vsix --force
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `multiRepoExplorer.scanDepth` | `3` | How many folder levels below each workspace folder to search for repos |
+| `multiRepoExplorer.scanDepth` | `10` | How many folder levels below each workspace folder to search for repos. There is no upper limit, so raise it if your repos are deeper |
 | `multiRepoExplorer.exclude` | `node_modules`, `vendor`, `dist`, `build`, `out`, `target`, … | Folder names that are never searched, and are hidden while filtering |
 | `multiRepoExplorer.decorateExplorer` | `false` | Also show repo colors, badges, and the **Git Repo** menu in the built-in Explorer |
 | `multiRepoExplorer.showOnStartup` | `true` | Show the Repo Explorer in the side bar when a window with a folder opens, instead of the built-in Explorer |
@@ -270,7 +270,7 @@ Tested with 300 repos: they are found in about 50 ms, every repo shows its branc
 
 | Problem | What to try |
 | --- | --- |
-| A repo is missing | It may be deeper than `multiRepoExplorer.scanDepth`: look for `not scanned` on a folder above it and choose **Scan This Folder**, or raise the setting. Also check that its folder isn't in `multiRepoExplorer.exclude` |
+| A repo is missing | It may be deeper than `multiRepoExplorer.scanDepth`: look for `not scanned` on a folder above it and expand it (or choose **Scan This Folder**), or raise the setting. Also check that its folder isn't in `multiRepoExplorer.exclude` |
 | A repo shows `⚠` | Hover it to see git's error. Open **View → Output** and pick *Multi-Repo Explorer* for the full log |
 | Checking is slow | Turn off `multiRepoExplorer.countUntracked`, or add big generated folders to `multiRepoExplorer.exclude` |
 | "Behind remote" looks wrong | It's based on your last fetch. Run **Fetch All Repos** |

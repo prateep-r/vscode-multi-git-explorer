@@ -260,10 +260,20 @@ test('committing from outside VS Code is picked up from .git', async ({ store })
   await waitFor('notification to be clean again', () => store.get(root)?.view.kind === 'clean', 10_000);
 });
 
-test('scanning a folder past the depth limit adds its repos', async ({ store }) => {
+test('opening a folder past the depth limit searches it for repos', async ({ store, explorer }) => {
+  const q1 = (await explorer.getChildren({ uri: vscode.Uri.file(at('archive/2023')), isDir: true })).find(
+    n => path.basename(n.uri.fsPath) === 'q1',
+  )!;
+  assert.equal(explorer.getTreeItem(q1).description, 'not scanned');
+  await explorer.getChildren(q1);
+  await waitFor('old-crm to be found', () => store.get(at('archive/2023/q1/old-crm')));
+  await waitFor('300 repos', () => store.all().length === 300);
+  await waitFor('q1 to show its repo', () => explorer.getTreeItem(q1).description === '1 repo · all clean');
+});
+
+test('Scan This Folder searches a folder past the depth limit', async ({ store }) => {
   await vscode.commands.executeCommand('multiRepoExplorer.scanFolder', vscode.Uri.file(at('archive/2023/q1')));
   assert.ok(store.get(at('archive/2023/q1/old-crm')));
-  await waitFor('300 repos', () => store.all().length === 300);
 });
 
 test('Open in Source Control opens the repo in VS Code Git', async () => {

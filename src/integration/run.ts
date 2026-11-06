@@ -9,7 +9,7 @@
 // ~/.vscode/extensions).
 //
 // Uses the installed VS Code when VSCODE_PATH is set, otherwise downloads one.
-import { mkdtempSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
@@ -20,6 +20,9 @@ async function main(): Promise<void> {
     throw new Error('usage: run.js <sample-workspace> [--chat <extensions-dir>]');
   }
   const profile = mkdtempSync(path.join(tmpdir(), 'multi-repo-explorer-vscode-'));
+  // The sample workspace puts one repo 4 levels deep, to test folders past the depth limit.
+  mkdirSync(path.join(profile, 'user', 'User'), { recursive: true });
+  writeFileSync(path.join(profile, 'user', 'User', 'settings.json'), JSON.stringify({ 'multiRepoExplorer.scanDepth': 3 }));
 
   await runTests({
     vscodeExecutablePath: process.env.VSCODE_PATH,
