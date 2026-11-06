@@ -482,6 +482,36 @@ test('a file removed with git rm --cached shows as untracked, not deleted', asyn
   }
 });
 
+test('files.exclude hides items like the built-in Explorer: globs, when clauses, exceptions and open editors', ({ explorer }) =>
+  withScratch(async (dir, node) => {
+    for (const name of ['a.pyc', 'b.ts', 'b.js', 'c.js']) writeFileSync(path.join(dir, name), '');
+    mkdirSync(path.join(dir, 'out'));
+    writeFileSync(path.join(dir, 'out', 'keep.txt'), '');
+    writeFileSync(path.join(dir, 'out', 'drop.txt'), '');
+    mkdirSync(path.join(dir, 'build'));
+    writeFileSync(path.join(dir, 'build', 'app.js'), '');
+    const config = vscode.workspace.getConfiguration('files');
+    const original = config.inspect('exclude')?.globalValue;
+    const names = async (rel: string) =>
+      (await explorer.getChildren(node(rel, true))).map(n => path.basename(n.uri.fsPath)).sort();
+    try {
+      await config.update(
+        'exclude',
+        { '**/.git': true, '**/*.pyc': true, '**/*.js': { when: '$(basename).ts' }, 'docs/scratch/out': true, '!docs/scratch/out/keep.txt': true, 'docs/scratch/build': true },
+        vscode.ConfigurationTarget.Global,
+      );
+      assert.deepEqual(await names('.'), ['a.txt', 'b.ts', 'c.js', 'out', 'sub'], 'globs, when and exceptions');
+      assert.deepEqual(await names('out'), ['keep.txt'], 'only the exception inside an excluded folder');
+      await vscode.window.showTextDocument(vscode.Uri.file(path.join(dir, 'build', 'app.js')));
+      // The tree refreshes when an editor opens an excluded file; ask again until it has.
+      for (let i = 0; i < 100 && !(await names('.')).includes('build'); i++) await new Promise(r => setTimeout(r, 50));
+      assert.ok((await names('.')).includes('build'), 'an excluded folder shows while an editor shows a file in it');
+      assert.deepEqual(await names('build'), ['app.js']);
+    } finally {
+      await config.update('exclude', original, vscode.ConfigurationTarget.Global);
+    }
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

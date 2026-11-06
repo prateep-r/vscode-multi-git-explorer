@@ -1,9 +1,11 @@
+import { existsSync } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { FILTER_LABELS, describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
-import { isAtOrInside, isInside } from '../core/paths';
+import { isAtOrInside, isInside, repoRelative } from '../core/paths';
 import type { ChangedFile } from '../core/porcelain';
 import type { GroupKey } from '../core/state';
+import { checkEntry, parseExcludes, ROOT_STATE, type ExcludeRules, type VisibilityState } from '../core/visibility';
 import type { RepoEntry, RepoStore } from '../store';
 import { folderOf, isWorkspaceFolder, localFolders } from '../workspace';
 import { toViewUri } from './viewUri';
@@ -53,6 +55,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   private treeView?: vscode.TreeView<ExplorerNode>;
   private refreshTimer?: NodeJS.Timeout;
   private readonly disposables: vscode.Disposable[];
+  /** `files.exclude` of each workspace folder, parsed. */
+  private readonly excludeRules = new Map<string, ExcludeRules>();
+  /** How `files.exclude` judged each item listed so far, which its children build on. */
+  private readonly visibility = new Map<string, VisibilityState>();
+  /** Files in the visible editors, which keep excluded items above them shown. */
+  private visibleEditors = new Set<string>();
+  /** Visible editors that keep an excluded item shown. */
+  private readonly editorsShowingExcluded = new Set<string>();
 
   constructor(
     private readonly store: RepoStore,
@@ -68,11 +78,17 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         this.refreshAll();
       }),
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('files.exclude')) this.refreshAll();
+        if (e.affectsConfiguration('files.exclude')) {
+          this.excludeRules.clear();
+          this.refreshAll();
+        }
       }),
+      vscode.window.tabGroups.onDidChangeTabs(() => this.onVisibleEditorsChanged()),
+      vscode.window.tabGroups.onDidChangeTabGroups(() => this.onVisibleEditorsChanged()),
       this._onDidChangeTreeData,
     ];
     this.updateContextKeys();
+    this.visibleEditors = visibleEditorFiles();
   }
 
   dispose(): void {
@@ -287,10 +303,12 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     const changes = matching.filter(r => this.showsFilesOf(r)).map(r => ({ root: r.root, files: r.status!.files }));
     // Changed files come straight from git, so leave out what the unfiltered
     // tree hides (files.exclude) and the folders that are never searched.
-    const hidden = this.hiddenNames(uri);
     const excluded = this.excludedNames();
-    return filteredEntries(uri.fsPath, matching.map(r => r.root), changes)
-      .filter(entry => !hidden.has(entry.name) && !(entry.isDir && excluded.has(entry.name)))
+    const entries = filteredEntries(uri.fsPath, matching.map(r => r.root), changes).filter(
+      entry => !(entry.isDir && excluded.has(entry.name)),
+    );
+    // A deleted file is listed too, so siblings for `when` clauses come from the disk.
+    return this.visibleEntries(uri.fsPath, entries, name => existsSync(path.join(uri.fsPath, name)))
       .map(entry => {
         const child = vscode.Uri.joinPath(uri, entry.name);
         if (!entry.isDir) return { uri: child, isDir: false, change: entry.change };
@@ -305,10 +323,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     } catch {
       return [];
     }
-    const hidden = this.hiddenNames(uri);
-    return entries
-      .filter(([name]) => !hidden.has(name))
-      .map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0 }))
+    const names = new Set(entries.map(([name]) => name));
+    const listed = entries.map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0 }));
+    return this.visibleEntries(uri.fsPath, listed, name => names.has(name))
       .sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, undefined, { numeric: true }))
       .map(({ name, isDir }) => {
         const child = vscode.Uri.joinPath(uri, name);
@@ -325,15 +342,81 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return node;
   }
 
-  /** Names hidden by `files.exclude` patterns of the simple `**\/name` form. */
-  private hiddenNames(uri: vscode.Uri): Set<string> {
-    const patterns = vscode.workspace.getConfiguration('files', uri).get<Record<string, boolean>>('exclude', {});
-    const names = new Set(['.git']);
-    for (const [pattern, enabled] of Object.entries(patterns)) {
-      const match = /^\*\*\/([^/*?[\]{}]+)$/.exec(pattern);
-      if (enabled && match) names.add(match[1]);
+  /**
+   * The entries of `dir` that `files.exclude` doesn't hide, judged like the
+   * built-in Explorer: with `when` clauses and `!` exceptions, and keeping
+   * excluded items shown while a visible editor is at or inside them.
+   */
+  private visibleEntries<T extends { name: string; isDir: boolean }>(
+    dir: string,
+    entries: T[],
+    hasSibling: (name: string) => boolean,
+  ): T[] {
+    const root = closestFolder(dir);
+    if (!root) return entries;
+    const rules = this.excludeRulesFor(root);
+    const parent = dir === root ? ROOT_STATE : (this.visibility.get(dir) ?? ROOT_STATE);
+    return entries.filter(entry => {
+      const fsPath = path.join(dir, entry.name);
+      const result = checkEntry(rules, {
+        relPath: repoRelative(root, fsPath),
+        name: entry.name,
+        isDir: entry.isDir,
+        parent,
+        hasSibling,
+        hasEditorInside: () => this.noteEditorInside(fsPath, root),
+      });
+      this.visibility.set(fsPath, result.state);
+      return result.visible;
+    });
+  }
+
+  private excludeRulesFor(root: string): ExcludeRules {
+    let rules = this.excludeRules.get(root);
+    if (!rules) {
+      const config = vscode.workspace.getConfiguration('files', vscode.Uri.file(root));
+      rules = parseExcludes(config.get<Record<string, boolean | { when: string }>>('exclude'));
+      this.excludeRules.set(root, rules);
     }
-    return names;
+    return rules;
+  }
+
+  /** Whether a visible editor shows `fsPath` or a file inside it, in the same workspace folder. */
+  private noteEditorInside(fsPath: string, root: string): boolean {
+    let found = false;
+    for (const file of this.visibleEditors) {
+      if (isAtOrInside(file, fsPath) && closestFolder(file) === root) {
+        this.editorsShowingExcluded.add(file);
+        found = true;
+      }
+    }
+    return found;
+  }
+
+  /**
+   * Like the built-in Explorer: refilter when an editor opens a file that is
+   * excluded, or an editor that kept an excluded item shown is gone.
+   */
+  private onVisibleEditorsChanged(): void {
+    const editors = visibleEditorFiles();
+    const same = editors.size === this.visibleEditors.size && [...editors].every(f => this.visibleEditors.has(f));
+    this.visibleEditors = editors;
+    if (same) return;
+    const opensExcluded = [...editors].some(file => this.closestKnownState(file)?.isExcluded);
+    const closedShowing = [...this.editorsShowingExcluded].some(file => !editors.has(file));
+    if (opensExcluded || closedShowing) {
+      this.editorsShowingExcluded.clear();
+      this.refreshAll();
+    }
+  }
+
+  /** The state of the deepest item at or above `fsPath` that the tree has judged. */
+  private closestKnownState(fsPath: string): VisibilityState | undefined {
+    for (let dir = fsPath; ; dir = path.dirname(dir)) {
+      const state = this.visibility.get(dir);
+      if (state) return state;
+      if (path.dirname(dir) === dir) return undefined;
+    }
   }
 
   /** Folder names in `multiGitExplorer.exclude`. */
@@ -349,6 +432,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   private refreshAll(): void {
     clearTimeout(this.refreshTimer);
     this.refreshTimer = undefined;
+    this.visibility.clear();
     this._onDidChangeTreeData.fire(undefined);
     this.updateMessage();
   }
@@ -402,4 +486,30 @@ function summarize(repos: RepoEntry[]): string {
   ).filter(([, n]) => n > 0);
   parts.push(counts.length ? counts.map(([symbol, n]) => `${symbol}${n}`).join(' ') : 'all clean');
   return parts.join(' · ');
+}
+
+/** The workspace folder that holds `fsPath`; the innermost one when folders are nested. */
+function closestFolder(fsPath: string): string | undefined {
+  let best: string | undefined;
+  for (const folder of localFolders()) {
+    const root = folder.uri.fsPath;
+    if (isAtOrInside(fsPath, root) && (!best || root.length > best.length)) best = root;
+  }
+  return best;
+}
+
+/** Files shown in the visible editors: the active tab of each group. Diff editors don't count, as in the built-in Explorer. */
+function visibleEditorFiles(): Set<string> {
+  const files = new Set<string>();
+  for (const group of vscode.window.tabGroups.all) {
+    const input = group.activeTab?.input;
+    if (
+      input instanceof vscode.TabInputText ||
+      input instanceof vscode.TabInputCustom ||
+      input instanceof vscode.TabInputNotebook
+    ) {
+      if (input.uri.scheme === 'file') files.add(input.uri.fsPath);
+    }
+  }
+  return files;
 }
