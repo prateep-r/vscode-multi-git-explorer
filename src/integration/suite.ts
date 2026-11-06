@@ -584,6 +584,34 @@ test('files with problems are colored and counted, and cut rows are dimmed, like
     assert.equal(cut.provideFileDecoration(toViewUri(file.fsPath)), undefined);
   }));
 
+test('the active editor\'s file is selected in the tree, following explorer.autoReveal and autoRevealExclude', ({ explorer }) =>
+  withScratch(async dir => {
+    const tree = (explorer as unknown as { treeView: vscode.TreeView<ExplorerNode> }).treeView;
+    mkdirSync(path.join(dir, 'sub', 'deep'), { recursive: true });
+    mkdirSync(path.join(dir, 'gen'));
+    for (const file of ['sub/deep/x.txt', 'gen/y.txt', 'sub/z.txt']) writeFileSync(path.join(dir, file), '');
+    const config = vscode.workspace.getConfiguration('explorer');
+    const selected = () => tree.selection.map(n => n.uri.fsPath).join(',');
+    const settle = () => new Promise(r => setTimeout(r, 600));
+    await vscode.commands.executeCommand('workbench.view.extension.multiGitExplorer');
+    try {
+      await config.update('autoReveal', true, vscode.ConfigurationTarget.Global);
+      await config.update('autoRevealExclude', { '**/node_modules': true, '**/gen': true }, vscode.ConfigurationTarget.Global);
+      await vscode.window.showTextDocument(vscode.Uri.file(path.join(dir, 'sub', 'deep', 'x.txt')));
+      await waitFor('x.txt to be selected', () => selected() === path.join(dir, 'sub', 'deep', 'x.txt'));
+      await vscode.window.showTextDocument(vscode.Uri.file(path.join(dir, 'gen', 'y.txt')));
+      await settle();
+      assert.equal(selected(), path.join(dir, 'sub', 'deep', 'x.txt'), 'a file in a folder matching autoRevealExclude is left alone');
+      await config.update('autoReveal', false, vscode.ConfigurationTarget.Global);
+      await vscode.window.showTextDocument(vscode.Uri.file(path.join(dir, 'sub', 'z.txt')));
+      await settle();
+      assert.equal(selected(), path.join(dir, 'sub', 'deep', 'x.txt'), 'off when explorer.autoReveal is false');
+    } finally {
+      await config.update('autoReveal', undefined, vscode.ConfigurationTarget.Global);
+      await config.update('autoRevealExclude', undefined, vscode.ConfigurationTarget.Global);
+    }
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

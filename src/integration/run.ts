@@ -21,8 +21,13 @@ async function main(): Promise<void> {
   }
   const profile = mkdtempSync(path.join(tmpdir(), 'multi-git-explorer-vscode-'));
   // The sample workspace puts one repo 4 levels deep, to test folders past the depth limit.
+  // Tests that set the selection themselves would race explorer.autoReveal, so it starts off
+  // and the tests of it turn it on.
   mkdirSync(path.join(profile, 'user', 'User'), { recursive: true });
-  writeFileSync(path.join(profile, 'user', 'User', 'settings.json'), JSON.stringify({ 'multiGitExplorer.scanDepth': 3 }));
+  writeFileSync(
+    path.join(profile, 'user', 'User', 'settings.json'),
+    JSON.stringify({ 'multiGitExplorer.scanDepth': 3, 'explorer.autoReveal': false }),
+  );
 
   await runTests({
     vscodeExecutablePath: process.env.VSCODE_PATH,

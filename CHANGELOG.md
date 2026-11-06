@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **The active editor's file is selected in the file tree**, with the folders above it expanded, following `explorer.autoReveal` and `explorer.autoRevealExclude` like the built-in Explorer.
 - **Problems show on files and folders**, like the built-in Explorer: files with errors or warnings are colored and show how many, and the folders above them are colored too. Follows `problems.decorations.enabled`.
 - **Cut items are dimmed** until you paste them, and <kbd>Escape</kbd> cancels the cut.
 - **Keyboard shortcuts act on the focused row**, like the built-in Explorer: the row you moved to with the arrow keys, or the whole selection when that row is part of it. Before, they acted on the selected rows only.

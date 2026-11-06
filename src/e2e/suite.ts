@@ -178,6 +178,25 @@ test('shortcuts follow the focused row: Enter renames on macOS, Space opens keep
   await page.keyboard.press('W');
 });
 
+test('opening a file with Quick Open selects it in the tree, expanding the folders above it', async (page, workspace) => {
+  const dir = path.join(workspace, 'docs', 'e2e-reveal', 'deep');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'reveal-me.txt'), 'x\n');
+  await page.keyboard.press(`${MOD}+P`);
+  const input = page.locator('.quick-input-widget input.input');
+  await input.waitFor();
+  await input.fill('reveal-me.txt');
+  await page.locator('.quick-input-list .monaco-list-row', { hasText: 'reveal-me.txt' }).first().waitFor();
+  await page.keyboard.press('Enter');
+  const r = row(page, 'reveal-me.txt');
+  await r.waitFor();
+  await assertEventually('reveal-me.txt to be selected', async () => (await r.getAttribute('aria-selected')) === 'true');
+  const editors = page.locator('.part.editor');
+  assert.ok(await editors.evaluate(el => el.contains(el.ownerDocument.activeElement)), 'keyboard focus stays in the editor');
+  await page.keyboard.press(`${MOD}+K`);
+  await page.keyboard.press('W');
+});
+
 test('copy and paste with the keyboard make a copy next to the file', async (page, workspace) => {
   const dir = path.join(workspace, 'docs', 'e2e');
   await select(page, 'b.txt');

@@ -5,6 +5,7 @@ import { FileOperations, registerFileCommands } from './fileCommands';
 import { registerPathCommands } from './pathCommands';
 import { copyOldSettings, offerToUninstallOld } from './rename';
 import { RepoStore } from './store';
+import { AutoReveal } from './views/autoReveal';
 import { CutDecorationProvider } from './views/cutDecorations';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
@@ -21,6 +22,7 @@ export interface MultiGitExplorerApi {
   decorations: RepoDecorationProvider;
   problems: ProblemDecorationProvider;
   cut: CutDecorationProvider;
+  autoReveal: AutoReveal;
   files: FileOperations;
 }
 
@@ -42,6 +44,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     dragAndDropController: files.dragAndDrop,
   });
   explorer.attach(explorerTree);
+  const autoReveal = new AutoReveal(explorer, explorerTree);
 
   context.subscriptions.push(
     log,
@@ -50,6 +53,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     reposView,
     reposTree,
     explorerTree,
+    autoReveal,
     decorations,
     vscode.window.registerFileDecorationProvider(decorations),
     // The provider registered last wins when colors clash: problems over git states, and cut over all.
@@ -69,7 +73,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   void copyOldSettings(context, log).then(() => store.discover());
   void offerToUninstallOld();
   void showOnStartup();
-  return { store, explorer, reposView, decorations, problems, cut, files };
+  return { store, explorer, reposView, decorations, problems, cut, autoReveal, files };
 }
 
 /**
