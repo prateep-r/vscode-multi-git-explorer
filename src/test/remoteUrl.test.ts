@@ -28,6 +28,20 @@ test('parseRemote reads SSH, scp-style, and HTTPS remotes', () => {
     path: 'org/project/_git/repo',
     host: 'dev.azure.com',
   });
+  assert.equal(parseRemote('file:///srv/git/repo.git'), undefined);
+});
+
+test('parseRemote never keeps credentials in the link', () => {
+  const github = { origin: 'https://github.com', path: 'o/r', host: 'github.com' };
+  assert.deepEqual(parseRemote('https://user:p@ss@github.com/o/r.git'), github, 'a password with an unescaped @');
+  assert.deepEqual(parseRemote('https://a@b:c@d@github.com/o/r'), github);
+  assert.deepEqual(parseRemote('https://x-access-token:ghp_abc@github.com/o/r'), github);
+  assert.deepEqual(parseRemote('https://github.com/o/r@v2.git'), { ...github, path: 'o/r@v2' }, 'an @ in the path stays');
+  assert.deepEqual(parseRemote('ssh://git@github.com/o/r@v2.git'), { ...github, path: 'o/r@v2' });
+  assert.deepEqual(parseRemote('git@github.com:o/r@v2.git'), { ...github, path: 'o/r@v2' });
+});
+
+test('parseRemote rejects local paths', () => {
   assert.equal(parseRemote('/srv/git/repo.git'), undefined);
   assert.equal(parseRemote('C:\\repos\\app.git'), undefined, 'a Windows path is not host "C"');
   assert.equal(parseRemote('D:/repos/app.git'), undefined);

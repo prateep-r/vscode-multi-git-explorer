@@ -3,28 +3,36 @@
 # Signs in to the VS Code Marketplace with trusted publishing (OIDC), so no
 # token is stored anywhere. The Marketplace's trusted publishing policy for the
 # "prateep-r" publisher must name this repo and this file, publish.yml.
+#
+# Each job gets only the permissions it needs. `build` runs the dependencies'
+# install scripts and the tests, so it can't publish or write to the repo.
+# `publish` installs from the lockfile without running any install scripts and
+# publishes the package `build` made. Actions are pinned to commits, since a
+# tag can be moved.
 name: Publish
 
 on:
   push:
     tags: ['v*']
 
-permissions:
-  contents: write # create the GitHub release
-  id-token: write # trusted publishing to the Marketplace
+permissions: {}
 
 concurrency: publish
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-          cache: npm
+          package-manager-cache: false
 
       - run: npm ci
 
@@ -40,8 +48,51 @@ jobs:
 
       - run: npx vsce package -o multi-git-explorer.vsix
 
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vsix
+          path: multi-git-explorer.vsix
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # trusted publishing to the Marketplace
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install vsce from the lockfile, without install scripts
+        run: npm ci --ignore-scripts
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vsix
+
       - name: Publish to the VS Code Marketplace
-        run: npx vsce publish --oidc --packagePath multi-git-explorer.vsix
+        run: npx --no-install vsce publish --oidc --packagePath multi-git-explorer.vsix
+
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vsix
 
       - name: Create the GitHub release
         env:

@@ -32,7 +32,9 @@ make release-major    # breaking:   1.2.0 -> 2.0.0
 
 This runs the unit tests, renames `## Unreleased` to the new version, bumps `package.json`, commits `Release x.y.z`, tags `vx.y.z`, and pushes. The tag starts the [Publish workflow](.github/workflows/publish.yml), which publishes to the VS Code Marketplace and creates the GitHub release with `multi-git-explorer.vsix` attached.
 
-The workflow signs in to the Marketplace with [trusted publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace), so there's no token to keep. It needs a trusted publishing policy on the `prateep-r` publisher (**Manage Publishers & Extensions → Trusted Publishing**) for owner `prateep-r`, repository `vscode-multi-git-explorer`, and workflow `publish.yml`. If the workflow fails, fix the cause and select **Re-run jobs** on the run; the tag doesn't need to change unless the code does.
+The workflow signs in to the Marketplace with [trusted publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace), so there's no token to keep. It needs a trusted publishing policy on the `prateep-r` publisher (**Manage Publishers & Extensions → Trusted Publishing**) for owner `prateep-r`, repository `vscode-multi-git-explorer`, and workflow `publish.yml`. If the workflow fails, fix the cause and select **Re-run failed jobs** on the run; the tag doesn't need to change unless the code does.
+
+The workflow has three jobs, each with only the permissions it needs: `build` runs `npm ci` and the tests with read-only access, `publish` installs from the lockfile with `--ignore-scripts` and is the only job that can publish, and `release` creates the GitHub release. Actions are pinned to commit SHAs; when updating one, pin the new release's commit and keep the version in the comment.
 
 Keep the file name `multi-git-explorer.vsix` without a version, so the `releases/latest/download/multi-git-explorer.vsix` link in the README's install steps always gets the newest one.
 

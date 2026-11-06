@@ -364,6 +364,7 @@ Tested with 300 repos: they are found in about 50 ms, every repo shows its branc
 
 | Problem | Solution |
 | --- | --- |
+| The Multi-Git Explorer icon is missing | The folder is open in Restricted Mode. Like VS Code's own Git, the extension runs only in trusted folders, because a repo's git config can run programs. Select **Restricted Mode** in the status bar and trust the folder |
 | A repo is missing | It may be deeper than `multiGitExplorer.scanDepth`. Look for `not scanned` on a folder above it and expand it (or choose **Scan This Folder**), or raise the setting. Also check that its folder isn't in `multiGitExplorer.exclude` |
 | A repo shows `⚠` | Hover it to see git's error. For the full log, open **View → Output** and choose *Multi-Git Explorer* |
 | Checking is slow | Turn off `multiGitExplorer.countUntracked`, or add large generated folders to `multiGitExplorer.exclude` |

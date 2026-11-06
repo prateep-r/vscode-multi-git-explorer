@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Copy Remote File URL** and **Open on Remote (Web)** no longer keep part of a password in the link when a remote URL's password contains an unescaped `@`.
+- Turned off in Restricted Mode, like VS Code's own Git, since a repo's git config can run programs. Trust the folder to use it.
+
 ## 1.2.2
 
 - A shorter README and Marketplace page, without the notes on moving from Multi-Repo Explorer.

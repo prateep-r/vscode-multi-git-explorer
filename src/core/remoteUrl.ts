@@ -26,7 +26,8 @@ export function parseRemote(remote: string): WebRepo | undefined {
   let repoPath: string;
 
   const scp = /^(?:[^@/]+@)?([^:/]+):(?!\/\/)(.+)$/.exec(url);
-  const full = /^([a-z][a-z0-9+.-]*):\/\/(?:[^@/]+@)?([^/:]+)(?::(\d+))?\/(.+)$/i.exec(url);
+  // The user info runs to the last @ before the path, since a password may hold an unescaped @.
+  const full = /^([a-z][a-z0-9+.-]*):\/\/(?:[^/]*@)?([^/:@]+)(?::(\d+))?\/(.+)$/i.exec(url);
   if (full) {
     const protocol = full[1].toLowerCase();
     if (protocol === 'http' || protocol === 'https') {
