@@ -368,6 +368,16 @@
         "command": "multiGitExplorer.cancelCut",
         "title": "Cancel Cut",
         "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.undo",
+        "title": "Undo File Operation",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.redo",
+        "title": "Redo File Operation",
+        "category": "Multi-Git Explorer"
       }
     ],
     "submenus": [
@@ -882,6 +892,14 @@
         {
           "command": "multiGitExplorer.cancelCut",
           "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.undo",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.redo",
+          "when": "false"
         }
       ]
     },
@@ -1182,6 +1200,33 @@
         "command": "multiGitExplorer.cancelCut",
         "key": "escape",
         "when": "focusedView == multiGitExplorer.explorer && !inputFocus && multiGitExplorer.resourceCut",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.undo",
+        "key": "ctrl+z",
+        "mac": "cmd+z",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && config.explorer.enableUndo && multiGitExplorer.canUndo",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.redo",
+        "key": "ctrl+y",
+        "mac": "shift+cmd+z",
+        "linux": "ctrl+shift+z",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && config.explorer.enableUndo && multiGitExplorer.canRedo",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.redo",
+        "key": "ctrl+shift+z",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && config.explorer.enableUndo && multiGitExplorer.canRedo && isWindows",
         "args": {
           "keyboard": true
         }

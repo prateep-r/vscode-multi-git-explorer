@@ -220,6 +220,29 @@ test('a folder holding only one folder shows as one row once opened, and New Fil
   await page.keyboard.press('W');
 });
 
+test('Cmd/Ctrl+Z in the tree undoes a rename, and Cmd+Shift+Z / Ctrl+Y redoes it', async (page, workspace) => {
+  const dir = path.join(workspace, 'docs', 'e2e-undo');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'before.txt'), 'x\n');
+  writeFileSync(path.join(dir, 'other.txt'), 'y\n');
+  await expand(page, 'docs', 'e2e-undo');
+  await select(page, 'before.txt');
+  await page.keyboard.press('F2');
+  const input = page.locator('.quick-input-widget input.input');
+  await input.waitFor();
+  await input.fill('after.txt');
+  await page.keyboard.press('Enter');
+  await assertEventually('after.txt on disk', () => existsSync(path.join(dir, 'after.txt')));
+  await select(page, 'after.txt');
+  await page.keyboard.press(`${MOD}+Z`);
+  await assertEventually('the rename to be undone', () => existsSync(path.join(dir, 'before.txt')) && !existsSync(path.join(dir, 'after.txt')));
+  await select(page, 'before.txt');
+  await page.keyboard.press(process.platform === 'win32' ? 'Control+Y' : `${MOD}+Shift+Z`);
+  await assertEventually('the rename to be redone', () => existsSync(path.join(dir, 'after.txt')));
+  await page.keyboard.press(`${MOD}+K`);
+  await page.keyboard.press('W');
+});
+
 test('copy and paste with the keyboard make a copy next to the file', async (page, workspace) => {
   const dir = path.join(workspace, 'docs', 'e2e');
   await select(page, 'b.txt');

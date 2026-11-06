@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Undo and redo** with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> and <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> in the file tree, for new files and folders, rename, move, paste, delete and dropped files, like the built-in Explorer: undoing a delete brings back files up to 5 MB, it asks first per `explorer.confirmUndo`, and `explorer.enableUndo` turns it off.
 - **Drop files from Finder (or anywhere outside the tree)** to copy them in, like the built-in Explorer: it asks before replacing a file with the same name, offers to add folders dropped on a workspace folder to the workspace, and opens a single dropped file when `explorer.autoOpenDroppedFile` is on.
 - **File nesting**, following `explorer.fileNesting.enabled`, `.patterns` and `.expand`: related files show under their parent, such as `package-lock.json` under `package.json`, with VS Code's own matching. Cutting, copying, deleting or dragging a closed parent takes its nested files along, as in the built-in Explorer.
 - **Compact folders**, following `explorer.compactFolders`: when you open a folder that holds only one folder, the two show as one row, such as `src/main/java`, like the built-in Explorer. Commands on the row act on its last folder.

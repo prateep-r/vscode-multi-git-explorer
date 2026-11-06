@@ -737,6 +737,50 @@ test('files dropped from outside the tree, such as from Finder, are copied in li
     }
   }));
 
+test('file operations can be undone and redone, like in the built-in Explorer', ({ files }) =>
+  withScratch(async (dir, node) => {
+    const at = (rel: string) => path.join(dir, rel);
+    const window = vscode.window as { showInformationMessage: (...args: unknown[]) => Thenable<unknown> };
+    const showInformation = window.showInformationMessage;
+    const asked: string[] = [];
+    window.showInformationMessage = async (message: unknown, ...rest: unknown[]) => {
+      asked.push(String(message));
+      return rest[rest.length - 1];
+    };
+    try {
+      writeFileSync(at('a.txt'), 'hello\n');
+      await files.rename(node('a.txt'), 'b.txt');
+      await vscode.commands.executeCommand('multiGitExplorer.undo');
+      assert.ok(existsSync(at('a.txt')) && !existsSync(at('b.txt')), 'rename undone');
+      await vscode.commands.executeCommand('multiGitExplorer.redo');
+      assert.ok(existsSync(at('b.txt')) && !existsSync(at('a.txt')), 'rename redone');
+      assert.deepEqual(asked, [], 'renames are undone without asking by default');
+
+      await files.delete([node('b.txt')]);
+      assert.ok(!existsSync(at('b.txt')));
+      await vscode.commands.executeCommand('multiGitExplorer.undo');
+      assert.equal(readFileSync(at('b.txt'), 'utf8'), 'hello\n', 'a deleted file comes back with its contents');
+
+      await vscode.commands.executeCommand('multiGitExplorer.newFile', node('sub', true), 'made.txt');
+      await vscode.commands.executeCommand('multiGitExplorer.undo');
+      assert.deepEqual(asked, ["Would you like to undo 'Create made.txt'?"], 'creating asks before undoing');
+      assert.ok(!existsSync(at('sub/made.txt')), 'creation undone');
+
+      await files.setClipboard([node('b.txt')], false);
+      await files.paste(vscode.Uri.file(dir));
+      assert.ok(existsSync(at('b copy.txt')));
+      await vscode.commands.executeCommand('multiGitExplorer.undo');
+      assert.ok(!existsSync(at('b copy.txt')), 'paste undone');
+
+      await files.rename(node('b.txt'), 'c.txt');
+      writeFileSync(at('b.txt'), 'someone else\n');
+      await vscode.commands.executeCommand('multiGitExplorer.undo');
+      assert.ok(existsSync(at('c.txt')) && readFileSync(at('b.txt'), 'utf8') === 'someone else\n', 'refused when the files changed since');
+    } finally {
+      window.showInformationMessage = showInformation;
+    }
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

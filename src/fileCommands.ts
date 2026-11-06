@@ -2,9 +2,11 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { checkNewName, checkNewPath, copyName } from './core/fileNames';
 import { isAtOrInside } from './core/paths';
+import { undoLabel } from './core/undo';
 import { parseUriList } from './core/uriList';
 import type { RepoStore } from './store';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
+import { FileUndo, names, snapshotForUndo } from './undo';
 import { toViewUri } from './views/viewUri';
 import { folderOf, isKeyboard, isWorkspaceFolder, localFolders, onDisk, pickRows } from './workspace';
 
@@ -67,6 +69,7 @@ export function registerFileCommands(
       }
       await vscode.window.showTextDocument(uri, { preview: false });
     }
+    files.undo.record({ kind: 'create', label: undoLabel('create', [entered.trim()]), created: [{ path: uri.fsPath, isDir: kind === 'folder' }] });
     await explorer.reveal(uri, kind === 'folder');
   };
 
@@ -96,6 +99,8 @@ export function registerFileCommands(
     vscode.commands.registerCommand('multiGitExplorer.copy', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
       files.setClipboard(await pickedWithNested(clicked, selected), false),
     ),
+    vscode.commands.registerCommand('multiGitExplorer.undo', () => files.undo.undo()),
+    vscode.commands.registerCommand('multiGitExplorer.redo', () => files.undo.redo()),
     // Escape cancels a cut when the focused row is cut; otherwise it clears the selection, as in any tree.
     vscode.commands.registerCommand('multiGitExplorer.cancelCut', async () => {
       const focused = await explorer.focusedRow();
@@ -151,10 +156,15 @@ export class FileOperations implements vscode.Disposable {
   /** Fires with the rows that became cut, or stopped being cut, as view URIs. */
   readonly onDidChangeCut = this._onDidChangeCut.event;
 
+  /** Undo and redo of what's done here, with Cmd/Ctrl+Z in the tree. */
+  readonly undo: FileUndo;
+
   constructor(
     private readonly store: RepoStore,
     private readonly explorer: RepoExplorerProvider,
-  ) {}
+  ) {
+    this.undo = new FileUndo(changed => this.afterChange(changed));
+  }
 
   dispose(): void {
     this._onDidChangeCut.dispose();
@@ -195,6 +205,7 @@ export class FileOperations implements vscode.Disposable {
     }
     const target = vscode.Uri.file(path.join(dir, newName));
     if (await this.move([{ from: node.uri, to: target, overwrite: false }])) {
+      this.undo.record({ kind: 'rename', label: undoLabel('rename', [oldName], newName), moves: [{ from: node.uri.fsPath, to: target.fsPath }] });
       await this.afterChange([node, { uri: target, isDir: node.isDir }]);
       await this.explorer.reveal(target, node.isDir);
     }
@@ -226,13 +237,20 @@ export class FileOperations implements vscode.Disposable {
       );
       if (choice !== button) return;
     }
+    const kept = await snapshotForUndo(targets);
     const failed: string[] = [];
+    const deleted = new Set<string>();
     for (const target of targets) {
       try {
         await vscode.workspace.fs.delete(target.uri, { recursive: true, useTrash });
+        deleted.add(target.uri.fsPath);
       } catch (error) {
         failed.push(`${path.basename(target.uri.fsPath)}: ${error instanceof Error ? error.message : String(error)}`);
       }
+    }
+    const restorable = kept.filter(k => deleted.has(k.path));
+    if (restorable.length) {
+      this.undo.record({ kind: 'delete', label: undoLabel('delete', names([...deleted])), deleted: restorable, permanently: !useTrash });
     }
     if (failed.length) void vscode.window.showErrorMessage(`Couldn't delete ${failed.join('; ')}`);
     await this.afterChange(targets);
@@ -274,9 +292,11 @@ export class FileOperations implements vscode.Disposable {
     const clipboard = this.clipboard;
     if (!clipboard) return;
     const pasted: Item[] = [];
+    const copiedFrom = new Map<string, string>();
     if (clipboard.cut) {
       const moves = await this.planMoves(clipboard.items, folder);
       if (moves && (await this.move(moves))) {
+        this.recordMoves(moves);
         pasted.push(...moves.map(m => ({ uri: m.to, isDir: clipboard.items.find(i => i.uri.fsPath === m.from.fsPath)!.isDir })));
         // A cut can only be pasted once, like the built-in Explorer.
         this.replaceClipboard(undefined);
@@ -294,12 +314,20 @@ export class FileOperations implements vscode.Disposable {
         try {
           await vscode.workspace.fs.copy(item.uri, target, { overwrite: false });
           pasted.push({ uri: target, isDir: item.isDir });
+          copiedFrom.set(target.fsPath, item.uri.fsPath);
         } catch (error) {
           void vscode.window.showErrorMessage(`Couldn't paste ${name}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     }
     if (pasted.length === 0) return;
+    if (!clipboard.cut) {
+      this.undo.record({
+        kind: 'paste',
+        label: undoLabel('paste', names(pasted.map(p => p.uri.fsPath))),
+        created: pasted.map(p => ({ path: p.uri.fsPath, isDir: p.isDir, source: copiedFrom.get(p.uri.fsPath) })),
+      });
+    }
     await this.afterChange(clipboard.items);
     await this.explorer.reveal(pasted[pasted.length - 1].uri, pasted[pasted.length - 1].isDir);
   }
@@ -319,6 +347,7 @@ export class FileOperations implements vscode.Disposable {
     }
     const moves = await this.planMoves(items, folder);
     if (moves && (await this.move(moves))) {
+      this.recordMoves(moves);
       await this.afterChange(items);
       const last = moves[moves.length - 1];
       await this.explorer.reveal(last.to, items.find(i => i.uri.fsPath === last.from.fsPath)!.isDir);
@@ -358,6 +387,14 @@ export class FileOperations implements vscode.Disposable {
    * Moves with a workspace edit, so open editors follow the file and language
    * extensions can update imports, as when moving in the built-in Explorer.
    */
+  private recordMoves(moves: readonly Move[]): void {
+    this.undo.record({
+      kind: 'move',
+      label: undoLabel('move', names(moves.map(m => m.to.fsPath))),
+      moves: moves.map(m => ({ from: m.from.fsPath, to: m.to.fsPath })),
+    });
+  }
+
   private async move(moves: readonly Move[]): Promise<boolean> {
     const edit = new vscode.WorkspaceEdit();
     for (const m of moves) edit.renameFile(m.from, m.to, { overwrite: m.overwrite });
@@ -438,17 +475,22 @@ export class FileOperations implements vscode.Disposable {
       );
     }
     const failed: string[] = [];
-    const copied: Item[] = [];
+    const copied: (Item & { source: string })[] = [];
     for (const { from, to } of copies) {
       try {
         await vscode.workspace.fs.copy(from.uri, to, { overwrite: true });
-        copied.push({ uri: to, isDir: from.isDir });
+        copied.push({ uri: to, isDir: from.isDir, source: from.uri.fsPath });
       } catch (error) {
         failed.push(`${path.basename(to.fsPath)}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     if (failed.length) void vscode.window.showErrorMessage(`Couldn't copy ${failed.join('; ')}`);
     if (copied.length === 0) return;
+    this.undo.record({
+      kind: 'import',
+      label: undoLabel('import', names(copied.map(c => c.uri.fsPath))),
+      created: copied.map(c => ({ path: c.uri.fsPath, isDir: c.isDir, source: c.source })),
+    });
     await this.afterChange(copied);
     const last = copied[copied.length - 1];
     await this.explorer.reveal(last.uri, last.isDir);
