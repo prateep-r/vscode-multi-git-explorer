@@ -25,6 +25,9 @@ export function registerFileCommands(
     (isKeyboard(clicked) ? await explorer.keyboardRows() : pickRows(clicked, selected ?? tree.selection, n => n.uri.fsPath)).filter(
       onDisk,
     );
+  // Cut, copy and delete take the files nested under a closed nest parent along.
+  const pickedWithNested = async (clicked?: ExplorerNode | { keyboard: true }, selected?: readonly ExplorerNode[]) =>
+    explorer.withNestedFiles(await picked(clicked, selected));
 
   const create = async (kind: 'file' | 'folder', target?: ExplorerNode, name?: unknown) => {
     const parent = target ? folderOf(target) : explorer.selectedFolder();
@@ -79,18 +82,18 @@ export function registerFileCommands(
       return undefined;
     }),
     vscode.commands.registerCommand('multiGitExplorer.delete', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
-      files.delete(await picked(clicked, selected)),
+      files.delete(await pickedWithNested(clicked, selected)),
     ),
     vscode.commands.registerCommand(
       'multiGitExplorer.deletePermanently',
       async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
-        files.delete(await picked(clicked, selected), { permanently: true }),
+        files.delete(await pickedWithNested(clicked, selected), { permanently: true }),
     ),
     vscode.commands.registerCommand('multiGitExplorer.cut', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
-      files.setClipboard(await picked(clicked, selected), true),
+      files.setClipboard(await pickedWithNested(clicked, selected), true),
     ),
     vscode.commands.registerCommand('multiGitExplorer.copy', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
-      files.setClipboard(await picked(clicked, selected), false),
+      files.setClipboard(await pickedWithNested(clicked, selected), false),
     ),
     // Escape cancels a cut when the focused row is cut; otherwise it clears the selection, as in any tree.
     vscode.commands.registerCommand('multiGitExplorer.cancelCut', async () => {
@@ -371,7 +374,8 @@ export class FileOperations implements vscode.Disposable {
   readonly dragAndDrop: vscode.TreeDragAndDropController<ExplorerNode> = {
     dragMimeTypes: ['text/uri-list'],
     dropMimeTypes: [TREE_MIME],
-    handleDrag: (source, dataTransfer) => {
+    handleDrag: (dragged, dataTransfer) => {
+      const source = this.explorer.withNestedFiles(dragged);
       dataTransfer.set(TREE_MIME, new vscode.DataTransferItem(source));
       dataTransfer.set('text/uri-list', new vscode.DataTransferItem(source.map(n => n.uri.toString()).join('\r\n')));
     },

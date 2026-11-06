@@ -677,6 +677,37 @@ function headOfRow(n: ExplorerNode): string {
   return (n.compact?.[0] ?? n.uri).fsPath;
 }
 
+test('explorer.fileNesting nests related files under their parent, like the built-in Explorer', ({ explorer }) =>
+  withScratch(async (dir, node) => {
+    for (const name of ['package.json', 'package-lock.json', 'app.ts', 'app.js', 'other.js']) writeFileSync(path.join(dir, name), '');
+    const config = vscode.workspace.getConfiguration('explorer');
+    const set = (key: string, value: unknown) => config.update(key, value, vscode.ConfigurationTarget.Global);
+    const top = async () => explorer.getChildren(node('.', true));
+    try {
+      await set('fileNesting.enabled', true);
+      await set('fileNesting.patterns', { 'package.json': 'package-lock.json', '*.ts': '${capture}.js' });
+      await set('sortOrder', 'foldersNestsFiles');
+      const rows = await top();
+      assert.deepEqual(rows.map(n => path.basename(n.uri.fsPath)), ['sub', 'app.ts', 'package.json', 'a.txt', 'other.js'], 'nest parents first with foldersNestsFiles');
+      const pkg = rows.find(n => path.basename(n.uri.fsPath) === 'package.json')!;
+      const nested = await explorer.getChildren(pkg);
+      assert.deepEqual(nested.map(n => path.basename(n.uri.fsPath)), ['package-lock.json']);
+      assert.equal(explorer.getParent(nested[0]), pkg);
+      assert.equal(explorer.getTreeItem(pkg).collapsibleState, vscode.TreeItemCollapsibleState.Expanded, 'open by default (fileNesting.expand)');
+      assert.ok(explorer.getTreeItem(pkg).command, 'clicking still opens the file');
+
+      // A closed nest parent takes its nested files along when deleted.
+      await set('fileNesting.expand', false);
+      await vscode.commands.executeCommand('multiGitExplorer.delete', pkg);
+      assert.ok(!existsSync(path.join(dir, 'package.json')) && !existsSync(path.join(dir, 'package-lock.json')));
+
+      await set('fileNesting.enabled', false);
+      assert.ok((await top()).some(n => path.basename(n.uri.fsPath) === 'app.js'), 'off: nothing nests');
+    } finally {
+      for (const key of ['fileNesting.enabled', 'fileNesting.patterns', 'fileNesting.expand', 'sortOrder']) await set(key, undefined);
+    }
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

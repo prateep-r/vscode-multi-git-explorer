@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { FILTER_LABELS, describeChange, filteredEntries, matchesFilter, type ExplorerFilter } from '../core/filter';
 import { compactChain } from '../core/compact';
+import { makeNester, nestFiles } from '../core/nesting';
+import type { ExplorerFileNestingTrie } from '../core/vs/explorerFileNestingTrie';
 import { firstPartBelow, isAtOrInside, isInside, repoRelative } from '../core/paths';
 import type { ChangedFile } from '../core/porcelain';
 import { compareEntries, readSortConfig, type Sortable } from '../core/sort';
@@ -21,6 +23,8 @@ export interface ExplorerNode {
   change?: ChangedFile;
   /** For a compact row (`explorer.compactFolders`): its folders, outermost first. */
   compact?: vscode.Uri[];
+  /** For a file with files nested under it (`explorer.fileNesting`). */
+  nested?: ExplorerNode[];
 }
 
 /** The first folder of a row: itself, or the outermost folder of a compact row. Rows are keyed by it. */
@@ -62,6 +66,12 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   private readonly dirNodes = new Map<string, ExplorerNode>();
   /** Every folder of a compact row, to its row. */
   private readonly chainMember = new Map<string, ExplorerNode>();
+  /** Files with files nested under them, and each nested file's parent. */
+  private readonly nestParents = new Map<string, ExplorerNode>();
+  private readonly nestParentOf = new Map<string, ExplorerNode>();
+  /** Nest parents the user opened or closed, overriding `explorer.fileNesting.expand`. */
+  private readonly nestOpen = new Map<string, boolean>();
+  private readonly nesters = new Map<string, ExplorerFileNestingTrie>();
   /** Folders past the depth limit that were searched because they were opened. */
   private readonly autoScanned = new Set<string>();
   private filters: Set<ExplorerFilter>;
@@ -103,6 +113,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         } else if (e.affectsConfiguration('explorer.compactFolders') || e.affectsConfiguration('editor.accessibilitySupport')) {
           this.resetCompaction();
           this.refreshAll();
+        } else if (e.affectsConfiguration('explorer.fileNesting')) {
+          this.nesters.clear();
+          this.refreshAll();
         } else if (e.affectsConfiguration('explorer.excludeGitIgnore')) {
           this.ignoreFiles.clear();
           this.refreshAll();
@@ -126,6 +139,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
 
   attach(treeView: vscode.TreeView<ExplorerNode>): void {
     this.treeView = treeView;
+    this.disposables.push(
+      treeView.onDidExpandElement(e => {
+        if (e.element.nested) this.nestOpen.set(e.element.uri.fsPath, true);
+      }),
+      treeView.onDidCollapseElement(e => {
+        if (e.element.nested) this.nestOpen.set(e.element.uri.fsPath, false);
+      }),
+    );
     this.updateMessage();
     this.updateTitle();
   }
@@ -182,6 +203,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   }
 
   async getChildren(node?: ExplorerNode): Promise<ExplorerNode[]> {
+    if (node && !node.isDir) return node.nested ?? [];
     const folders = localFolders();
     if (!node && folders.length !== 1) {
       const nodes = folders.map(f => this.dirNode(f.uri));
@@ -270,6 +292,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   getParent(node: ExplorerNode): ExplorerNode | undefined {
     // Must match getChildren: with one folder its contents are the top level, otherwise the folders are.
     const folders = localFolders();
+    if (!node.isDir) {
+      const nestParent = this.nestParentOf.get(node.uri.fsPath);
+      if (nestParent) return nestParent;
+    }
     const head = headOf(node);
     if (isWorkspaceFolder(head)) return undefined;
     const parent = vscode.Uri.file(path.dirname(head));
@@ -353,7 +379,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     const id = `${this.filtering ? `f:${this.activeFilters.join(',')}` : 'all'}:${headOf(node)}`;
 
     if (!node.isDir) {
-      const item = new vscode.TreeItem(toViewUri(fsPath), vscode.TreeItemCollapsibleState.None);
+      const item = new vscode.TreeItem(
+        toViewUri(fsPath),
+        !node.nested?.length
+          ? vscode.TreeItemCollapsibleState.None
+          : this.isNestOpen(node)
+            ? vscode.TreeItemCollapsibleState.Expanded
+            : vscode.TreeItemCollapsibleState.Collapsed,
+      );
       item.id = id;
       item.contextValue = this.withHosted('file', fsPath);
       if (node.change) {
@@ -474,14 +507,66 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     } catch {
       return [];
     }
+    const dir = uri.fsPath;
     const names = new Set(entries.map(([name]) => name));
-    if (names.has('.gitignore')) await this.loadIgnoreFile(uri.fsPath);
-    const listed = entries.map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0 }));
-    return (await this.sorted(uri.fsPath, this.visibleEntries(uri.fsPath, listed, name => names.has(name))))
-      .map(({ name, isDir }) => {
+    const hasSibling = (name: string) => names.has(name);
+    if (names.has('.gitignore')) await this.loadIgnoreFile(dir);
+    const listed = entries.map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0, hasNests: false }));
+    // Like the built-in Explorer, files are nested before any are hidden; nested files aren't listed on their own.
+    const nests = this.nestsIn(dir, listed);
+    const nestedNames = new Set([...nests.values()].flat());
+    for (const entry of listed) entry.hasNests = (nests.get(entry.name)?.length ?? 0) > 0;
+    for (const [child, parent] of this.nestParentOf) if (path.dirname(child) === dir && parent) this.nestParentOf.delete(child);
+    const top = listed.filter(e => !nestedNames.has(e.name));
+    return Promise.all(
+      (await this.sorted(dir, this.visibleEntries(dir, top, hasSibling))).map(async ({ name, isDir, hasNests }) => {
         const child = vscode.Uri.joinPath(uri, name);
-        return isDir ? this.dirNode(child) : { uri: child, isDir: false };
-      });
+        if (isDir) return this.dirNode(child);
+        if (!hasNests) {
+          this.nestParents.delete(child.fsPath);
+          return { uri: child, isDir: false };
+        }
+        let parent = this.nestParents.get(child.fsPath);
+        if (!parent) this.nestParents.set(child.fsPath, (parent = { uri: child, isDir: false }));
+        const kids = listed.filter(e => nests.get(name)!.includes(e.name));
+        parent.nested = (await this.sorted(dir, this.visibleEntries(dir, kids, hasSibling))).map(k => ({
+          uri: vscode.Uri.joinPath(uri, k.name),
+          isDir: false,
+        }));
+        for (const kid of parent.nested) this.nestParentOf.set(kid.uri.fsPath, parent);
+        return parent;
+      }),
+    );
+  }
+
+  /** Which files of `dir` nest under which, with `explorer.fileNesting` on. Not while filtering, which lists only changes. */
+  private nestsIn(dir: string, entries: readonly { name: string; isDir: boolean }[]): Map<string, string[]> {
+    const root = closestFolder(dir);
+    if (this.filtering || !root) return new Map();
+    const config = vscode.workspace.getConfiguration('explorer', vscode.Uri.file(root));
+    if (config.get<boolean>('fileNesting.enabled') !== true) return new Map();
+    const ignoreCase = process.platform !== 'linux';
+    let nester = this.nesters.get(root);
+    if (!nester) this.nesters.set(root, (nester = makeNester(config.get('fileNesting.patterns'), ignoreCase)));
+    const files = entries.filter(e => !e.isDir).map(e => e.name);
+    return nestFiles(nester, files, path.basename(dir), ignoreCase);
+  }
+
+  /** Whether a nest parent shows its nested files: as the user left it, otherwise per `explorer.fileNesting.expand`. */
+  private isNestOpen(node: ExplorerNode): boolean {
+    return this.nestOpen.get(node.uri.fsPath) ?? vscode.workspace.getConfiguration('explorer').get<boolean>('fileNesting.expand') !== false;
+  }
+
+  /**
+   * Adds the nested files of closed nest parents, so cutting, copying,
+   * deleting or dragging a parent takes them along, as in the built-in Explorer.
+   */
+  withNestedFiles(nodes: readonly ExplorerNode[]): ExplorerNode[] {
+    const all = new Map(nodes.map(n => [n.uri.fsPath, n]));
+    for (const n of nodes) {
+      if (n.nested?.length && !this.isNestOpen(n)) for (const kid of n.nested) all.set(kid.uri.fsPath, kid);
+    }
+    return [...all.values()];
   }
 
   private dirNode(uri: vscode.Uri): ExplorerNode {
