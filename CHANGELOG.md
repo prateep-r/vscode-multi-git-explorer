@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Keyboard shortcuts act on the focused row**, like the built-in Explorer: the row you moved to with the arrow keys, or the whole selection when that row is part of it. Before, they acted on the selected rows only.
+- **More of the built-in Explorer's keys**: <kbd>Enter</kbd> renames on macOS (<kbd>F2</kbd> still works), <kbd>Space</kbd> opens a file and keeps focus in the tree, <kbd>Enter</kbd> (<kbd>Cmd</kbd>+<kbd>Down</kbd> on macOS) opens it and moves focus to the editor, <kbd>Shift</kbd>+<kbd>Delete</kbd> (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>Backspace</kbd>) deletes permanently, and <kbd>Delete</kbd> also deletes on macOS.
+- **Open With…** on files, and **Add Folder to Workspace…** / **Remove Folder from Workspace** on workspace folders.
 - **Sorted like the built-in Explorer**, following `explorer.sortOrder` (folders first, mixed, files first, by type, by date modified, or files with nested files first), `explorer.sortOrderLexicographicOptions` and `explorer.sortOrderReverse`. Names are compared with VS Code's own code.
 - **`files.exclude` works as in the built-in Explorer**: every glob pattern (such as `**/*.pyc`), `when` clauses, `!` exceptions, and excluded files stay shown while an editor shows them. Before, only patterns like `**/node_modules` were understood. The pattern matching is VS Code's own code.
 - **Copy Remote File URL** and **Open on Remote (Web)** no longer keep part of a password in the link when a remote URL's password contains an unescaped `@`.

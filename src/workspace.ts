@@ -42,3 +42,12 @@ export function pickRows<T>(clicked: T | undefined, selected: readonly T[] | und
   const all = selected ?? [];
   return all.some(row => key(row) === key(clicked)) ? [...all] : [clicked];
 }
+
+/**
+ * Keyboard shortcuts pass `{ "keyboard": true }` (their `args` in
+ * package.json), so commands know to act on the focused row, as the built-in
+ * Explorer's shortcuts do, rather than on a clicked one.
+ */
+export function isKeyboard(arg: unknown): arg is { keyboard: true } {
+  return typeof arg === 'object' && arg !== null && (arg as { keyboard?: unknown }).keyboard === true;
+}

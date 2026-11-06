@@ -5,23 +5,30 @@ import { literalGlob, repoRelative } from './core/paths';
 import { resolveRemoteTarget, type RemoteTarget } from './core/remoteLink';
 import { guessHostKind, parseRemote, webUrl } from './core/remoteUrl';
 import type { RepoEntry, RepoStore } from './store';
-import type { ExplorerNode } from './views/repoExplorer';
-import { folderOf, gitPath, isMultiRoot, onDisk, pickRows } from './workspace';
+import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
+import { folderOf, gitPath, isKeyboard, isMultiRoot, onDisk, pickRows } from './workspace';
 
 /**
  * Commands of the built-in Explorer's right-click menu that don't change
  * files: reveal, open, search, copy paths, compare, timeline, and links to
  * the repo's website.
  */
-export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<ExplorerNode>): vscode.Disposable[] {
+export function registerPathCommands(
+  store: RepoStore,
+  explorer: RepoExplorerProvider,
+  tree: vscode.TreeView<ExplorerNode>,
+): vscode.Disposable[] {
   /**
    * Registers a command on the rows it was invoked on. With `onDiskOnly`,
    * rows of deleted files are left out, since there is no file to act on;
    * keyboard shortcuts can reach them although the menu hides the command.
+   * Keyboard shortcuts act on the focused row, or the selection it is part of.
    */
   const command = (id: string, fn: (nodes: ExplorerNode[]) => unknown, onDiskOnly = true) =>
-    vscode.commands.registerCommand(id, (clicked?: ExplorerNode, selected?: ExplorerNode[]) => {
-      const picked = pickRows(clicked, selected ?? tree.selection, n => n.uri.fsPath);
+    vscode.commands.registerCommand(id, async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) => {
+      const picked = isKeyboard(clicked)
+        ? await explorer.keyboardRows()
+        : pickRows(clicked, selected ?? tree.selection, n => n.uri.fsPath);
       const nodes = onDiskOnly ? picked.filter(onDisk) : picked;
       return nodes.length ? fn(nodes) : undefined;
     });
@@ -85,6 +92,46 @@ export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<Exp
       false,
     ),
 
+    // Space: opens the files, keeping focus in the tree. On a folder it expands
+    // or collapses it, which is what Space does in a tree.
+    vscode.commands.registerCommand('multiGitExplorer.openPreserveFocus', async () => {
+      const focused = await explorer.focusedRow();
+      if (!focused || focused.isDir) return vscode.commands.executeCommand('list.toggleExpand');
+      for (const n of (await explorer.keyboardRows(focused)).filter(n => !n.isDir)) {
+        await openRow(n, { preserveFocus: true });
+      }
+      return undefined;
+    }),
+
+    // Enter (Cmd+Down on macOS): opens the files pinned and moves focus to the
+    // editor. On a folder it does what Enter does in a tree.
+    vscode.commands.registerCommand('multiGitExplorer.openAndPassFocus', async () => {
+      const focused = await explorer.focusedRow();
+      if (!focused || focused.isDir) return vscode.commands.executeCommand('list.select');
+      for (const n of (await explorer.keyboardRows(focused)).filter(n => !n.isDir)) {
+        await openRow(n, { preserveFocus: false, preview: false });
+      }
+      return undefined;
+    }),
+
+    command('multiGitExplorer.openWith', nodes => {
+      const file = nodes.find(n => !n.isDir);
+      return file ? vscode.commands.executeCommand('explorer.openWith', file.uri) : undefined;
+    }),
+
+    vscode.commands.registerCommand('multiGitExplorer.addRootFolder', () =>
+      vscode.commands.executeCommand('workbench.action.addRootFolder'),
+    ),
+
+    command('multiGitExplorer.removeRootFolder', nodes => {
+      const remove = new Set(nodes.map(n => n.uri.fsPath));
+      const folders = vscode.workspace.workspaceFolders ?? [];
+      const kept = folders.filter(f => !remove.has(f.uri.fsPath));
+      if (kept.length === folders.length) return;
+      // One call, since VS Code doesn't take another update until the first is applied.
+      vscode.workspace.updateWorkspaceFolders(0, folders.length, ...kept.map(f => ({ uri: f.uri, name: f.name })));
+    }),
+
     command('multiGitExplorer.openTimeline', async nodes => {
       const file = nodes.find(n => !n.isDir);
       if (!file) return;
@@ -105,6 +152,13 @@ export function registerPathCommands(store: RepoStore, tree: vscode.TreeView<Exp
       return files.length === 2 ? compare(files[0].uri, files[1].uri) : undefined;
     }),
   ];
+}
+
+/** Opens a row as clicking it does: the diff for a changed file, otherwise the file. */
+function openRow(node: ExplorerNode, options: vscode.TextDocumentShowOptions): Thenable<unknown> {
+  return node.change
+    ? vscode.commands.executeCommand('multiGitExplorer.openChange', node, options)
+    : vscode.commands.executeCommand('vscode.open', node.uri, options);
 }
 
 function compare(left: vscode.Uri, right: vscode.Uri): Thenable<unknown> {

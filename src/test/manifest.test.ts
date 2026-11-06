@@ -117,3 +117,33 @@ test('shortcuts only act when the file tree has focus, outside its find box', ()
     assert.match(k.when, /^focusedView == multiGitExplorer\.explorer && !inputFocus/, k.command);
   }
 });
+
+test('shortcuts pass { keyboard: true }, so they act on the focused row like the built-in Explorer', () => {
+  for (const k of contributes.keybindings) assert.deepEqual(k.args, { keyboard: true }, k.command);
+});
+
+test('the keys match the built-in Explorer on each system', () => {
+  const keys = (command: string, mac: boolean) =>
+    contributes.keybindings
+      .filter((k: { command: string; when: string }) => k.command === `multiGitExplorer.${command}` && matches(k.when.replace(/^.*?!inputFocus\s*&&\s*|^.*?!inputFocus$/, ''), { isMac: mac }))
+      .map((k: { key: string; mac?: string }) => (mac ? (k.mac ?? k.key) : k.key))
+      .sort();
+  assert.deepEqual(keys('rename', true), ['enter', 'f2']);
+  assert.deepEqual(keys('rename', false), ['f2']);
+  assert.deepEqual(keys('openAndPassFocus', true), ['cmd+down']);
+  assert.deepEqual(keys('openAndPassFocus', false), ['enter']);
+  assert.deepEqual(keys('openPreserveFocus', false), ['space']);
+  assert.deepEqual(keys('delete', true), ['cmd+backspace', 'delete']);
+  assert.deepEqual(keys('delete', false), ['delete']);
+  assert.deepEqual(keys('deletePermanently', true), ['alt+cmd+backspace']);
+  assert.deepEqual(keys('deletePermanently', false), ['shift+delete']);
+});
+
+test('Open With is on files, and workspace folder rows can add and remove folders', () => {
+  assert.ok(menuFor(FILES, 'file').includes('openWith'));
+  assert.ok(!menuFor(FILES, 'folder').includes('openWith'));
+  assert.ok(!menuFor(FILES, 'file change deleted').includes('openWith'));
+  const root = menuFor(FILES, 'folder root', { enterMultiRootWorkspaceSupport: true });
+  assert.ok(root.includes('addRootFolder') && root.includes('removeRootFolder'));
+  assert.ok(!menuFor(FILES, 'folder', { enterMultiRootWorkspaceSupport: true }).includes('removeRootFolder'));
+});

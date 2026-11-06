@@ -146,6 +146,38 @@ test('F2 renames a file through an input box', async (page, workspace) => {
   await row(page, 'b.txt').waitFor();
 });
 
+test('shortcuts follow the focused row: Enter renames on macOS, Space opens keeping focus, Cmd+Down opens', async (page, workspace) => {
+  const dir = path.join(workspace, 'docs', 'e2e-keys');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'a.txt'), 'a\n');
+  writeFileSync(path.join(dir, 'b.txt'), 'b\n');
+  await expand(page, 'docs', 'e2e-keys');
+  await select(page, 'a.txt');
+  // Arrow keys move the focus but, in an extension's tree, not the selection.
+  await page.keyboard.press('ArrowDown');
+  const input = page.locator('.quick-input-widget input.input');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Enter' : 'F2');
+  await input.waitFor();
+  assert.equal(await input.inputValue(), 'b.txt', 'renames the focused row, not the selected one');
+  await page.keyboard.press('Escape');
+  await input.waitFor({ state: 'hidden' });
+
+  const files = pane(page, 'Files');
+  const tab = (name: string) => page.locator('.tabs-container .tab', { hasText: name });
+  await select(page, 'a.txt');
+  await page.keyboard.press('Space');
+  await tab('a.txt').waitFor();
+  assert.ok(await files.evaluate(el => el.contains(el.ownerDocument.activeElement)), 'Space keeps focus in the tree');
+
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowDown' : 'Enter');
+  await tab('b.txt').waitFor();
+  const editors = page.locator('.part.editor');
+  await assertEventually('focus to move to the editor', () => editors.evaluate(el => el.contains(el.ownerDocument.activeElement)));
+  await page.keyboard.press(`${MOD}+K`);
+  await page.keyboard.press('W');
+});
+
 test('copy and paste with the keyboard make a copy next to the file', async (page, workspace) => {
   const dir = path.join(workspace, 'docs', 'e2e');
   await select(page, 'b.txt');

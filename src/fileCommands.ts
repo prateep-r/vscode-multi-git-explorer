@@ -4,7 +4,7 @@ import { checkNewName, checkNewPath, copyName } from './core/fileNames';
 import { isAtOrInside } from './core/paths';
 import type { RepoStore } from './store';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
-import { folderOf, isWorkspaceFolder, localFolders, onDisk, pickRows } from './workspace';
+import { folderOf, isKeyboard, isWorkspaceFolder, localFolders, onDisk, pickRows } from './workspace';
 
 /**
  * Commands that change files from the Repo Explorer, like the built-in
@@ -19,8 +19,11 @@ export function registerFileCommands(
 ): vscode.Disposable[] {
   // Deleted files, listed while filtering, can't be renamed, moved or copied.
   // The menu hides those commands for them, but keyboard shortcuts still reach them.
-  const picked = (clicked?: ExplorerNode, selected?: readonly ExplorerNode[]) =>
-    pickRows(clicked, selected ?? tree.selection, n => n.uri.fsPath).filter(onDisk);
+  // Keyboard shortcuts act on the focused row, or the selection it is part of.
+  const picked = async (clicked?: ExplorerNode | { keyboard: true }, selected?: readonly ExplorerNode[]) =>
+    (isKeyboard(clicked) ? await explorer.keyboardRows() : pickRows(clicked, selected ?? tree.selection, n => n.uri.fsPath)).filter(
+      onDisk,
+    );
 
   const create = async (kind: 'file' | 'folder', target?: ExplorerNode, name?: unknown) => {
     const parent = target ? folderOf(target) : explorer.selectedFolder();
@@ -65,22 +68,32 @@ export function registerFileCommands(
   return [
     vscode.commands.registerCommand('multiGitExplorer.newFile', (target?: ExplorerNode, name?: unknown) => create('file', target, name)),
     vscode.commands.registerCommand('multiGitExplorer.newFolder', (target?: ExplorerNode, name?: unknown) => create('folder', target, name)),
-    vscode.commands.registerCommand('multiGitExplorer.rename', (clicked?: ExplorerNode, newName?: unknown) => {
+    vscode.commands.registerCommand('multiGitExplorer.rename', async (clicked?: ExplorerNode | { keyboard: true }, newName?: unknown) => {
       // Renames one row, like the built-in Explorer; a name may be passed instead of asked for.
-      const node = picked(clicked ?? tree.selection[0])[0];
-      return node ? files.rename(node, typeof newName === 'string' ? newName : undefined) : undefined;
+      const row = isKeyboard(clicked) ? await explorer.focusedRow() : (clicked ?? tree.selection[0]);
+      const node = row && !isWorkspaceFolder(row.uri.fsPath) ? (await picked(row))[0] : undefined;
+      if (node) return files.rename(node, typeof newName === 'string' ? newName : undefined);
+      // Enter renames on macOS. On a row that can't be renamed it opens or expands the row, as the built-in Explorer's Enter does.
+      if (isKeyboard(clicked)) return vscode.commands.executeCommand('list.select');
+      return undefined;
     }),
-    vscode.commands.registerCommand('multiGitExplorer.delete', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
-      files.delete(picked(clicked, selected)),
+    vscode.commands.registerCommand('multiGitExplorer.delete', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
+      files.delete(await picked(clicked, selected)),
     ),
-    vscode.commands.registerCommand('multiGitExplorer.cut', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
-      files.setClipboard(picked(clicked, selected), true),
+    vscode.commands.registerCommand(
+      'multiGitExplorer.deletePermanently',
+      async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
+        files.delete(await picked(clicked, selected), { permanently: true }),
     ),
-    vscode.commands.registerCommand('multiGitExplorer.copy', (clicked?: ExplorerNode, selected?: ExplorerNode[]) =>
-      files.setClipboard(picked(clicked, selected), false),
+    vscode.commands.registerCommand('multiGitExplorer.cut', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
+      files.setClipboard(await picked(clicked, selected), true),
     ),
-    vscode.commands.registerCommand('multiGitExplorer.paste', (clicked?: ExplorerNode) => {
-      const target = clicked ? folderOf(clicked) : explorer.selectedFolder();
+    vscode.commands.registerCommand('multiGitExplorer.copy', async (clicked?: ExplorerNode | { keyboard: true }, selected?: ExplorerNode[]) =>
+      files.setClipboard(await picked(clicked, selected), false),
+    ),
+    vscode.commands.registerCommand('multiGitExplorer.paste', async (clicked?: ExplorerNode | { keyboard: true }) => {
+      const row = isKeyboard(clicked) ? await explorer.focusedRow() : clicked;
+      const target = row ? folderOf(row) : explorer.selectedFolder();
       return target ? files.paste(target) : undefined;
     }),
   ];
@@ -172,10 +185,11 @@ export class FileOperations implements vscode.Disposable {
     }
   }
 
-  async delete(nodes: readonly ExplorerNode[]): Promise<void> {
+  /** Deletes to the Trash when `files.enableTrash` is on, unless `permanently` (Shift+Delete in the built-in Explorer). */
+  async delete(nodes: readonly ExplorerNode[], { permanently = false } = {}): Promise<void> {
     const targets = outermost(nodes).filter(n => !isWorkspaceFolder(n.uri.fsPath));
     if (targets.length === 0) return;
-    const useTrash = vscode.workspace.getConfiguration('files').get('enableTrash', true);
+    const useTrash = !permanently && vscode.workspace.getConfiguration('files').get('enableTrash', true);
     if (vscode.workspace.getConfiguration('explorer').get('confirmDelete', true) || !useTrash) {
       const what = targets.length === 1 ? `'${path.basename(targets[0].uri.fsPath)}'` : `these ${targets.length} items`;
       const trash = process.platform === 'win32' ? 'Recycle Bin' : 'Trash';

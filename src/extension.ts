@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     ...registerChatTargets(explorerTree),
     files,
     ...registerFileCommands(files, explorer, explorerTree),
-    ...registerPathCommands(store, explorerTree),
+    ...registerPathCommands(store, explorer, explorerTree),
   );
 
   // Settings like scanDepth must be carried over before the first scan reads them.

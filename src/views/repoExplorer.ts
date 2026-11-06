@@ -182,6 +182,49 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return selected ? folderOf(selected) : localFolders()[0]?.uri;
   }
 
+  /**
+   * The row with keyboard focus. The API doesn't expose it, so this toggles
+   * the focused row's selection with `list.toggleSelection`, sees which row
+   * changed, and toggles it back. Only call it while the tree has focus, as
+   * keyboard shortcuts limited to the tree are.
+   */
+  async focusedRow(): Promise<ExplorerNode | undefined> {
+    const tree = this.treeView;
+    if (!tree) return undefined;
+    const key = (n: ExplorerNode) => n.uri.fsPath;
+    const before = tree.selection;
+    const toggle = async (): Promise<readonly ExplorerNode[]> => {
+      const changed = new Promise<readonly ExplorerNode[] | undefined>(resolve => {
+        const timer = setTimeout(() => done(undefined), 500);
+        const sub = tree.onDidChangeSelection(e => done(e.selection));
+        function done(selection: readonly ExplorerNode[] | undefined) {
+          clearTimeout(timer);
+          sub.dispose();
+          resolve(selection);
+        }
+      });
+      await vscode.commands.executeCommand('list.toggleSelection');
+      return (await changed) ?? tree.selection;
+    };
+    const after = await toggle();
+    const was = new Set(before.map(key));
+    const now = new Set(after.map(key));
+    const focused = after.find(n => !was.has(key(n))) ?? before.find(n => !now.has(key(n)));
+    if (focused) await toggle();
+    return focused;
+  }
+
+  /**
+   * The rows a keyboard shortcut acts on, like the built-in Explorer: the
+   * selection when the focused row is part of it, otherwise the focused row.
+   */
+  async keyboardRows(focusedRow?: ExplorerNode): Promise<ExplorerNode[]> {
+    const selection = this.treeView?.selection ?? [];
+    const focused = focusedRow ?? (await this.focusedRow());
+    if (!focused) return [...selection];
+    return selection.some(n => n.uri.fsPath === focused.uri.fsPath) ? [...selection] : [focused];
+  }
+
   /** Selects a file or folder in the tree, expanding the folders above it. */
   async reveal(uri: vscode.Uri, isDir: boolean): Promise<void> {
     const node = isDir ? this.dirNode(uri) : { uri, isDir: false };

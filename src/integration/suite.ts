@@ -536,6 +536,23 @@ test('explorer.sortOrder and its options sort the file tree like the built-in Ex
     }
   }));
 
+test('shortcuts act on the focused row, or the selection it is part of, like the built-in Explorer', ({ explorer }) =>
+  withScratch(async (dir, node) => {
+    const tree = (explorer as unknown as { treeView: vscode.TreeView<ExplorerNode> }).treeView;
+    await vscode.commands.executeCommand('workbench.view.extension.multiGitExplorer');
+    await tree.reveal(node('sub', true), { select: true, focus: true });
+    await vscode.commands.executeCommand('list.focusDown'); // focus moves to a.txt, the selection stays on sub
+    assert.equal((await explorer.focusedRow())?.uri.fsPath, path.join(dir, 'a.txt'));
+    assert.deepEqual(tree.selection.map(n => path.basename(n.uri.fsPath)), ['sub'], 'finding the focused row leaves the selection alone');
+    await vscode.commands.executeCommand('multiGitExplorer.copyPath', { keyboard: true });
+    assert.equal(await vscode.env.clipboard.readText(), path.join(dir, 'a.txt'), 'the focused row, as it is not selected');
+    await vscode.commands.executeCommand('list.toggleSelection'); // a.txt joins the selection
+    await vscode.commands.executeCommand('multiGitExplorer.copyPath', { keyboard: true });
+    assert.equal(await vscode.env.clipboard.readText(), [path.join(dir, 'sub'), path.join(dir, 'a.txt')].join('\n'), 'the whole selection');
+    await vscode.commands.executeCommand('multiGitExplorer.openPreserveFocus', { keyboard: true });
+    await waitFor('a.txt to open', () => vscode.window.activeTextEditor?.document.uri.fsPath === path.join(dir, 'a.txt'));
+  }));
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

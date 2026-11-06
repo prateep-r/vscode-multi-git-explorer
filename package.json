@@ -333,6 +333,36 @@
         "command": "multiGitExplorer.delete",
         "title": "Delete",
         "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.openWith",
+        "title": "Open With...",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.openPreserveFocus",
+        "title": "Open Keeping Focus",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.openAndPassFocus",
+        "title": "Open and Focus the Editor",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.deletePermanently",
+        "title": "Delete Permanently",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.addRootFolder",
+        "title": "Add Folder to Workspace...",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.removeRootFolder",
+        "title": "Remove Folder from Workspace",
+        "category": "Multi-Git Explorer"
       }
     ],
     "submenus": [
@@ -501,6 +531,16 @@
           "group": "4_new@2"
         },
         {
+          "command": "multiGitExplorer.addRootFolder",
+          "when": "view == multiGitExplorer.explorer && viewItem =~ /\\broot\\b/ && enterMultiRootWorkspaceSupport",
+          "group": "4_workspace@1"
+        },
+        {
+          "command": "multiGitExplorer.removeRootFolder",
+          "when": "view == multiGitExplorer.explorer && viewItem =~ /\\broot\\b/ && enterMultiRootWorkspaceSupport",
+          "group": "4_workspace@2"
+        },
+        {
           "command": "multiGitExplorer.copyToAiChat",
           "when": "view == multiGitExplorer.explorer",
           "group": "0_chat@3"
@@ -514,6 +554,11 @@
           "command": "multiGitExplorer.openToSide",
           "when": "view == multiGitExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/",
           "group": "1_open@3"
+        },
+        {
+          "command": "multiGitExplorer.openWith",
+          "when": "view == multiGitExplorer.explorer && viewItem =~ /^file(?!.*\\bdeleted\\b)/",
+          "group": "1_open@4"
         },
         {
           "command": "multiGitExplorer.revealInFinder",
@@ -804,6 +849,30 @@
         {
           "command": "multiGitExplorer.delete",
           "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.openWith",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.openPreserveFocus",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.openAndPassFocus",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.deletePermanently",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.removeRootFolder",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.addRootFolder",
+          "when": "false"
         }
       ]
     },
@@ -951,69 +1020,154 @@
         "command": "multiGitExplorer.openToSide",
         "key": "ctrl+enter",
         "mac": "cmd+enter",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.revealInFinder",
         "key": "alt+cmd+r",
         "mac": "alt+cmd+r",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isMac"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isMac",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.revealInFileExplorer",
         "key": "shift+alt+r",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isWindows"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isWindows",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.openContainingFolder",
         "key": "ctrl+alt+r",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isLinux"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isLinux",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.findInFolder",
         "key": "shift+alt+f",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.cut",
         "key": "ctrl+x",
         "mac": "cmd+x",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.copy",
         "key": "ctrl+c",
         "mac": "cmd+c",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.paste",
         "key": "ctrl+v",
         "mac": "cmd+v",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && multiGitExplorer.canPaste"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && multiGitExplorer.canPaste",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.copyPath",
         "key": "shift+alt+c",
         "mac": "alt+cmd+c",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.copyRelativePath",
         "key": "ctrl+shift+alt+c",
         "mac": "alt+shift+cmd+c",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.rename",
         "key": "f2",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       },
       {
         "command": "multiGitExplorer.delete",
         "key": "delete",
         "mac": "cmd+backspace",
-        "when": "focusedView == multiGitExplorer.explorer && !inputFocus"
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.rename",
+        "key": "enter",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isMac",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.openAndPassFocus",
+        "key": "enter",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && !isMac",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.openAndPassFocus",
+        "key": "cmd+down",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isMac",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.openPreserveFocus",
+        "key": "space",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.delete",
+        "key": "delete",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus && isMac",
+        "args": {
+          "keyboard": true
+        }
+      },
+      {
+        "command": "multiGitExplorer.deletePermanently",
+        "key": "shift+delete",
+        "mac": "alt+cmd+backspace",
+        "when": "focusedView == multiGitExplorer.explorer && !inputFocus",
+        "args": {
+          "keyboard": true
+        }
       }
     ]
   },
