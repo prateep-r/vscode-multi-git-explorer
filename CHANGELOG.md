@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.1
 
 - **Renamed to Multi-Git Explorer**, and on the VS Code Marketplace as [`prateep-r.multi-git-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-git-explorer), so VS Code installs and updates it for you.
   - Settings are now `multiGitExplorer.*` instead of `multiRepoExplorer.*`. Your old settings are copied over the first time it starts.
