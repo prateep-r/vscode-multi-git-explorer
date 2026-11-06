@@ -90,7 +90,7 @@ test('Copy to AI Chat copies @path mentions for folders and files', async () => 
 });
 
 export async function run(): Promise<void> {
-  await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep.multi-repo-explorer')!.activate();
+  await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep-r.multi-repo-explorer')!.activate();
   const clipboard = await vscode.env.clipboard.readText();
   let failed = 0;
   try {

@@ -284,7 +284,7 @@ test('Open in Source Control opens the repo in VS Code Git', async () => {
 });
 
 test('the file tree is titled Files, with the project name as written beside it', async ({ explorer }) => {
-  const manifest = vscode.extensions.getExtension('prateep.multi-repo-explorer')!.packageJSON;
+  const manifest = vscode.extensions.getExtension('prateep-r.multi-repo-explorer')!.packageJSON;
   const container = manifest.contributes.viewsContainers.activitybar.find((c: { id: string }) => c.id === 'multiRepoExplorer');
   assert.equal(container.title, 'Multi-Repo Explorer');
   // VS Code uppercases titles but not descriptions, so the name is the description.
@@ -483,13 +483,13 @@ test('a file removed with git rm --cached shows as untracked, not deleted', asyn
 });
 
 test('every command in package.json is registered', async () => {
-  const manifest = vscode.extensions.getExtension('prateep.multi-repo-explorer')!.packageJSON;
+  const manifest = vscode.extensions.getExtension('prateep-r.multi-repo-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));
   for (const { command } of manifest.contributes.commands) assert.ok(registered.has(command), command);
 });
 
 export async function run(): Promise<void> {
-  const api = await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep.multi-repo-explorer')!.activate();
+  const api = await vscode.extensions.getExtension<MultiRepoExplorerApi>('prateep-r.multi-repo-explorer')!.activate();
   let failed = 0;
   for (const [name, fn] of tests) {
     try {

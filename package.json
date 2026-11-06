@@ -3,7 +3,7 @@
   "displayName": "Multi-Repo Explorer",
   "description": "See the branch and status of every git repository in your workspace at a glance, even with hundreds of repos.",
   "version": "1.2.0",
-  "publisher": "prateep",
+  "publisher": "prateep-r",
   "license": "MIT",
   "icon": "media/icon.png",
   "galleryBanner": {

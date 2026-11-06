@@ -240,21 +240,15 @@ Folders that aren't repos show `no git` (no repos inside), `not scanned` (deeper
 
 ## Install
 
-Install [Multi-Repo Explorer](https://marketplace.visualstudio.com/items?itemName=prateep.multi-repo-explorer) from the VS Code Marketplace: search for **Multi-Repo Explorer** in the Extensions view, or run:
+Install [Multi-Repo Explorer](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-repo-explorer) from the VS Code Marketplace: search for **Multi-Repo Explorer** in the Extensions view, or run:
 
 ```bash
-code --install-extension prateep.multi-repo-explorer
+code --install-extension prateep-r.multi-repo-explorer
 ```
 
-VS Code keeps it up to date.
+VS Code keeps it up to date. If you installed it from GitHub Releases before, it's the same extension: VS Code updates it from the Marketplace from now on.
 
 Requirements: VS Code 1.95 or later, and `git` on your `PATH` (or set in `git.path`).
-
-**Moving from a GitHub Releases install**: versions downloaded from GitHub Releases before the Marketplace listing have the ID `prateep-r.multi-repo-explorer`. Uninstall that one first, so you don't get two Multi-Repo Explorers. Your settings carry over; the file tree's filter starts cleared.
-
-```bash
-code --uninstall-extension prateep-r.multi-repo-explorer
-```
 
 ### Install from GitHub Releases
 
@@ -281,7 +275,7 @@ Or do it by hand: download [`multi-repo-explorer.vsix`](https://github.com/prate
 **Uninstalling**:
 
 ```bash
-code --uninstall-extension prateep.multi-repo-explorer
+code --uninstall-extension prateep-r.multi-repo-explorer
 ```
 
 If you built a version before 1.0.0 from source, its ID is `local.multi-repo-explorer`. Uninstall that one first, so you don't get two Multi-Repo Explorers. Its settings started with `multiRepoGit.`; they are now `multiRepoExplorer.`, so rename any you changed.
@@ -405,7 +399,7 @@ make release-major    # breaking:   1.2.0 -> 2.0.0
 
 This runs the unit tests, renames `## Unreleased` to the new version, bumps `package.json`, commits `Release x.y.z`, tags `vx.y.z`, and pushes. The tag starts the [Publish workflow](.github/workflows/publish.yml), which publishes to the VS Code Marketplace and creates the GitHub release with `multi-repo-explorer.vsix` attached.
 
-The workflow signs in to the Marketplace with [trusted publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace), so there's no token to keep. It needs a trusted publishing policy on the `prateep` publisher (**Manage Publishers & Extensions → Trusted Publishing**) for owner `prateep-r`, repository `vscode-multi-repo-explorer`, and workflow `publish.yml`. If the workflow fails, fix the cause and select **Re-run jobs** on the run; the tag doesn't need to change unless the code does.
+The workflow signs in to the Marketplace with [trusted publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace), so there's no token to keep. It needs a trusted publishing policy on the `prateep-r` publisher (**Manage Publishers & Extensions → Trusted Publishing**) for owner `prateep-r`, repository `vscode-multi-repo-explorer`, and workflow `publish.yml`. If the workflow fails, fix the cause and select **Re-run jobs** on the run; the tag doesn't need to change unless the code does.
 
 ### Tests
 

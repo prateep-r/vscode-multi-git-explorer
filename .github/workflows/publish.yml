@@ -2,7 +2,7 @@
 #
 # Signs in to the VS Code Marketplace with trusted publishing (OIDC), so no
 # token is stored anywhere. The Marketplace's trusted publishing policy for the
-# "prateep" publisher must name this repo and this file, publish.yml.
+# "prateep-r" publisher must name this repo and this file, publish.yml.
 name: Publish
 
 on:

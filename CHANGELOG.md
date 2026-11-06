@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **On the VS Code Marketplace** as [`prateep.multi-repo-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep.multi-repo-explorer), so VS Code installs and updates it for you. If you installed it from GitHub Releases before, its ID is `prateep-r.multi-repo-explorer`: uninstall that one, so you don't get two Multi-Repo Explorers.
+- **On the VS Code Marketplace** as [`prateep-r.multi-repo-explorer`](https://marketplace.visualstudio.com/items?itemName=prateep-r.multi-repo-explorer), so VS Code installs and updates it for you. A copy installed from GitHub Releases is the same extension, and now updates from the Marketplace.
 - A Marketplace icon.
 
 ## 1.2.0
