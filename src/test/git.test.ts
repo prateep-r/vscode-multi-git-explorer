@@ -3,7 +3,7 @@ import { writeFileSync } from 'fs';
 import { after, before, test } from 'node:test';
 import * as path from 'path';
 import { discoverRepos } from '../core/discovery';
-import { readStatus } from '../core/git';
+import { checkIgnore, parseCheckIgnore, readStatus } from '../core/git';
 import { readCheapState } from '../core/gitDir';
 import { git, makeRepo, makeTempDir, write } from './helpers';
 
@@ -107,4 +107,20 @@ test('a workspace folder that is itself a repo still shows nested repos', async 
   makeRepo(path.join(root, 'nested'));
   const result = await discoverRepos([root], { maxDepth: 2, exclude: new Set() });
   assert.deepEqual(result.repos.map(r => path.relative(root, r.root)).sort(), ['', 'nested']);
+});
+
+test('checkIgnore reports ignored paths like the git extension, leaving out paths re-included with !', async () => {
+  const temp = makeTempDir();
+  try {
+    const repo = makeRepo(path.join(temp.dir, 'repo'));
+    const abs = (rel: string) => path.join(repo, rel);
+    write(abs('.gitignore'), 'dist/\n*.log\n!keep.log\n');
+    for (const file of ['dist/app.js', 'debug.log', 'keep.log', 'src/a.ts']) write(abs(file), '');
+    const ignored = await checkIgnore(repo, ['dist', 'dist/app.js', 'debug.log', 'keep.log', 'src/a.ts'].map(abs));
+    assert.deepEqual([...ignored].sort(), ['debug.log', 'dist', 'dist/app.js'].map(abs).sort());
+    assert.deepEqual(await checkIgnore(repo, [abs('src/a.ts')]), new Set(), 'exit code 1 means nothing is ignored');
+    assert.deepEqual(parseCheckIgnore(''), new Set());
+  } finally {
+    temp.cleanup();
+  }
 });

@@ -9,6 +9,7 @@ import { AutoReveal } from './views/autoReveal';
 import { CutDecorationProvider } from './views/cutDecorations';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
+import { IgnoredDecorationProvider } from './views/ignoredDecorations';
 import { ProblemDecorationProvider } from './views/problemDecorations';
 import { RepoExplorerProvider } from './views/repoExplorer';
 import { ReposViewProvider } from './views/reposView';
@@ -21,6 +22,7 @@ export interface MultiGitExplorerApi {
   reposView: ReposViewProvider;
   decorations: RepoDecorationProvider;
   problems: ProblemDecorationProvider;
+  ignored: IgnoredDecorationProvider;
   cut: CutDecorationProvider;
   autoReveal: AutoReveal;
   files: FileOperations;
@@ -36,6 +38,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   reposView.attach(reposTree);
   const files = new FileOperations(store, explorer);
   const problems = new ProblemDecorationProvider();
+  const ignored = new IgnoredDecorationProvider(store);
   const cut = new CutDecorationProvider(files);
   const explorerTree = vscode.window.createTreeView('multiGitExplorer.explorer', {
     treeDataProvider: explorer,
@@ -55,8 +58,10 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     explorerTree,
     autoReveal,
     decorations,
+    // The provider registered last wins when colors clash: ignored, then git states, problems, and cut over all.
+    ignored,
+    vscode.window.registerFileDecorationProvider(ignored),
     vscode.window.registerFileDecorationProvider(decorations),
-    // The provider registered last wins when colors clash: problems over git states, and cut over all.
     problems,
     vscode.window.registerFileDecorationProvider(problems),
     vscode.window.registerFileDecorationProvider(cut),
@@ -73,7 +78,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   void copyOldSettings(context, log).then(() => store.discover());
   void offerToUninstallOld();
   void showOnStartup();
-  return { store, explorer, reposView, decorations, problems, cut, autoReveal, files };
+  return { store, explorer, reposView, decorations, problems, ignored, cut, autoReveal, files };
 }
 
 /**

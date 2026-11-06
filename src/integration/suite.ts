@@ -612,6 +612,32 @@ test('the active editor\'s file is selected in the tree, following explorer.auto
     }
   }));
 
+test('.gitignored files are dimmed like the git extension does, and hidden with explorer.excludeGitIgnore', async ({ explorer, ignored }) => {
+  const repo = at('services/notification');
+  const names = async (dir: string) =>
+    (await explorer.getChildren({ uri: vscode.Uri.file(dir), isDir: true })).map(n => path.basename(n.uri.fsPath));
+  const color = async (rel: string) =>
+    ((await ignored.provideFileDecoration(toViewUri(path.join(repo, rel))))?.color as vscode.ThemeColor | undefined)?.id;
+  assert.equal(await color('dist'), 'gitDecoration.ignoredResourceForeground');
+  assert.equal(await color('dist/bundle.js'), 'gitDecoration.ignoredResourceForeground');
+  assert.equal(await color('debug.log'), 'gitDecoration.ignoredResourceForeground');
+  assert.equal(await color('keep.log'), undefined, 're-included with !');
+  assert.equal(await color('README.md'), undefined);
+  assert.equal(await ignored.provideFileDecoration(toViewUri(repo)), undefined, 'a repo is never ignored by itself');
+
+  assert.ok((await names(repo)).includes('dist'), 'shown while explorer.excludeGitIgnore is off');
+  const config = vscode.workspace.getConfiguration('explorer');
+  try {
+    await config.update('excludeGitIgnore', true, vscode.ConfigurationTarget.Global);
+    const shown = await names(repo);
+    assert.ok(!shown.includes('dist') && !shown.includes('debug.log'), `ignored items hidden: ${shown}`);
+    assert.ok(shown.includes('keep.log') && shown.includes('src') && shown.includes('.gitignore'));
+  } finally {
+    await config.update('excludeGitIgnore', undefined, vscode.ConfigurationTarget.Global);
+  }
+  assert.ok((await names(repo)).includes('dist'));
+});
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));

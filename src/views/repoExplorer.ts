@@ -7,6 +7,7 @@ import type { ChangedFile } from '../core/porcelain';
 import { compareEntries, readSortConfig, type Sortable } from '../core/sort';
 import type { GroupKey } from '../core/state';
 import { checkEntry, parseExcludes, ROOT_STATE, type ExcludeRules, type VisibilityState } from '../core/visibility';
+import { IgnoreFile } from '../core/vs/ignoreFile';
 import type { RepoEntry, RepoStore } from '../store';
 import { folderOf, isWorkspaceFolder, localFolders } from '../workspace';
 import { toViewUri } from './viewUri';
@@ -64,6 +65,12 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   private visibleEditors = new Set<string>();
   /** Visible editors that keep an excluded item shown. */
   private readonly editorsShowingExcluded = new Set<string>();
+  /**
+   * For `explorer.excludeGitIgnore`: the `.gitignore` files of each workspace
+   * folder met so far, by the folder they're in, each chained to the one
+   * above it, as the built-in Explorer keeps them.
+   */
+  private readonly ignoreFiles = new Map<string, Map<string, IgnoreFile>>();
 
   constructor(
     private readonly store: RepoStore,
@@ -82,10 +89,14 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         if (e.affectsConfiguration('files.exclude')) {
           this.excludeRules.clear();
           this.refreshAll();
+        } else if (e.affectsConfiguration('explorer.excludeGitIgnore')) {
+          this.ignoreFiles.clear();
+          this.refreshAll();
         } else if (e.affectsConfiguration('explorer.sortOrder') || e.affectsConfiguration('explorer.sortOrderLexicographicOptions') || e.affectsConfiguration('explorer.sortOrderReverse')) {
           this.refreshAll();
         }
       }),
+      ...this.watchIgnoreFiles(),
       vscode.window.tabGroups.onDidChangeTabs(() => this.onVisibleEditorsChanged()),
       vscode.window.tabGroups.onDidChangeTabGroups(() => this.onVisibleEditorsChanged()),
       this._onDidChangeTreeData,
@@ -353,6 +364,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     const entries = filteredEntries(uri.fsPath, matching.map(r => r.root), changes).filter(
       entry => !(entry.isDir && excluded.has(entry.name)),
     );
+    if (existsSync(path.join(uri.fsPath, '.gitignore'))) await this.loadIgnoreFile(uri.fsPath);
     // A deleted file is listed too, so siblings for `when` clauses come from the disk.
     const visible = this.visibleEntries(uri.fsPath, entries, name => existsSync(path.join(uri.fsPath, name)));
     return (await this.sorted(uri.fsPath, visible))
@@ -371,6 +383,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       return [];
     }
     const names = new Set(entries.map(([name]) => name));
+    if (names.has('.gitignore')) await this.loadIgnoreFile(uri.fsPath);
     const listed = entries.map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0 }));
     return (await this.sorted(uri.fsPath, this.visibleEntries(uri.fsPath, listed, name => names.has(name))))
       .map(({ name, isDir }) => {
@@ -402,6 +415,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (!root) return entries;
     const rules = this.excludeRulesFor(root);
     const parent = dir === root ? ROOT_STATE : (this.visibility.get(dir) ?? ROOT_STATE);
+    const ignoring = this.excludesGitIgnore(root);
     return entries.filter(entry => {
       const fsPath = path.join(dir, entry.name);
       const result = checkEntry(rules, {
@@ -409,6 +423,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         name: entry.name,
         isDir: entry.isDir,
         parent,
+        isHidden: ignoring ? () => this.isGitIgnored(root, fsPath, entry.isDir) : undefined,
         hasSibling,
         hasEditorInside: () => this.noteEditorInside(fsPath, root),
       });
@@ -440,6 +455,68 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       );
     }
     return entries.sort(compareEntries(config));
+  }
+
+  private excludesGitIgnore(root: string): boolean {
+    return vscode.workspace.getConfiguration('explorer', vscode.Uri.file(root)).get<boolean>('excludeGitIgnore') === true;
+  }
+
+  /** Reads the `.gitignore` in `dir`, when `explorer.excludeGitIgnore` is on for its workspace folder. */
+  private async loadIgnoreFile(dir: string, update = false): Promise<void> {
+    const root = closestFolder(dir);
+    if (!root || !this.excludesGitIgnore(root)) return;
+    let files = this.ignoreFiles.get(root);
+    if (!files) this.ignoreFiles.set(root, (files = new Map()));
+    const existing = files.get(dir);
+    if (existing && !update) return;
+    let contents: string;
+    try {
+      contents = new TextDecoder().decode(await vscode.workspace.fs.readFile(vscode.Uri.file(path.join(dir, '.gitignore'))));
+    } catch {
+      return;
+    }
+    if (existing) {
+      existing.updateContents(contents);
+      return;
+    }
+    // Paths are compared without case where the disk ignores it, as the built-in Explorer does.
+    const ignoreCase = process.platform !== 'linux';
+    files.set(dir, new IgnoreFile(contents, vscode.Uri.file(dir).path, closestIgnoreFile(files, dir), ignoreCase));
+  }
+
+  /** Whether `.gitignore` hides an item, judged by the nearest `.gitignore` at or above it. */
+  private isGitIgnored(root: string, fsPath: string, isDir: boolean): boolean {
+    const files = this.ignoreFiles.get(root);
+    const ignoreFile = files && closestIgnoreFile(files, fsPath);
+    return !!ignoreFile && !ignoreFile.isPathIncludedInTraversal(vscode.Uri.file(fsPath).path, isDir);
+  }
+
+  /** Keeps the `.gitignore` files in step with the disk, like the built-in Explorer. */
+  private watchIgnoreFiles(): vscode.Disposable[] {
+    const watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore');
+    const known = (uri: vscode.Uri) => {
+      const root = closestFolder(uri.fsPath);
+      return root ? this.ignoreFiles.get(root) : undefined;
+    };
+    return [
+      watcher,
+      watcher.onDidChange(async uri => {
+        if (!known(uri)?.has(path.dirname(uri.fsPath))) return;
+        await this.loadIgnoreFile(path.dirname(uri.fsPath), true);
+        this.refreshAll();
+      }),
+      watcher.onDidCreate(uri => {
+        if (known(uri)) this.refreshAll();
+      }),
+      watcher.onDidDelete(uri => {
+        const files = known(uri);
+        if (files?.delete(path.dirname(uri.fsPath))) {
+          // The files below were chained to it, so read them again.
+          for (const dir of [...files.keys()]) if (isInside(dir, path.dirname(uri.fsPath))) files.delete(dir);
+          this.refreshAll();
+        }
+      }),
+    ];
   }
 
   private excludeRulesFor(root: string): ExcludeRules {
@@ -567,6 +644,15 @@ function closestFolder(fsPath: string): string | undefined {
     if (isAtOrInside(fsPath, root) && (!best || root.length > best.length)) best = root;
   }
   return best;
+}
+
+/** The `.gitignore` of the nearest folder at or above `fsPath` that has one. */
+function closestIgnoreFile(files: ReadonlyMap<string, IgnoreFile>, fsPath: string): IgnoreFile | undefined {
+  let best: string | undefined;
+  for (const dir of files.keys()) {
+    if (isAtOrInside(fsPath, dir) && (!best || dir.length > best.length)) best = dir;
+  }
+  return best === undefined ? undefined : files.get(best);
 }
 
 /** Files shown in the visible editors: the active tab of each group. Diff editors don't count, as in the built-in Explorer. */

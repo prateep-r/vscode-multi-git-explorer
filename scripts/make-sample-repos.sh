@@ -82,6 +82,18 @@ commit_file "$s/payments" pay.ts
 advance_remote "$s/payments" 3
 
 new_repo "$s/notification" remote
+# Ignored build output and logs, for dimming and explorer.excludeGitIgnore. Ignored files leave the repo clean.
+printf 'dist/\n*.log\n!keep.log\n' >"$s/notification/.gitignore"
+git -C "$s/notification" add .gitignore
+git -C "$s/notification" commit -q -m "ignore build output"
+git -C "$s/notification" push -q
+mkdir -p "$s/notification/dist"
+printf 'bundle\n' >"$s/notification/dist/bundle.js"
+printf 'log\n' >"$s/notification/debug.log"
+printf 'log\n' >"$s/notification/keep.log"
+git -C "$s/notification" add keep.log
+git -C "$s/notification" commit -q -m "keep one log"
+git -C "$s/notification" push -q
 
 new_repo "$s/mobile-api" remote
 git -C "$s/mobile-api" switch -q -c fix/login
