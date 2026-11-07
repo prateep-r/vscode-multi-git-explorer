@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
 
 - **Undo and redo** with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> and <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> in the file tree, for new files and folders, rename, move, paste, delete and dropped files, like the built-in Explorer: undoing a delete brings back files up to 5 MB, it asks first per `explorer.confirmUndo`, and `explorer.enableUndo` turns it off.
 - **Drop files from Finder (or anywhere outside the tree)** to copy them in, like the built-in Explorer: it asks before replacing a file with the same name, offers to add folders dropped on a workspace folder to the workspace, and opens a single dropped file when `explorer.autoOpenDroppedFile` is on.
