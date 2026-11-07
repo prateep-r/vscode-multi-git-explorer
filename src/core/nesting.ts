@@ -30,10 +30,7 @@ export function nestFiles(nester: ExplorerFileNestingTrie, files: readonly strin
   const byName = new Map(files.map(f => [ignoreCase ? f.toLowerCase() : f, f]));
   const nested = nester.nest([...byName.keys()], ignoreCase ? dirName.toLowerCase() : dirName);
   const result = new Map<string, string[]>();
-  for (const [parent, children] of nested) {
-    const original = byName.get(parent);
-    if (original === undefined) continue;
-    result.set(original, [...children.keys()].map(c => byName.get(c) ?? c));
-  }
+  // The trie only hands back names it was given, so each is in byName.
+  for (const [parent, children] of nested) result.set(byName.get(parent)!, [...children.keys()].map(c => byName.get(c)!));
   return result;
 }

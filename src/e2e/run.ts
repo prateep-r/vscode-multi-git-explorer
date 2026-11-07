@@ -97,12 +97,15 @@ async function main(): Promise<void> {
     { env, stdio: 'ignore' },
   );
 
+  // TEST_GREP runs only the tests whose names contain it, to work on one at a time.
+  const grep = process.env.TEST_GREP;
+  const chosen = grep ? tests.filter(([name]) => name.includes(grep)) : tests;
   let failed = 0;
   let browser: Browser | undefined;
   try {
     browser = await connect(port, child);
     const page = await workbench(browser);
-    for (const [name, fn] of tests) {
+    for (const [name, fn] of chosen) {
       try {
         await fn(page, path.resolve(workspace));
         console.log(`  ✔ ${name}`);
@@ -121,8 +124,8 @@ async function main(): Promise<void> {
     child.kill();
     rmSync(profile, { recursive: true, force: true });
   }
-  if (failed) throw new Error(`${failed} of ${tests.length} end-to-end tests failed`);
-  console.log(`  ${tests.length} end-to-end tests passed`);
+  if (failed) throw new Error(`${failed} of ${chosen.length} end-to-end tests failed`);
+  console.log(`  ${chosen.length} end-to-end tests passed`);
 }
 
 main().catch(error => {

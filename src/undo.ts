@@ -59,7 +59,8 @@ export class FileUndo {
       if (direction === 'undo') this.stack.undoneOp(op);
       else this.stack.redoneOp(op);
     } catch (error) {
-      void vscode.window.showErrorMessage(`Couldn't ${direction} '${op.label}': ${error instanceof Error ? error.message : String(error)}`);
+      // VS Code's file system API and our own checks fail only with Errors.
+      void vscode.window.showErrorMessage(`Couldn't ${direction} '${op.label}': ${(error as Error).message}`);
     } finally {
       this.updateContext();
     }
@@ -97,7 +98,8 @@ export class FileUndo {
         for (const d of op.deleted) {
           const uri = vscode.Uri.file(d.path);
           if (d.isDir) await vscode.workspace.fs.createDirectory(uri);
-          else await vscode.workspace.fs.writeFile(uri, d.content ?? new Uint8Array());
+          // snapshotForUndo keeps files only with their contents.
+          else await vscode.workspace.fs.writeFile(uri, d.content!);
         }
         await this.afterChange(op.deleted.map(d => ({ uri: vscode.Uri.file(d.path), isDir: d.isDir })));
         return;

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import type { Locator, Page } from 'playwright-core';
@@ -69,6 +70,13 @@ async function rightClick(page: Page, name: string): Promise<string[]> {
 async function closeMenu(page: Page): Promise<void> {
   await page.keyboard.press('Escape');
   await page.locator('.context-view .monaco-menu').waitFor({ state: 'detached' }).catch(() => undefined);
+}
+
+/** The system clipboard's text. */
+function readClipboard(): string {
+  if (process.platform === 'darwin') return execFileSync('pbpaste', { encoding: 'utf8' });
+  if (process.platform === 'win32') return execFileSync('powershell', ['-NoProfile', '-Command', 'Get-Clipboard -Raw'], { encoding: 'utf8' }).replace(/\r\n$/, '');
+  return execFileSync('xclip', ['-selection', 'clipboard', '-o'], { encoding: 'utf8' });
 }
 
 async function assertEventually(what: string, check: () => boolean | Promise<boolean>, timeoutMs = 10_000): Promise<void> {
@@ -161,6 +169,18 @@ test('shortcuts follow the focused row: Enter renames on macOS, Space opens keep
   assert.equal(await input.inputValue(), 'b.txt', 'renames the focused row, not the selected one');
   await page.keyboard.press('Escape');
   await input.waitFor({ state: 'hidden' });
+
+  // Copy Path acts on the focused row, or on the whole selection when the focused row is part of it.
+  const copyPath = process.platform === 'darwin' ? 'Alt+Meta+C' : 'Shift+Alt+C';
+  await select(page, 'a.txt');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press(copyPath);
+  await assertEventually('the focused row to be copied', () => readClipboard() === path.join(dir, 'b.txt'));
+  await select(page, 'a.txt');
+  await page.keyboard.press('Shift+ArrowDown'); // a.txt and b.txt selected, focus on b.txt
+  await page.keyboard.press(copyPath);
+  const both = [path.join(dir, 'a.txt'), path.join(dir, 'b.txt')].join(process.platform === 'win32' ? '\r\n' : '\n');
+  await assertEventually('the selection to be copied', () => readClipboard() === both);
 
   const files = pane(page, 'Files');
   const tab = (name: string) => page.locator('.tabs-container .tab', { hasText: name });

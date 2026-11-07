@@ -91,7 +91,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
  * VS Code reopens the side bar on the built-in Explorer, so switch it to the Repo Explorer
  * when a folder is open. Keyboard focus goes back to the editor, if one was focused.
  */
-async function showOnStartup(): Promise<void> {
+export async function showOnStartup(): Promise<void> {
   if (!vscode.workspace.workspaceFolders?.length) return;
   if (!vscode.workspace.getConfiguration('multiGitExplorer').get('showOnStartup', true)) return;
   const hadEditor = vscode.window.activeTextEditor !== undefined;

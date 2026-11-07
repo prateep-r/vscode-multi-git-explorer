@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { discoverRepos } from './core/discovery';
 import { readStatus } from './core/git';
 import { readCheapState, type CheapState } from './core/gitDir';
-import { isAtOrInside, isInside } from './core/paths';
+import { isInside, withSep } from './core/paths';
 import { gitPath, localFolders } from './workspace';
 import type { ChangedFile, StatusSummary } from './core/porcelain';
 import { Priority, TaskQueue, runPool } from './core/queue';
@@ -25,6 +25,8 @@ export interface RepoEntry {
 
 const CHEAP_READ_CONCURRENCY = 32;
 const CHANGE_DEBOUNCE_MS = 400;
+/** How long to wait after folders appear or go away before searching for repos again. */
+const DISCOVER_DEBOUNCE_MS = 500;
 const EMIT_BATCH_MS = 100;
 const FOCUS_THROTTLE_MS = 10_000;
 /** Files inside .git whose changes affect what we show. */
@@ -43,12 +45,16 @@ function config() {
 export class RepoStore implements vscode.Disposable {
   private readonly repos = new Map<string, RepoEntry>();
   /** Roots sorted longest first, so the first prefix match is the innermost repo. */
-  private rootsByLength: string[] = [];
+  /** Repo roots in sorted order, so the repos below a folder are next to each other. */
+  private sortedRoots: string[] = [];
   private scanned = new Set<string>();
+  /** Folders past the depth limit that the user scanned, searched again on every discovery. */
+  private readonly userScans = new Set<string>();
   private readonly queue = new TaskQueue(config().get('maxConcurrency', 6));
   private readonly debounce = new Map<string, NodeJS.Timeout>();
   private pendingChanged = new Set<string>();
   private emitTimer?: NodeJS.Timeout;
+  private discoverTimer?: NodeJS.Timeout;
   private lastFocusRefresh = 0;
   private backgroundTimer?: NodeJS.Timeout;
   private discovering?: Promise<void>;
@@ -70,9 +76,9 @@ export class RepoStore implements vscode.Disposable {
     const watcher = vscode.workspace.createFileSystemWatcher('**/*');
     this.disposables.push(
       watcher,
-      watcher.onDidChange(uri => this.onFileEvent(uri, false)),
-      watcher.onDidCreate(uri => this.onFileEvent(uri, true)),
-      watcher.onDidDelete(uri => this.onFileEvent(uri, true)),
+      watcher.onDidChange(uri => this.onFileEvent(uri, 'change')),
+      watcher.onDidCreate(uri => this.onFileEvent(uri, 'create')),
+      watcher.onDidDelete(uri => this.onFileEvent(uri, 'delete')),
       vscode.window.onDidChangeWindowState(state => state.focused && this.onWindowFocus()),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.discover()),
       vscode.workspace.onDidChangeConfiguration(e => this.onConfigChange(e)),
@@ -88,6 +94,7 @@ export class RepoStore implements vscode.Disposable {
     this.queue.clear();
     this.debounce.forEach(clearTimeout);
     clearTimeout(this.emitTimer);
+    clearTimeout(this.discoverTimer);
     clearInterval(this.backgroundTimer);
   }
 
@@ -101,17 +108,30 @@ export class RepoStore implements vscode.Disposable {
     return this.repos.get(root);
   }
 
-  /** The innermost repo that contains `fsPath` (or is `fsPath`). */
+  /**
+   * The innermost repo that contains `fsPath` (or is `fsPath`). It walks up
+   * from the path, so it takes as long as the path is deep, however many repos
+   * there are; drawing a row asks for it.
+   */
   repoContaining(fsPath: string): RepoEntry | undefined {
-    for (const root of this.rootsByLength) {
-      if (isAtOrInside(fsPath, root)) return this.repos.get(root);
-    }
-    return undefined;
+    let dir = fsPath;
+    while (!this.repos.has(dir) && path.dirname(dir) !== dir) dir = path.dirname(dir);
+    return this.repos.get(dir);
   }
 
-  /** Repos strictly below `dir`. */
+  /** Repos strictly below `dir`, found by a binary search of the sorted roots. */
   reposUnder(dir: string): RepoEntry[] {
-    return this.all().filter(r => isInside(r.root, dir));
+    const prefix = withSep(dir);
+    let low = 0;
+    let high = this.sortedRoots.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (this.sortedRoots[mid] < prefix) low = mid + 1;
+      else high = mid;
+    }
+    const found: RepoEntry[] = [];
+    for (let i = low; i < this.sortedRoots.length && this.sortedRoots[i].startsWith(prefix); i++) found.push(this.repos.get(this.sortedRoots[i])!);
+    return found;
   }
 
   isScanned(dir: string): boolean {
@@ -138,17 +158,25 @@ export class RepoStore implements vscode.Disposable {
   private async doDiscover(): Promise<void> {
     const roots = localFolders().map(f => f.uri.fsPath);
     const started = Date.now();
-    const result = await discoverRepos(roots, this.discoveryOptions());
+    // Folders scanned by hand stay scanned, as long as they're still in the workspace.
+    const scans = [...this.userScans].filter(dir => roots.some(root => isInside(dir, root)));
+    const [result, scanned] = await Promise.all([
+      discoverRepos(roots, this.discoveryOptions()),
+      discoverRepos(scans, this.discoveryOptions()),
+    ]);
+    result.repos.push(...scanned.repos);
+    result.scannedDirs.push(...scanned.scannedDirs);
 
     const found = new Set(result.repos.map(r => r.root));
     for (const root of this.repos.keys()) {
       if (!found.has(root)) this.repos.delete(root);
     }
-    const added: string[] = [];
+    const added: RepoEntry[] = [];
     for (const repo of result.repos) {
       if (!this.repos.has(repo.root)) {
-        this.repos.set(repo.root, this.newEntry(repo.root, repo.isSubmodule));
-        added.push(repo.root);
+        const entry = this.newEntry(repo.root, repo.isSubmodule);
+        this.repos.set(repo.root, entry);
+        added.push(entry);
       }
     }
     this.scanned = new Set(result.scannedDirs);
@@ -159,19 +187,20 @@ export class RepoStore implements vscode.Disposable {
 
     await this.readCheapStates(added);
     this._onDidDiscover.fire();
-    for (const root of added) this.requestStatus(root, Priority.Background);
+    for (const entry of added) this.requestStatus(entry, Priority.Background);
   }
 
   /** Searches one folder that was past the depth limit. */
   async scanFolder(dir: string): Promise<void> {
+    this.userScans.add(dir);
     const result = await discoverRepos([dir], this.discoveryOptions());
-    const added = result.repos.filter(r => !this.repos.has(r.root));
-    for (const repo of added) this.repos.set(repo.root, this.newEntry(repo.root, repo.isSubmodule));
+    const added = result.repos.filter(r => !this.repos.has(r.root)).map(r => this.newEntry(r.root, r.isSubmodule));
+    for (const entry of added) this.repos.set(entry.root, entry);
     result.scannedDirs.forEach(d => this.scanned.add(d));
     this.reindex();
-    await this.readCheapStates(added.map(r => r.root));
+    await this.readCheapStates(added);
     this._onDidDiscover.fire();
-    for (const repo of added) this.requestStatus(repo.root, Priority.User);
+    for (const entry of added) this.requestStatus(entry, Priority.User);
   }
 
   private discoveryOptions() {
@@ -194,7 +223,7 @@ export class RepoStore implements vscode.Disposable {
   }
 
   private reindex(): void {
-    this.rootsByLength = [...this.repos.keys()].sort((a, b) => b.length - a.length);
+    this.sortedRoots = [...this.repos.keys()].sort();
     void vscode.commands.executeCommand(
       'setContext',
       'multiGitExplorer.repoPaths',
@@ -202,11 +231,9 @@ export class RepoStore implements vscode.Disposable {
     );
   }
 
-  private async readCheapStates(roots: string[]): Promise<void> {
-    await runPool(roots, CHEAP_READ_CONCURRENCY, async root => {
-      const entry = this.repos.get(root);
-      if (!entry) return;
-      entry.cheap = await readCheapState(root);
+  private async readCheapStates(entries: RepoEntry[]): Promise<void> {
+    await runPool(entries, CHEAP_READ_CONCURRENCY, async entry => {
+      entry.cheap = await readCheapState(entry.root);
       entry.view = this.describe(entry);
     });
   }
@@ -214,12 +241,10 @@ export class RepoStore implements vscode.Disposable {
   // ---- Refreshing ---------------------------------------------------------
 
   /** Asks for a status check unless one was already asked for. Cheap to call often. */
-  requestStatus(root: string, priority: number): void {
-    const entry = this.repos.get(root);
-    if (!entry) return;
-    if (entry.requested && !this.queue.has(root)) return;
+  requestStatus(entry: RepoEntry, priority: number): void {
+    if (entry.requested && !this.queue.has(entry.root)) return;
     entry.requested = true;
-    this.queue.enqueue(root, priority, () => this.check(root));
+    this.queue.enqueue(entry.root, priority, () => this.check(entry));
   }
 
   /** Re-reads a repo, even if nothing seems to have changed. */
@@ -227,7 +252,7 @@ export class RepoStore implements vscode.Disposable {
     const entry = this.repos.get(root);
     if (!entry) return;
     entry.requested = true;
-    this.queue.enqueue(root, priority, () => this.check(root));
+    this.queue.enqueue(root, priority, () => this.check(entry));
   }
 
   refreshAll(priority: number = Priority.Background): void {
@@ -243,9 +268,8 @@ export class RepoStore implements vscode.Disposable {
     return uri?.scheme === 'file' ? this.repoContaining(uri.fsPath) : undefined;
   }
 
-  private async check(root: string): Promise<void> {
-    const entry = this.repos.get(root);
-    if (!entry) return;
+  private async check(entry: RepoEntry): Promise<void> {
+    const { root } = entry;
     try {
       const [cheap, status] = await Promise.all([
         readCheapState(root),
@@ -256,8 +280,12 @@ export class RepoStore implements vscode.Disposable {
       entry.changes = new Map(status.files.map(file => [file.path, file]));
       entry.error = undefined;
     } catch (error) {
-      entry.error = error instanceof Error ? error.message : String(error);
-      entry.cheap = await readCheapState(root).catch(() => entry.cheap);
+      // readStatus fails only with a GitError.
+      entry.error = (error as Error).message;
+      // It reads .git by hand and never fails. Without .git, the repo is gone;
+      // the watcher may report only the files inside .git going away.
+      entry.cheap = await readCheapState(root);
+      if (!entry.cheap) this.scheduleDiscover();
       this.log.appendLine(`${root}: ${entry.error}`);
     }
     entry.view = this.describe(entry);
@@ -297,8 +325,8 @@ export class RepoStore implements vscode.Disposable {
 
   // ---- Events ---------------------------------------------------------------
 
-  private onFileEvent(uri: vscode.Uri, structural: boolean): void {
-    if (uri.scheme !== 'file') return;
+  /** For the watcher, which reports only files on disk, as only local folders are supported. */
+  private onFileEvent(uri: vscode.Uri, kind: 'change' | 'create' | 'delete'): void {
     const fsPath = uri.fsPath;
     const marker = `${path.sep}.git${path.sep}`;
     const gitIndex = fsPath.indexOf(marker);
@@ -310,17 +338,29 @@ export class RepoStore implements vscode.Disposable {
       return;
     }
 
-    if (structural) {
+    if (kind !== 'change') {
       const parent = path.dirname(fsPath);
       this._onDidChangeFolder.fire(parent);
       // A new or removed .git folder means a repo appeared or went away.
       if (path.basename(fsPath) === '.git' && (this.scanned.has(parent) || this.repos.has(parent))) {
-        void this.discover();
+        this.scheduleDiscover();
         return;
+      }
+      // So may anything that appears where repos are searched for, such as a
+      // folder made by git clone, which may be reported as the folder alone,
+      // and a searched folder that goes away. Searching is quick, and rarely
+      // needed, as files seldom change outside repos.
+      if (this.scanned.has(parent) && !this.repos.has(parent) && (kind === 'create' || this.scanned.has(fsPath))) {
+        this.scheduleDiscover();
       }
     }
     const repo = this.repoContaining(fsPath);
     if (repo) this.scheduleRefresh(repo.root);
+  }
+
+  private scheduleDiscover(): void {
+    clearTimeout(this.discoverTimer);
+    this.discoverTimer = setTimeout(() => void this.discover(), DISCOVER_DEBOUNCE_MS);
   }
 
   private onWindowFocus(): void {

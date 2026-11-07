@@ -83,7 +83,7 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
   private forRepo(fsPath: string): vscode.FileDecoration | undefined {
     const repo = this.store.get(fsPath);
     if (!repo) return undefined;
-    this.store.requestStatus(repo.root, Priority.Visible);
+    this.store.requestStatus(repo, Priority.Visible);
 
     const { view } = repo;
     const color = KIND_COLOR[view.kind];
@@ -117,7 +117,8 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
 
 /** The change recorded for a path, including files inside an untracked folder. */
 function findChange(repo: RepoEntry, fsPath: string): ChangedFile | undefined {
-  if (!repo.changes || fsPath === repo.root) return undefined;
+  // A repo's own row is decorated by forRepo, so fsPath is inside the repo.
+  if (!repo.changes) return undefined;
   let rel = repoRelative(repo.root, fsPath);
   const direct = repo.changes.get(rel) ?? repo.changes.get(`${rel}/`);
   if (direct) return direct;

@@ -53,3 +53,7 @@ test('isHidden (such as .gitignore) hides, and exceptions show it again', () => 
   assert.equal(checkEntry(rules, entry('a.log', { isHidden: () => true })).visible, false);
   assert.equal(checkEntry(rules, entry('logs/keep.log', { isHidden: () => true })).visible, true);
 });
+
+test('no files.exclude setting excludes nothing', () => {
+  assert.equal(checkEntry(parseExcludes(undefined), { relPath: 'a', name: 'a', isDir: false, parent: ROOT_STATE }).visible, true);
+});

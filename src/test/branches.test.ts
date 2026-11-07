@@ -10,20 +10,20 @@ after(() => tmp.cleanup());
 
 test('parseRefs reads tracking info and hides remote branches that are already local', () => {
   const lines = [
-    ['refs/heads/feat/sso', 'origin/feat/sso', '[ahead 2]', '2 hours ago'],
-    ['refs/heads/main', 'origin/main', '[ahead 1, behind 4]', '3 days ago'],
-    ['refs/heads/old', 'origin/old', '[gone]', '1 year ago'],
-    ['refs/heads/local-only', '', '', '1 week ago'],
-    ['refs/remotes/origin/HEAD', '', '', '3 days ago'],
-    ['refs/remotes/origin/main', '', '', '3 days ago'],
-    ['refs/remotes/origin/feat/payments', '', '', '5 hours ago'],
+    ['refs/heads/feat/sso', 'origin/feat/sso', '[ahead 2]', '2 hours ago', '*'],
+    ['refs/heads/main', 'origin/main', '[ahead 1, behind 4]', '3 days ago', ' '],
+    ['refs/heads/old', 'origin/old', '[gone]', '1 year ago', ' '],
+    ['refs/heads/local-only', '', '', '1 week ago', ' '],
+    ['refs/remotes/origin/HEAD', '', '', '3 days ago', ' '],
+    ['refs/remotes/origin/main', '', '', '3 days ago', ' '],
+    ['refs/remotes/origin/feat/payments', '', '', '5 hours ago', ' '],
   ];
   const branches = parseRefs(lines.map(l => l.join('\0')).join('\n') + '\n');
   assert.deepEqual(branches.local, [
-    { name: 'feat/sso', upstream: 'origin/feat/sso', ahead: 2, behind: 0, gone: false, when: '2 hours ago' },
-    { name: 'main', upstream: 'origin/main', ahead: 1, behind: 4, gone: false, when: '3 days ago' },
-    { name: 'old', upstream: 'origin/old', ahead: 0, behind: 0, gone: true, when: '1 year ago' },
-    { name: 'local-only', upstream: undefined, ahead: 0, behind: 0, gone: false, when: '1 week ago' },
+    { name: 'feat/sso', upstream: 'origin/feat/sso', ahead: 2, behind: 0, gone: false, when: '2 hours ago', current: true },
+    { name: 'main', upstream: 'origin/main', ahead: 1, behind: 4, gone: false, when: '3 days ago', current: false },
+    { name: 'old', upstream: 'origin/old', ahead: 0, behind: 0, gone: true, when: '1 year ago', current: false },
+    { name: 'local-only', upstream: undefined, ahead: 0, behind: 0, gone: false, when: '1 week ago', current: false },
   ]);
   assert.deepEqual(branches.remote, [{ name: 'origin/feat/payments', localName: 'feat/payments', when: '5 hours ago' }]);
 });
@@ -82,4 +82,15 @@ test('isValidBranchName uses git rules', async () => {
   assert.equal(await isValidBranchName(repo, 'feat/new-thing'), true);
   assert.equal(await isValidBranchName(repo, 'has space'), false);
   assert.equal(await isValidBranchName(repo, 'bad..name'), false);
+});
+
+test('a new branch made without a starting point starts at HEAD', async () => {
+  const { dir, cleanup } = makeTempDir();
+  try {
+    const repo = makeRepo(path.join(dir, 'repo'));
+    assert.deepEqual(await switchBranch(repo, { create: 'from-head' }), { ok: true });
+    assert.equal(git(repo, 'branch', '--show-current').trim(), 'from-head');
+  } finally {
+    cleanup();
+  }
 });

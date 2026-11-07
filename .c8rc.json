@@ -1,0 +1,9 @@
+{
+  "all": true,
+  "src": ["src"],
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/test/**", "src/integration/**", "src/e2e/**", "src/core/vs/**", "src/typings/**"],
+  "excludeAfterRemap": true,
+  "reporter": ["text", "html"],
+  "reportsDirectory": "coverage"
+}

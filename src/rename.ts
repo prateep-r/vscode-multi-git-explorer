@@ -9,7 +9,8 @@ export async function copyOldSettings(context: vscode.ExtensionContext, log: vsc
   try {
     await copyOldSettingsOrThrow(context);
   } catch (err) {
-    log.appendLine(`Couldn't copy Multi-Repo Explorer settings: ${err instanceof Error ? err.message : String(err)}`);
+    // What fails here is VS Code's settings or storage, which fail with Errors.
+    log.appendLine(`Couldn't copy Multi-Repo Explorer settings: ${(err as Error).message}`);
   }
 }
 

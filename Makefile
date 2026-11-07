@@ -2,7 +2,7 @@ VSCE := npx --no-install vsce
 VSIX := multi-git-explorer.vsix
 
 .DEFAULT_GOAL := help
-.PHONY: help install compile test package release release-patch release-minor release-major
+.PHONY: help install compile test coverage package release release-patch release-minor release-major
 
 help: ## Show this list
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-15s %s\n", $$1, $$2}'
@@ -15,6 +15,9 @@ compile: ## Compile TypeScript into out/
 
 test: ## Run the unit tests
 	npm test
+
+coverage: ## Run every test suite and check they cover 100% of the code
+	scripts/coverage.sh
 
 package: ## Build multi-git-explorer.vsix
 	rm -f $(VSIX)

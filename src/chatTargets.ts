@@ -64,6 +64,7 @@ async function copyMentions(rows: Picked[], target?: ChatTarget): Promise<void> 
   const installed = TARGETS.filter(t => vscode.extensions.getExtension(t.extensionId) !== undefined);
   const chat = target ?? (installed.length === 1 ? installed[0] : undefined);
   if (chat) await Promise.resolve(chat.focus()).catch(() => undefined);
+  /* c8 ignore next -- the other system's key; the tests run on one system at a time */
   const paste = process.platform === 'darwin' ? 'Cmd+V' : 'Ctrl+V';
   void vscode.window.showInformationMessage(`Copied ${text} — press ${paste} in ${chat ? `the ${chat.name}` : 'your AI'} chat to add it.`);
 }

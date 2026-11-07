@@ -132,3 +132,45 @@ test('checkIgnore reports ignored paths like the git extension, leaving out path
     temp.cleanup();
   }
 });
+
+test('runGit reports a git that fails to start, and one that runs too long', async () => {
+  await assert.rejects(runGit(tmp.dir, ['status'], { gitPath: path.join(tmp.dir, 'no-such-git') }), (error: Error) => /ENOENT/.test(error.message));
+  await assert.rejects(runGit(tmp.dir, ['5'], { gitPath: 'sleep', timeoutMs: 50 }), /git 5 timed out/);
+});
+
+test('checkIgnore asks git nothing for no paths', async () => {
+  assert.deepEqual(await checkIgnore(path.join(tmp.dir, 'not-a-repo'), []), new Set());
+});
+
+test('discoverRepos skips folders it cannot read, and with depth 0 looks at the roots only', async () => {
+  const root = path.join(tmp.dir, 'depth0');
+  makeRepo(path.join(root, 'inner'));
+  assert.deepEqual((await discoverRepos([root], { maxDepth: 0, exclude: new Set() })).repos, []);
+  const missing = await discoverRepos([path.join(tmp.dir, 'missing')], { maxDepth: 3, exclude: new Set() });
+  assert.deepEqual(missing, { repos: [], scannedDirs: [] });
+});
+
+test('readCheapState reads .git by hand: rebases, cherry-picks, reverts, and odd files', async () => {
+  const fake = (files: Record<string, string>) => {
+    const root = path.join(tmp.dir, 'fake', String(Object.keys(files).length), String(Math.random()).slice(2));
+    for (const [name, text] of Object.entries(files)) write(path.join(root, '.git', name), text);
+    return root;
+  };
+  let state = await readCheapState(fake({ HEAD: 'ref: refs/heads/topic\n', 'rebase-apply/next': '2', 'rebase-apply/last': '3', 'rebase-apply/head-name': 'refs/heads/topic' }));
+  assert.deepEqual(state?.operation, { kind: 'rebase', step: 2, total: 3, branch: 'topic' });
+  assert.equal(state?.hasRemote, false, 'no config file');
+  state = await readCheapState(fake({ HEAD: '', 'rebase-merge/msgnum': 'x', 'rebase-merge/end': '0', 'rebase-merge/head-name': 'detached HEAD' }));
+  assert.deepEqual(state?.operation, { kind: 'rebase', step: undefined, total: undefined, branch: undefined });
+  assert.equal(state?.branch, undefined);
+  assert.equal(state?.detachedOid, undefined, 'an empty HEAD is neither');
+  assert.deepEqual((await readCheapState(fake({ HEAD: 'ref: refs/heads/main', CHERRY_PICK_HEAD: 'x' })))?.operation, { kind: 'cherry-pick' });
+  assert.deepEqual((await readCheapState(fake({ HEAD: 'ref: refs/heads/main', REVERT_HEAD: 'x' })))?.operation, { kind: 'revert' });
+  assert.equal((await readCheapState(fake({})))?.branch, undefined, 'no HEAD file');
+  assert.equal(await readCheapState(path.join(tmp.dir, 'no-repo-here')), undefined);
+  const badLink = path.join(tmp.dir, 'bad-link');
+  write(path.join(badLink, '.git'), 'not a gitdir line\n');
+  assert.equal(await readCheapState(badLink), undefined, 'a .git file without gitdir:');
+  const emptyLink = path.join(tmp.dir, 'empty-link');
+  write(path.join(emptyLink, '.git'), '');
+  assert.equal(await readCheapState(emptyLink), undefined, 'an empty .git file');
+});

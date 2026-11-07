@@ -75,7 +75,7 @@ export class AutoReveal implements vscode.Disposable {
   private excludesFor(root: string): ParsedExpression {
     let matches = this.excludes.get(root);
     if (!matches) {
-      const value = vscode.workspace.getConfiguration('explorer', vscode.Uri.file(root)).get<object>('autoRevealExclude') ?? {};
+      const value = vscode.workspace.getConfiguration('explorer', vscode.Uri.file(root)).get<object>('autoRevealExclude', {});
       matches = parse(JSON.parse(JSON.stringify(value)) as IExpression);
       this.excludes.set(root, matches);
     }

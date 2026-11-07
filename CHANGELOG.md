@@ -9,6 +9,13 @@
   - `explorer.decorations.colors` and `explorer.decorations.badges` turn off row colors and badges. Git Repositories keeps them.
   - `explorer.copyPathSeparator` sets the separator Copy Path uses. Several paths are copied with Windows line endings on Windows.
   - `explorer.enableDragAndDrop` turns off dropping items in the tree.
+- Fixed **Reveal in Multi-Git Explorer** on a file outside the workspace, which stopped the extension.
+- Fixed **Refresh** forgetting the repos found with **Scan This Folder**.
+- Repos that appear or go away on disk, such as with `git clone` or by deleting their folder, now show up or disappear without **Refresh**.
+- A `.gitignore` written right after it's made, or made and removed quickly, is now read correctly with `explorer.excludeGitIgnore` on.
+- **Copy Relative Path** on a workspace folder copies its name instead of its full path.
+- The file tree finds the repo of each row faster: drawing rows no longer gets slower with more repos.
+- **Switch Branch** marks the current branch from git itself, so it's right even while the repo's status is a moment old.
 - Like the built-in Explorer, symbolic links show `⤷`, files of unknown type `?`, and workspace folders that can't be read `!`, and excluded items shown because an editor has them open are dimmed.
 
 ## 1.3.1

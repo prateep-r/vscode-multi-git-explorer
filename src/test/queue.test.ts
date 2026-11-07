@@ -75,3 +75,23 @@ test('a failing job does not stop the queue', async () => {
   await queue.onIdle();
   assert.equal(ran, true);
 });
+
+test('a raised concurrency limit starts waiting jobs at once, and an idle queue is idle right away', async () => {
+  const queue = new TaskQueue(1);
+  await queue.onIdle();
+  let running = 0;
+  let release!: () => void;
+  const gate = new Promise<void>(r => (release = r));
+  for (const key of ['a', 'b', 'c']) {
+    queue.enqueue(key, 0, async () => {
+      running++;
+      await gate;
+    });
+  }
+  assert.equal(running, 1);
+  queue.setConcurrency(3);
+  assert.equal(running, 3);
+  queue.setConcurrency(0);
+  release();
+  await queue.onIdle();
+});

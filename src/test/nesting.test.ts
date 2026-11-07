@@ -24,3 +24,10 @@ test('names are compared without case where the disk ignores it, and keep their 
   const nests = nestFiles(nester, ['Package.json', 'package-lock.json'], 'x', true);
   assert.deepEqual(nests.get('Package.json'), ['package-lock.json']);
 });
+
+test('patterns that are not an object nest nothing', () => {
+  for (const patterns of [undefined, null, 'x']) {
+    const nests = nestFiles(makeNester(patterns, false), ['a.ts', 'a.js'], 'src', false);
+    assert.deepEqual([...nests.values()], [[], []]);
+  }
+});

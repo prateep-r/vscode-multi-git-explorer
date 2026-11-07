@@ -4,25 +4,20 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSyn
 import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import type { MultiGitExplorerApi } from '../extension';
 import type { ExplorerNode } from '../views/repoExplorer';
 import { toReposViewUri, toViewUri } from '../views/viewUri';
-
-const sample = process.env.SAMPLE_WORKSPACE!;
-const at = (...parts: string[]) => path.join(sample, ...parts);
-
-async function waitFor<T>(what: string, check: () => T | undefined | false, timeoutMs = 30_000): Promise<T> {
-  const started = Date.now();
-  for (;;) {
-    const value = check();
-    if (value) return value;
-    if (Date.now() - started > timeoutMs) throw new Error(`Timed out waiting for ${what}`);
-    await new Promise(r => setTimeout(r, 50));
-  }
-}
-
-const tests: [string, (api: MultiGitExplorerApi) => Promise<void>][] = [];
-const test = (name: string, fn: (api: MultiGitExplorerApi) => Promise<void>) => tests.push([name, fn]);
+import { registerChatTargetTests } from './chatTargetTests';
+import { registerEdgeCaseTests } from './edgeCaseTests';
+import { registerExplorerTests } from './explorerTests';
+import { registerFileCommandTests } from './fileCommandTests';
+import { registerGitCommandTests } from './gitCommandTests';
+import { registerPathCommandTests } from './pathCommandTests';
+import { registerPerformanceTests } from './performanceTests';
+import { at, dialogs, runAll, sample, test, waitFor, withScratch } from './harness';
+import { registerStartupTests } from './startupTests';
+import { registerStoreTests } from './storeTests';
+import { registerUndoTests } from './undoTests';
+import { registerViewTests } from './viewTests';
 
 test('finds every repo within the depth limit and checks them all', async ({ store }) => {
   const started = Date.now();
@@ -318,45 +313,6 @@ test('New File and New Folder create items in the chosen folder and open the fil
   }
 });
 
-/** Warning dialogs shown by `withScratch` tests, which answer each with its last button. */
-const dialogs: string[] = [];
-
-/** Runs `fn` with a scratch folder in docs/ holding a.txt and sub/, and settings that skip confirmations. */
-async function withScratch(fn: (dir: string, node: (rel: string, isDir?: boolean) => ExplorerNode) => Promise<void>) {
-  const dir = at('docs', 'scratch');
-  rmSync(dir, { recursive: true, force: true });
-  mkdirSync(path.join(dir, 'sub'), { recursive: true });
-  writeFileSync(path.join(dir, 'a.txt'), 'a\n');
-  const settings: [string, string, unknown][] = [
-    ['explorer', 'confirmDelete', false],
-    ['explorer', 'confirmDragAndDrop', false],
-    ['files', 'enableTrash', false],
-  ];
-  for (const [section, key, value] of settings) {
-    await vscode.workspace.getConfiguration(section).update(key, value, vscode.ConfigurationTarget.Global);
-  }
-  const clipboard = await vscode.env.clipboard.readText();
-  // Tests can't show modal dialogs, so answer them as the user would.
-  const window = vscode.window as { showWarningMessage: (...args: unknown[]) => Thenable<unknown> };
-  const showWarning = window.showWarningMessage;
-  window.showWarningMessage = async (message: unknown, ...rest: unknown[]) => {
-    dialogs.push(String(message));
-    return rest[rest.length - 1];
-  };
-  dialogs.length = 0;
-  try {
-    await fn(dir, (rel, isDir = false) => ({ uri: vscode.Uri.file(path.join(dir, rel)), isDir }));
-  } finally {
-    window.showWarningMessage = showWarning;
-    await vscode.env.clipboard.writeText(clipboard);
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    for (const [section, key] of settings) {
-      await vscode.workspace.getConfiguration(section).update(key, undefined, vscode.ConfigurationTarget.Global);
-    }
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
 test('Copy, Cut and Paste copy and move items like the built-in Explorer', () =>
   withScratch(async (dir, node) => {
     await vscode.commands.executeCommand('multiGitExplorer.copy', node('a.txt'));
@@ -535,23 +491,6 @@ test('explorer.sortOrder and its options sort the file tree like the built-in Ex
     } finally {
       for (const key of ['sortOrder', 'sortOrderLexicographicOptions', 'sortOrderReverse']) await set(key, undefined);
     }
-  }));
-
-test('shortcuts act on the focused row, or the selection it is part of, like the built-in Explorer', ({ explorer }) =>
-  withScratch(async (dir, node) => {
-    const tree = (explorer as unknown as { treeView: vscode.TreeView<ExplorerNode> }).treeView;
-    await vscode.commands.executeCommand('workbench.view.extension.multiGitExplorer');
-    await tree.reveal(node('sub', true), { select: true, focus: true });
-    await vscode.commands.executeCommand('list.focusDown'); // focus moves to a.txt, the selection stays on sub
-    assert.equal((await explorer.focusedRow())?.uri.fsPath, path.join(dir, 'a.txt'));
-    assert.deepEqual(tree.selection.map(n => path.basename(n.uri.fsPath)), ['sub'], 'finding the focused row leaves the selection alone');
-    await vscode.commands.executeCommand('multiGitExplorer.copyPath', { keyboard: true });
-    assert.equal(await vscode.env.clipboard.readText(), path.join(dir, 'a.txt'), 'the focused row, as it is not selected');
-    await vscode.commands.executeCommand('list.toggleSelection'); // a.txt joins the selection
-    await vscode.commands.executeCommand('multiGitExplorer.copyPath', { keyboard: true });
-    assert.equal(await vscode.env.clipboard.readText(), [path.join(dir, 'sub'), path.join(dir, 'a.txt')].join('\n'), 'the whole selection');
-    await vscode.commands.executeCommand('multiGitExplorer.openPreserveFocus', { keyboard: true });
-    await waitFor('a.txt to open', () => vscode.window.activeTextEditor?.document.uri.fsPath === path.join(dir, 'a.txt'));
   }));
 
 test('files with problems are colored and counted, and cut rows are dimmed, like the built-in Explorer', ({ problems, cut, files }) =>
@@ -861,24 +800,25 @@ test('file operations can be undone and redone, like in the built-in Explorer', 
     }
   }));
 
+registerStartupTests();
+registerStoreTests();
+registerUndoTests();
+registerFileCommandTests();
+registerPathCommandTests();
+registerViewTests();
+registerExplorerTests();
+registerEdgeCaseTests();
+registerChatTargetTests();
+
+// These change the sample repos, so they go last.
+registerGitCommandTests();
+// It opens every folder, which scans the ones past the depth limit, so it runs after the tests of that.
+registerPerformanceTests();
+
 test('every command in package.json is registered', async () => {
   const manifest = vscode.extensions.getExtension('prateep-r.multi-git-explorer')!.packageJSON;
   const registered = new Set(await vscode.commands.getCommands(true));
   for (const { command } of manifest.contributes.commands) assert.ok(registered.has(command), command);
 });
 
-export async function run(): Promise<void> {
-  const api = await vscode.extensions.getExtension<MultiGitExplorerApi>('prateep-r.multi-git-explorer')!.activate();
-  let failed = 0;
-  for (const [name, fn] of tests) {
-    try {
-      await fn(api);
-      console.log(`  ✔ ${name}`);
-    } catch (error) {
-      failed++;
-      console.log(`  ✘ ${name}\n    ${error instanceof Error ? error.message : error}`);
-    }
-  }
-  if (failed) throw new Error(`${failed} of ${tests.length} integration tests failed`);
-  console.log(`  ${tests.length} integration tests passed`);
-}
+export const run = (): Promise<void> => runAll('integration');

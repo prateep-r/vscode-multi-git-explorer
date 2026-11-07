@@ -94,3 +94,19 @@ test('webUrl links files and folders on each kind of site', () => {
     'https://git.corp/projects/PROJ/repos/repo/browse/src/a%20b.ts?at=abc',
   );
 });
+
+test('parseRemote takes git:// and git+ssh:// remotes, and rejects other schemes and empty paths', () => {
+  assert.deepEqual(parseRemote('git://example.com/acme/app.git'), { origin: 'https://example.com', path: 'acme/app', host: 'example.com' });
+  assert.deepEqual(parseRemote('git+ssh://git@example.com/acme/app'), { origin: 'https://example.com', path: 'acme/app', host: 'example.com' });
+  assert.equal(parseRemote('ftp://example.com/acme/app.git'), undefined);
+  assert.equal(parseRemote('https://example.com/.git'), undefined);
+});
+
+test('self-hosted Bitbucket is recognized by name, and links keep its context path', () => {
+  const repo: WebRepo = { origin: 'https://bitbucket.acme.io', path: 'stash/scm/PROJ/app', host: 'bitbucket.acme.io' };
+  assert.equal(guessHostKind({ ...repo, path: 'PROJ/app' }), 'bitbucket-server');
+  assert.equal(
+    webUrl(repo, 'bitbucket-server', { ref: 'main', isCommit: false, relPath: 'src/a.ts', isDir: false }),
+    'https://bitbucket.acme.io/stash/projects/PROJ/repos/app/browse/src/a.ts?at=refs%2Fheads%2Fmain',
+  );
+});

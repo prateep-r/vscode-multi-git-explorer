@@ -20,3 +20,7 @@ test('explorer.autoRevealExclude checks the file and every folder above it', () 
   assert.equal(isRevealExcluded(matches, 'src/app.js', name => name === 'app.ts'), true, 'when clauses see the siblings');
   assert.equal(isRevealExcluded(matches, 'src/app.js', () => false), false);
 });
+
+test('the workspace folder itself is never excluded', () => {
+  assert.equal(isRevealExcluded(parse({ '**': true }), ''), false);
+});

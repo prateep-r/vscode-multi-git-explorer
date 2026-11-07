@@ -1256,13 +1256,15 @@
     "vscode:prepublish": "npm run compile",
     "package": "vsce package",
     "test:integration": "tsc -p . && node out/integration/run.js",
-    "test:e2e": "tsc -p . && node out/e2e/run.js"
+    "test:e2e": "tsc -p . && node out/e2e/run.js",
+    "coverage": "scripts/coverage.sh"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.95.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.1.0",
+    "c8": "^12.0.0",
     "playwright-core": "^1.48.2",
     "typescript": "^5.6.0"
   }

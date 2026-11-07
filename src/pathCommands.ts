@@ -7,7 +7,7 @@ import { guessHostKind, parseRemote, webUrl } from './core/remoteUrl';
 import type { RepoEntry, RepoStore } from './store';
 import { activeFile } from './views/autoReveal';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
-import { folderOf, gitPath, isKeyboard, isMultiRoot, onDisk, pickRows } from './workspace';
+import { folderOf, gitPath, isKeyboard, isMultiRoot, isWorkspaceFolder, onDisk, pickRows } from './workspace';
 
 /**
  * Commands of the built-in Explorer's right-click menu that don't change
@@ -127,27 +127,25 @@ export function registerPathCommands(
       return undefined;
     }),
 
-    command('multiGitExplorer.openWith', nodes => {
-      const file = nodes.find(n => !n.isDir);
-      return file ? vscode.commands.executeCommand('explorer.openWith', file.uri) : undefined;
-    }),
+    // Its menu item is on files, so the clicked row, or one in the selection with it, is a file.
+    command('multiGitExplorer.openWith', nodes => vscode.commands.executeCommand('explorer.openWith', nodes.find(n => !n.isDir)!.uri)),
 
     vscode.commands.registerCommand('multiGitExplorer.addRootFolder', () =>
       vscode.commands.executeCommand('workbench.action.addRootFolder'),
     ),
 
+    // Its menu item is on workspace folder rows, so there are workspace folders.
     command('multiGitExplorer.removeRootFolder', nodes => {
       const remove = new Set(nodes.map(n => n.uri.fsPath));
-      const folders = vscode.workspace.workspaceFolders ?? [];
+      const folders = vscode.workspace.workspaceFolders!;
       const kept = folders.filter(f => !remove.has(f.uri.fsPath));
-      if (kept.length === folders.length) return;
       // One call, since VS Code doesn't take another update until the first is applied.
       vscode.workspace.updateWorkspaceFolders(0, folders.length, ...kept.map(f => ({ uri: f.uri, name: f.name })));
     }),
 
+    // Its menu item is on files, as for Open With.
     command('multiGitExplorer.openTimeline', async nodes => {
-      const file = nodes.find(n => !n.isDir);
-      if (!file) return;
+      const file = nodes.find(n => !n.isDir)!;
       // The Timeline view follows the active editor, so open the file first.
       await vscode.commands.executeCommand('vscode.open', file.uri, { preview: true, preserveFocus: true });
       await vscode.commands.executeCommand('files.openTimeline');
@@ -158,7 +156,8 @@ export function registerPathCommands(
       void vscode.commands.executeCommand('setContext', 'multiGitExplorer.compareSelected', true);
     }),
 
-    command('multiGitExplorer.compareWithSelected', nodes => (compareWith ? compare(compareWith, nodes[0].uri) : undefined)),
+    // Its menu item shows only once a file was selected for compare.
+    command('multiGitExplorer.compareWithSelected', nodes => compare(compareWith!, nodes[0].uri)),
 
     command('multiGitExplorer.compareSelected', nodes => {
       const files = nodes.filter(n => !n.isDir);
@@ -181,6 +180,7 @@ function compare(left: vscode.Uri, right: vscode.Uri): Thenable<unknown> {
 
 /** Copies lines to the clipboard; `what` is singular and gets an "s" for several. */
 /** Several copied paths go one per line, with Windows' line ending there, as in the built-in Explorer. */
+/* c8 ignore next -- the other systems' line ending; the tests run on one system at a time */
 const PATH_LINES = process.platform === 'win32' ? '\r\n' : '\n';
 
 async function copy(lines: string[], what: string, lineEnd = '\n'): Promise<void> {
@@ -195,7 +195,8 @@ function fullPath(uri: vscode.Uri): string {
 
 /** A path relative to its workspace folder, with the separator `explorer.copyRelativePathSeparator` asks for. */
 function relativePath(uri: vscode.Uri): string {
-  const rel = vscode.workspace.asRelativePath(uri, isMultiRoot()) || path.basename(uri.fsPath);
+  // A workspace folder itself has no path relative to it, so it's given by name.
+  const rel = isWorkspaceFolder(uri.fsPath) ? path.basename(uri.fsPath) : vscode.workspace.asRelativePath(uri, isMultiRoot());
   return rel.split('/').join(separator('copyRelativePathSeparator'));
 }
 
@@ -207,9 +208,9 @@ function separator(setting: 'copyPathSeparator' | 'copyRelativePathSeparator'): 
 
 /** A folder in the form the Search view's "files to include" expects, such as `./src/utils`. */
 function searchPath(folder: vscode.Uri): string {
+  // A workspace folder itself comes back as its full path, which the Search view takes too.
   const rel = vscode.workspace.asRelativePath(folder, isMultiRoot());
-  if (rel === folder.fsPath) return literalGlob(folder.fsPath);
-  return rel ? `./${literalGlob(rel)}` : '.';
+  return rel === folder.fsPath ? literalGlob(folder.fsPath) : `./${literalGlob(rel)}`;
 }
 
 /** Web links to rows on their repo's site, telling the user when one can't be made. */

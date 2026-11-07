@@ -218,8 +218,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       // The row's name changed, so have VS Code ask for it again.
       setTimeout(() => this._onDidChangeTreeData.fire(node), 0);
     }
-    const uri = node?.uri ?? folders[0]?.uri;
-    if (!uri) return [];
+    // Without a row there is exactly one workspace folder, as checked above.
+    const uri = node?.uri ?? folders[0].uri;
     if (!this.filtering) {
       if (node) this.scanOnExpand(uri.fsPath);
       return this.readDir(uri);
@@ -291,7 +291,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
    */
   async reveal(uri: vscode.Uri, isDir: boolean, focus = false): Promise<void> {
     const tree = this.treeView;
-    if (!tree) return;
+    // Only what's in the workspace is in the tree, such as not a file opened from elsewhere.
+    if (!tree || !closestFolder(uri.fsPath)) return;
     const selected = () => tree.selection.some(n => n.uri.fsPath === uri.fsPath);
     for (let attempt = 0; attempt < 2 && !selected(); attempt++) {
       await this.resolvePath(uri.fsPath);
@@ -323,7 +324,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       if (nestParent) return nestParent;
     }
     const head = headOf(node);
-    if (isWorkspaceFolder(head)) return undefined;
+    // A workspace folder is at the top; and outside the workspace there is nothing above, or
+    // VS Code would walk up to the disk's root and on.
+    if (isWorkspaceFolder(head) || !closestFolder(head)) return undefined;
     const parent = vscode.Uri.file(path.dirname(head));
     if (folders.length === 1 && folders[0].uri.fsPath === parent.fsPath) return undefined;
     // A compact row is the parent of what's in its last folder.
@@ -519,6 +522,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       entry => !(entry.isDir && excluded.has(entry.name)),
     );
     if (existsSync(path.join(uri.fsPath, '.gitignore'))) await this.loadIgnoreFile(uri.fsPath);
+    else this.forgetIgnoreFile(uri.fsPath);
     // A deleted file is listed too, so siblings for `when` clauses come from the disk.
     const visible = this.visibleEntries(uri.fsPath, entries, name => existsSync(path.join(uri.fsPath, name)));
     return (await this.sorted(uri.fsPath, visible))
@@ -535,7 +539,8 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     try {
       entries = await vscode.workspace.fs.readDirectory(uri);
     } catch (error) {
-      if (isWorkspaceFolder(dir)) this.setMark(this.rootErrors, dir, error instanceof Error ? error.message : String(error));
+      // VS Code's file system API fails only with Errors (FileSystemError).
+      if (isWorkspaceFolder(dir)) this.setMark(this.rootErrors, dir, (error as Error).message);
       return [];
     }
     this.setMark(this.rootErrors, dir, undefined);
@@ -546,6 +551,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     const names = new Set(entries.map(([name]) => name));
     const hasSibling = (name: string) => names.has(name);
     if (names.has('.gitignore')) await this.loadIgnoreFile(dir);
+    else this.forgetIgnoreFile(dir);
     const listed = entries.map(([name, type]) => ({ name, isDir: (type & vscode.FileType.Directory) !== 0, hasNests: false }));
     // Like the built-in Explorer, files are nested before any are hidden; nested files aren't listed on their own.
     const nests = this.nestsIn(dir, listed);
@@ -733,6 +739,18 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     files.set(dir, new IgnoreFile(contents, vscode.Uri.file(dir).path, closestIgnoreFile(files, dir), ignoreCase));
   }
 
+  /**
+   * Drops the `.gitignore` read from `dir`, and those below, which were
+   * chained to it, so they're read again. Listing a folder does this too,
+   * since the watcher may miss a file made and removed in quick succession.
+   */
+  private forgetIgnoreFile(dir: string): boolean {
+    const files = this.ignoreFiles.get(closestFolder(dir)!);
+    if (!files?.delete(dir)) return false;
+    for (const below of [...files.keys()]) if (isInside(below, dir)) files.delete(below);
+    return true;
+  }
+
   /** Whether `.gitignore` hides an item, judged by the nearest `.gitignore` at or above it. */
   private isGitIgnored(root: string, fsPath: string, isDir: boolean): boolean {
     const files = this.ignoreFiles.get(root);
@@ -743,27 +761,22 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
   /** Keeps the `.gitignore` files in step with the disk, like the built-in Explorer. */
   private watchIgnoreFiles(): vscode.Disposable[] {
     const watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore');
-    const known = (uri: vscode.Uri) => {
-      const root = closestFolder(uri.fsPath);
-      return root ? this.ignoreFiles.get(root) : undefined;
+    // The watcher reports only files in the workspace, so each has a workspace folder.
+    const known = (uri: vscode.Uri) => this.ignoreFiles.get(closestFolder(uri.fsPath)!);
+    // A file written soon after it's made may be reported as made only, so
+    // both read it again if it was read before.
+    const reread = async (uri: vscode.Uri) => {
+      const files = known(uri);
+      if (!files) return;
+      if (files.has(path.dirname(uri.fsPath))) await this.loadIgnoreFile(path.dirname(uri.fsPath), true);
+      this.refreshAll();
     };
     return [
       watcher,
-      watcher.onDidChange(async uri => {
-        if (!known(uri)?.has(path.dirname(uri.fsPath))) return;
-        await this.loadIgnoreFile(path.dirname(uri.fsPath), true);
-        this.refreshAll();
-      }),
-      watcher.onDidCreate(uri => {
-        if (known(uri)) this.refreshAll();
-      }),
+      watcher.onDidChange(reread),
+      watcher.onDidCreate(reread),
       watcher.onDidDelete(uri => {
-        const files = known(uri);
-        if (files?.delete(path.dirname(uri.fsPath))) {
-          // The files below were chained to it, so read them again.
-          for (const dir of [...files.keys()]) if (isInside(dir, path.dirname(uri.fsPath))) files.delete(dir);
-          this.refreshAll();
-        }
+        if (this.forgetIgnoreFile(path.dirname(uri.fsPath))) this.refreshAll();
       }),
     ];
   }
@@ -809,11 +822,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
 
   /** The state of the deepest item at or above `fsPath` that the tree has judged. */
   private closestKnownState(fsPath: string): VisibilityState | undefined {
-    for (let dir = fsPath; ; dir = path.dirname(dir)) {
-      const state = this.visibility.get(dir);
-      if (state) return state;
-      if (path.dirname(dir) === dir) return undefined;
-    }
+    let dir = fsPath;
+    while (!this.visibility.has(dir) && path.dirname(dir) !== dir) dir = path.dirname(dir);
+    return this.visibility.get(dir);
   }
 
   /** Folder names in `multiGitExplorer.exclude`. */

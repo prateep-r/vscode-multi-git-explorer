@@ -73,3 +73,9 @@ test('a branch tracking a local branch (remote ".") falls back to a real remote'
   });
   assert.equal((await resolveRemoteTarget(git, { branch: 'topic' }))?.ref, 'topic');
 });
+
+test('no link without a ref or a URL', async () => {
+  assert.equal(await resolveRemoteTarget(fakeGit({ remote: 'origin' }), {}), undefined, 'detached, and HEAD unknown');
+  const noUrl = fakeGit({ 'config --get branch.main.remote': 'origin', 'config --get branch.main.merge': 'refs/heads/main' });
+  assert.equal(await resolveRemoteTarget(noUrl, { branch: 'main' }), undefined, 'the remote has no URL');
+});

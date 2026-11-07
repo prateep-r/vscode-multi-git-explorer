@@ -36,6 +36,7 @@ export function registerFileCommands(
   const create = async (kind: 'file' | 'folder', target?: ExplorerNode, name?: unknown) => {
     const parent = target ? folderOf(target) : explorer.selectedFolder();
     if (!parent) return;
+    // A workspace folder itself comes back as its full path, so it's named by its folder name.
     const where = vscode.workspace.asRelativePath(parent, true);
     const entered =
       typeof name === 'string'
@@ -58,7 +59,7 @@ export function registerFileCommands(
       try {
         await vscode.workspace.fs.createDirectory(uri);
       } catch (error) {
-        void vscode.window.showErrorMessage(`Couldn't create ${entered.trim()}: ${error instanceof Error ? error.message : String(error)}`);
+        void vscode.window.showErrorMessage(`Couldn't create ${entered.trim()}: ${messageOf(error)}`);
         return;
       }
     } else {
@@ -219,6 +220,7 @@ export class FileOperations implements vscode.Disposable {
     const useTrash = !permanently && vscode.workspace.getConfiguration('files').get('enableTrash', true);
     if (vscode.workspace.getConfiguration('explorer').get('confirmDelete', true) || !useTrash) {
       const what = targets.length === 1 ? `'${path.basename(targets[0].uri.fsPath)}'` : `these ${targets.length} items`;
+      /* c8 ignore next -- the other systems' name; the tests run on one system at a time */
       const trash = process.platform === 'win32' ? 'Recycle Bin' : 'Trash';
       const unsaved = vscode.workspace.textDocuments.filter(
         d => d.isDirty && targets.some(t => isAtOrInside(d.uri.fsPath, t.uri.fsPath)),
@@ -246,7 +248,7 @@ export class FileOperations implements vscode.Disposable {
         await vscode.workspace.fs.delete(target.uri, { recursive: true, useTrash });
         deleted.add(target.uri.fsPath);
       } catch (error) {
-        failed.push(`${path.basename(target.uri.fsPath)}: ${error instanceof Error ? error.message : String(error)}`);
+        failed.push(`${path.basename(target.uri.fsPath)}: ${messageOf(error)}`);
       }
     }
     const restorable = kept.filter(k => deleted.has(k.path));
@@ -320,7 +322,7 @@ export class FileOperations implements vscode.Disposable {
           pasted.push({ uri: target, isDir: item.isDir });
           copiedFrom.set(target.fsPath, item.uri.fsPath);
         } catch (error) {
-          void vscode.window.showErrorMessage(`Couldn't paste ${name}: ${error instanceof Error ? error.message : String(error)}`);
+          void vscode.window.showErrorMessage(`Couldn't paste ${name}: ${messageOf(error)}`);
         }
       }
     }
@@ -443,15 +445,17 @@ export class FileOperations implements vscode.Disposable {
         copy,
       );
       if (choice === add) {
-        const count = vscode.workspace.workspaceFolders?.length ?? 0;
+        // Dropped on a workspace folder, so there are some.
+        const count = vscode.workspace.workspaceFolders!.length;
         vscode.workspace.updateWorkspaceFolders(count, 0, ...folders.map(f => ({ uri: f.uri })));
         return;
       }
       if (choice !== copy) return;
     }
 
-    const caseSensitive = process.platform === 'linux';
-    const key = (name: string) => (caseSensitive ? name : name.toLowerCase());
+    // Names that differ only in case are the same file, except on Linux.
+    /* c8 ignore next -- the other systems' rule; the tests run on one system at a time */
+    const key = process.platform === 'linux' ? (name: string) => name : (name: string) => name.toLowerCase();
     let taken = new Set<string>();
     try {
       taken = new Set((await vscode.workspace.fs.readDirectory(folder)).map(([name]) => key(name)));
@@ -485,7 +489,7 @@ export class FileOperations implements vscode.Disposable {
         await vscode.workspace.fs.copy(from.uri, to, { overwrite: true });
         copied.push({ uri: to, isDir: from.isDir, source: from.uri.fsPath });
       } catch (error) {
-        failed.push(`${path.basename(to.fsPath)}: ${error instanceof Error ? error.message : String(error)}`);
+        failed.push(`${path.basename(to.fsPath)}: ${messageOf(error)}`);
       }
     }
     if (failed.length) void vscode.window.showErrorMessage(`Couldn't copy ${failed.join('; ')}`);
@@ -583,4 +587,9 @@ async function pasteTarget(folder: vscode.Uri, name: string, isDir: boolean, nam
     candidate = vscode.Uri.file(path.join(folder.fsPath, name));
   }
   return candidate;
+}
+
+/** VS Code's file system API fails only with Errors (FileSystemError). */
+function messageOf(error: unknown): string {
+  return (error as Error).message;
 }

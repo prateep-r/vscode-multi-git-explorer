@@ -12,3 +12,5 @@ Makefile
 .github/**
 .claude/**
 CONTRIBUTING.md
+coverage/**
+.c8rc.json

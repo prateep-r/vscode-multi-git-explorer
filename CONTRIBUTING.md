@@ -42,12 +42,13 @@ The Marketplace's **Details** tab shows `README.md`, so keep the README about us
 
 ## Tests
 
-There are four kinds, from fastest to closest to real use:
+There are five kinds, from fastest to closest to real use:
 
 | Kind | Command | What it covers | Time |
 | --- | --- | --- | --- |
 | Unit | `npm test` | Logic in `src/core/` with no VS Code: parsing `git status`, reading `.git`, discovery, the queue, state and badges, filtering, file names and paths, remote links, and the menus and shortcuts in `package.json` checked against every kind of row | ~2 s |
-| Integration | `npm run test:integration -- <workspace>` | The extension inside a real VS Code, through its API: discovery and status of 300 repos, the views, filters, diffs, switching branches, the file watcher, and every right-click command | ~1 min |
+| Integration | `npm run test:integration -- <workspace>` | The extension inside a real VS Code, through its API: discovery and status of 300 repos, the views, filters, diffs, switching branches, the file watcher, and every command, including its dialogs, failures and settings | ~2 min |
+| Multi-root | `npm run test:integration -- <workspace> --multi-root` | The same in a workspace of several folders, one inside another and one missing | ~20 s |
 | Chat | `npm run test:integration -- <workspace> --chat <extensions>` | Handing files to the real Claude Code and Codex extensions | ~30 s |
 | End to end | `npm run test:e2e -- <workspace>` | A real VS Code window driven like a user: clicking, right-clicking and reading the menus, keyboard shortcuts, dialogs, drag and drop, and the filter buttons | ~1 min |
 
@@ -70,7 +71,15 @@ npm run test:e2e -- /tmp/e2e-ws
 - Every run uses its own temporary VS Code profile, so your settings and extensions aren't touched. The integration tests set `multiGitExplorer.scanDepth` to 3 there, since the sample workspace has one repo 4 levels deep to test folders past the limit, and turn off `explorer.autoReveal` and `explorer.compactFolders`, which the tests of them turn back on.
 - If you run the tests from a terminal inside VS Code (or another Electron app), clear `ELECTRON_RUN_AS_NODE` first: `env -u ELECTRON_RUN_AS_NODE npm run …`.
 - The chat and integration tests borrow the system clipboard and put back what was there.
+- To run only some tests while working on them, set `TEST_GREP` to part of their names: `TEST_GREP="Switch Branch" npm run test:integration -- /tmp/sample-ws`. It works for the end-to-end tests too.
+- The integration tests answer VS Code's dialogs, pickers and input boxes with `stub()` from `src/integration/harness.ts`, which also holds the sample workspace's helpers. Each file there tests one part of the extension; `suite.ts` registers them in order, and the ones that change the sample repos run last.
 - The end-to-end tests start VS Code with `--remote-debugging-port` and drive it with [Playwright](https://playwright.dev) over the DevTools protocol. They turn on custom (HTML) menus and dialogs in the test profile so they can be read and clicked. `VSCODE_PATH` is optional; the usual install location is used otherwise. When a test fails, a screenshot is saved in `.e2e-screenshots/`.
+
+## Coverage
+
+`scripts/coverage.sh` (or `make coverage`) runs the unit, integration, multi-root and end-to-end tests on fresh sample workspaces, collecting V8 coverage from the extension host, and fails unless they cover 100% of lines, branches and functions. Files copied from VS Code (`src/core/vs/`) aren't counted. The report is written to `coverage/index.html`. It takes about 4 minutes.
+
+A few lines can't run on the machine running the tests, such as another system's name for the Trash. Those are marked `/* c8 ignore next -- <why> */`; anything else that isn't covered needs a test, or isn't needed.
 
 ## README images
 
@@ -91,7 +100,7 @@ The images are drawn as HTML from the sample workspace's real output. After chan
 | `src/chatTargets.ts` | Hand-off to Claude Code and Codex, and Copy to AI Chat |
 | `src/workspace.ts` | Helpers shared by the commands: workspace folders, `git.path`, and which rows a command acts on |
 | `src/test/` | Unit tests (`node:test`) |
-| `src/integration/` | Integration and chat tests, run inside VS Code by `@vscode/test-electron` |
+| `src/integration/` | Integration, multi-root and chat tests, run inside VS Code by `@vscode/test-electron`; `harness.ts` has their shared helpers |
 | `src/e2e/` | End-to-end tests, driving a VS Code window with Playwright |
 | `scripts/make-sample-repos.sh` | Makes the sample workspace the tests run on |
 | `media/` | The Activity Bar icon (shipped with the extension) |

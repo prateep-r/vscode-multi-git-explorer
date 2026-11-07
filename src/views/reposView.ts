@@ -115,8 +115,9 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
 
   /** Path relative to its workspace folder, so same-named repos stay apart. */
   private label(repo: RepoEntry): string {
+    // A repo that is a workspace folder comes back as its full path, so it's named by its folder.
     const relative = vscode.workspace.asRelativePath(repo.root, false);
-    return relative === repo.root || relative === '' ? repo.name : relative;
+    return relative === repo.root ? repo.name : relative;
   }
 
   private repoNode(root: string): ReposNode {

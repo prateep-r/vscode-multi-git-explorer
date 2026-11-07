@@ -39,3 +39,7 @@ test('the undo stack moves operations between done and undone', () => {
   stack.cancelUndo('c');
   assert.equal(stack.takeUndo(), 'c', 'an undo the user declined stays on the stack');
 });
+
+test('labels for pasting several files', () => {
+  assert.equal(undoLabel('paste', ['a', 'b']), 'Paste 2 files');
+});

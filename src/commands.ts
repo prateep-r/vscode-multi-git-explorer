@@ -116,7 +116,7 @@ export function registerCommands(
           ...gitRepo.state.mergeChanges,
           ...gitRepo.state.indexChanges,
           ...gitRepo.state.workingTreeChanges,
-          ...(gitRepo.state.untrackedChanges ?? []),
+          ...gitRepo.state.untrackedChanges,
         ]);
         if (changes.length === 0) {
           void vscode.window.showInformationMessage(`${repo.name} has no changes.`);
@@ -232,7 +232,8 @@ async function pickAndSwitchBranch(store: RepoStore, repo: RepoEntry): Promise<v
     return;
   }
 
-  const current = repo.status?.branch.detached ? undefined : (repo.status?.branch.head ?? repo.cheap?.branch);
+  // Asked from git with the branches, so it's right even if the status is a moment old.
+  const current = branches.local.find(b => b.current)?.name;
   const separator = (label: string): BranchPick => ({ label, kind: vscode.QuickPickItemKind.Separator });
   const items: BranchPick[] = [
     { label: '$(plus) Create new branch…', action: { create: true } },
@@ -373,10 +374,12 @@ function uniqueChanges(changes: GitChange[]): GitChange[] {
   return [...seen.values()];
 }
 
+/** Shows what failed; for git's own errors, its full output is a click away. */
 function showGitError(title: string, error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
-  const detail = error instanceof GitError ? error.stderr.trim() : undefined;
+  // Everything that fails here throws an Error: GitError from git, or one made from a result.
+  const { message } = error as Error;
+  const detail = error instanceof GitError ? error.stderr.trim() : '';
   void vscode.window.showErrorMessage(`${title}: ${message}`, ...(detail ? ['Show Details'] : [])).then(choice => {
-    if (choice) void vscode.window.showErrorMessage(detail!, { modal: true });
+    if (choice) void vscode.window.showErrorMessage(detail, { modal: true });
   });
 }

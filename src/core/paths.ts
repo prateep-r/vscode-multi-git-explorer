@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 /** `dir` with one path separator at the end. Drive roots such as `D:\` and `/` already have one. */
-function withSep(dir: string): string {
+export function withSep(dir: string): string {
   return dir.endsWith(path.sep) ? dir : dir + path.sep;
 }
 

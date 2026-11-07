@@ -9,6 +9,8 @@ export interface LocalBranch {
   gone: boolean;
   /** When its last commit was made, like "3 days ago". */
   when: string;
+  /** Checked out in this worktree. */
+  current: boolean;
 }
 
 export interface RemoteBranch {
@@ -25,7 +27,7 @@ export interface Branches {
   remote: RemoteBranch[];
 }
 
-const FORMAT = '%(refname)%00%(upstream:short)%00%(upstream:track)%00%(committerdate:relative)';
+const FORMAT = '%(refname)%00%(upstream:short)%00%(upstream:track)%00%(committerdate:relative)%00%(HEAD)';
 
 /** Parses `git for-each-ref --sort=-committerdate --format=<FORMAT>` for heads and remotes. */
 export function parseRefs(output: string): Branches {
@@ -33,7 +35,7 @@ export function parseRefs(output: string): Branches {
   const remotes: RemoteBranch[] = [];
   for (const line of output.split('\n')) {
     if (!line) continue;
-    const [ref, upstream, track, when] = line.split('\0');
+    const [ref, upstream, track, when, head] = line.split('\0');
     if (ref.startsWith('refs/heads/')) {
       const ahead = /ahead (\d+)/.exec(track);
       const behind = /behind (\d+)/.exec(track);
@@ -44,6 +46,7 @@ export function parseRefs(output: string): Branches {
         behind: behind ? Number(behind[1]) : 0,
         gone: track === '[gone]',
         when,
+        current: head === '*',
       });
     } else if (ref.startsWith('refs/remotes/') && !ref.endsWith('/HEAD')) {
       const name = ref.slice('refs/remotes/'.length);
@@ -88,8 +91,8 @@ export async function switchBranch(
     await runGit(root, args, options);
     return { ok: true };
   } catch (error) {
-    const stderr = error instanceof GitError ? error.stderr : String(error);
-    const message = error instanceof Error ? error.message : String(error);
+    // runGit fails only with a GitError.
+    const { stderr, message } = error as GitError;
     const blockedByChanges = /would be overwritten|commit your changes or stash them/i.test(stderr);
     return { ok: false, blockedByChanges, message };
   }

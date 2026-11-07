@@ -76,3 +76,7 @@ test('a file removed with git rm --cached shows once, as untracked', () => {
   assert.deepEqual(status.files, [{ path: 'f.txt', letter: 'U', staged: true, unstaged: true }]);
   assert.equal(status.changedFiles, 1);
 });
+
+test('a stash count that is not a number counts as none', () => {
+  assert.equal(parseStatusV2('# branch.oid abc\0# branch.head main\0# stash x\0').stash, 0);
+});

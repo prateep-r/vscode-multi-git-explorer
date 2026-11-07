@@ -40,7 +40,7 @@ export async function resolveGitDirs(root: string): Promise<GitDirs | undefined>
 
   let gitDir = dotGit;
   if (stat.isFile()) {
-    const match = /^gitdir:\s*(.+)$/m.exec((await readText(dotGit)) ?? '');
+    const match = /^gitdir:\s*(.+)$/m.exec(await readText(dotGit));
     if (!match) return undefined;
     gitDir = path.resolve(root, match[1].trim());
   }
@@ -63,12 +63,12 @@ export async function readCheapState(root: string): Promise<CheapState | undefin
 
   const state: CheapState = {
     operation,
-    hasRemote: /^\s*\[remote\s+"/m.test(config ?? ''),
+    hasRemote: /^\s*\[remote\s+"/m.test(config),
   };
-  const ref = /^ref:\s*refs\/heads\/(.+)$/m.exec(head ?? '');
+  const ref = /^ref:\s*refs\/heads\/(.+)$/m.exec(head);
   if (ref) {
     state.branch = ref[1].trim();
-  } else if (head?.trim()) {
+  } else if (head.trim()) {
     state.detachedOid = head.trim();
   }
   const fetched = fetchTimes.filter((t): t is number => t !== undefined);
@@ -102,16 +102,17 @@ async function readOperation(gitDir: string): Promise<Operation | undefined> {
 }
 
 async function readHeadName(file: string): Promise<string | undefined> {
-  const name = (await readText(file))?.trim();
-  return name?.startsWith('refs/heads/') ? name.slice('refs/heads/'.length) : undefined;
+  const name = (await readText(file)).trim();
+  return name.startsWith('refs/heads/') ? name.slice('refs/heads/'.length) : undefined;
 }
 
-async function readText(file: string): Promise<string | undefined> {
-  return fs.readFile(file, 'utf8').catch(() => undefined);
+/** A file's text, or '' when it can't be read. */
+async function readText(file: string): Promise<string> {
+  return fs.readFile(file, 'utf8').catch(() => '');
 }
 
 async function readInt(file: string): Promise<number | undefined> {
-  const value = Number((await readText(file))?.trim());
+  const value = Number((await readText(file)).trim());
   return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 

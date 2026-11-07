@@ -19,7 +19,7 @@ export interface GitRepository {
     readonly indexChanges: GitChange[];
     readonly workingTreeChanges: GitChange[];
     readonly mergeChanges: GitChange[];
-    readonly untrackedChanges?: GitChange[];
+    readonly untrackedChanges: GitChange[];
   };
   status(): Promise<void>;
 }

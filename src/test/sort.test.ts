@@ -51,3 +51,11 @@ test('readSortConfig falls back to the defaults for unknown values', () => {
   assert.deepEqual(readSortConfig('nonsense', 7, 'yes'), { order: 'default', lexicographic: 'default', reverse: false });
   assert.deepEqual(readSortConfig('type', 'upper', true), { order: 'type', lexicographic: 'upper', reverse: true });
 });
+
+test('foldersNestsFiles compares both ways round', () => {
+  const config = readSortConfig('foldersNestsFiles', undefined, undefined);
+  const compare = compareEntries(config);
+  assert.equal(compare({ name: 'a.ts', isDir: false }, { name: 'z', isDir: true }), 1);
+  assert.equal(compare({ name: 'a.ts', isDir: false }, { name: 'b.ts', isDir: false, hasNests: true }), 1);
+  assert.equal(compare({ name: 'b.ts', isDir: false }, { name: 'a.ts', isDir: false }), 1, 'then by name');
+});

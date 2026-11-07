@@ -80,8 +80,4 @@ export class UndoStack<T> {
   cancelUndo(op: T): void {
     this.done.push(op);
   }
-
-  cancelRedo(op: T): void {
-    this.undone.push(op);
-  }
 }

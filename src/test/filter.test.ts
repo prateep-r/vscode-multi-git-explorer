@@ -79,3 +79,11 @@ test('describeChange', () => {
   assert.equal(describeChange({ ...file('a'), staged: true, unstaged: true }), 'partly staged');
   assert.equal(describeChange(file('a')), undefined);
 });
+
+test('a file replaced by a folder lists the folder with the file\'s change; the folder\'s own entry adds nothing inside it', () => {
+  const root = path.join('/ws', 'repo');
+  const deleted = file('x', 'D');
+  const entries = filteredEntries(root, [], [{ root, files: [deleted, file('x/new.ts', 'U')] }]);
+  assert.deepEqual(entries, [{ name: 'x', isDir: true, change: deleted }]);
+  assert.deepEqual(filteredEntries(path.join(root, 'tmp'), [], [{ root, files: [file('tmp/', 'U')] }]), []);
+});
