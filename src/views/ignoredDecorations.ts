@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { checkIgnore } from '../core/git';
 import type { RepoStore } from '../store';
 import { gitPath } from '../workspace';
-import { VIEW_SCHEME } from './viewUri';
+import { affectsExplorerDecorations, asFilesTreeShows, isFilesTreeUri } from './viewUri';
 
 const DEBOUNCE_MS = 500;
 const DECORATION = new vscode.FileDecoration(undefined, undefined, new vscode.ThemeColor('gitDecoration.ignoredResourceForeground'));
@@ -36,7 +36,7 @@ export class IgnoredDecorationProvider implements vscode.FileDecorationProvider,
       }),
       store.onDidDiscover(refresh),
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('git.decorations.enabled')) refresh();
+        if (e.affectsConfiguration('git.decorations.enabled') || affectsExplorerDecorations(e)) refresh();
       }),
     ];
   }
@@ -49,8 +49,10 @@ export class IgnoredDecorationProvider implements vscode.FileDecorationProvider,
   }
 
   provideFileDecoration(uri: vscode.Uri): Promise<vscode.FileDecoration | undefined> | undefined {
-    if (uri.scheme !== VIEW_SCHEME) return undefined;
+    if (!isFilesTreeUri(uri)) return undefined;
     if (vscode.workspace.getConfiguration('git').get<boolean>('decorations.enabled') === false) return undefined;
+    // The dimming is only a color, which `explorer.decorations.colors` turns off.
+    if (!asFilesTreeShows(uri, DECORATION)) return undefined;
     const fsPath = uri.fsPath;
     const repo = this.store.get(fsPath) ?? this.store.repoContaining(fsPath);
     // A repo's own folder is never ignored by itself, so don't ask.

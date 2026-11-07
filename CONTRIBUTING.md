@@ -81,9 +81,9 @@ The images are drawn as HTML from the sample workspace's real output. After chan
 | Path | Contents |
 | --- | --- |
 | `src/core/` | Logic with no VS Code dependency, unit-tested: `porcelain.ts` (parsing `git status`), `gitDir.ts` (reading `.git`), `discovery.ts`, `queue.ts`, `state.ts` (which state, badge and text a repo shows), `filter.ts`, `branches.ts`, `paths.ts`, `fileNames.ts`, `remoteLink.ts` and `remoteUrl.ts` (web links), `mention.ts` (`@path` mentions), and the built-in Explorer's rules: `visibility.ts` (`files.exclude`), `sort.ts`, `compact.ts`, `nesting.ts`, `reveal.ts`, `problems.ts`, `undo.ts`, `uriList.ts` |
-| `src/core/vs/` | Files copied from VS Code 1.145.1 (MIT, see `ThirdPartyNotices.txt`) with only their imports changed, so the matching is exactly the built-in Explorer's: `glob.ts`, `ignoreFile.ts`, `explorerFileNestingTrie.ts`, `comparers.ts`, and `base.ts` for the helpers they import. Their tests are in `src/test/vs/` |
+| `src/core/vs/` | Files copied from VS Code 1.145.1 (MIT, see `ThirdPartyNotices.txt`) with only their imports changed, so the matching is exactly the built-in Explorer's: `glob.ts`, `ignoreFile.ts`, `explorerFileNestingTrie.ts`, `comparers.ts`, and `base.ts` for the helpers they import. Their tests are in `src/test/vs/`. `incrementFileName.ts` is rewritten from the shipped build, since it's one function of a large file; its tests are ours, in `src/test/incrementFileName.test.ts` |
 | `src/store.ts` | Keeps every repo's state up to date: discovery, refresh queue, file watching |
-| `src/views/` | The Files and Git Repositories views, decorations (repo states, problems, ignored and cut items), selecting the active file (`autoReveal.ts`), status bar, and the read-only `HEAD` documents used for diffs |
+| `src/views/` | The Files and Git Repositories views, decorations (repo states, problems, ignored and cut items, and the built-in Explorer's own marks in `itemDecorations.ts`), what clicking a changed file opens (`changeCommand.ts`), selecting the active file (`autoReveal.ts`), status bar, and the read-only `HEAD` documents used for diffs |
 | `src/commands.ts` | Git and toolbar commands |
 | `src/fileCommands.ts` | New File, Rename, Delete, Cut/Copy/Paste, and drag and drop in the file tree, including files dropped from outside |
 | `src/undo.ts` | Undo and redo of the file tree's changes |

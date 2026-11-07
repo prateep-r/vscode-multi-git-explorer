@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { checkNewName, checkNewPath, copyName } from './core/fileNames';
+import { checkNewName, checkNewPath } from './core/fileNames';
+import { incrementFileName } from './core/vs/incrementFileName';
 import { isAtOrInside } from './core/paths';
 import { undoLabel } from './core/undo';
 import { parseUriList } from './core/uriList';
@@ -303,16 +304,19 @@ export class FileOperations implements vscode.Disposable {
         void vscode.commands.executeCommand('setContext', 'multiGitExplorer.canPaste', false);
       }
     } else {
+      const naming = incrementalNaming();
       for (const item of clipboard.items) {
         if (item.isDir && isAtOrInside(folder.fsPath, item.uri.fsPath)) {
           void vscode.window.showErrorMessage(`Can't paste ${path.basename(item.uri.fsPath)} into itself.`);
           continue;
         }
         const name = path.basename(item.uri.fsPath);
-        let target = vscode.Uri.file(path.join(folder.fsPath, name));
-        for (let n = 1; await exists(target); n++) target = vscode.Uri.file(path.join(folder.fsPath, copyName(name, item.isDir, n)));
+        const target = await pasteTarget(folder, name, item.isDir, naming);
+        if (!target) continue;
+        // With `explorer.incrementalNaming` off, pasting a file onto itself leaves it as it is.
+        if (target.fsPath === item.uri.fsPath) continue;
         try {
-          await vscode.workspace.fs.copy(item.uri, target, { overwrite: false });
+          await vscode.workspace.fs.copy(item.uri, target, { overwrite: naming === 'disabled' });
           pasted.push({ uri: target, isDir: item.isDir });
           copiedFrom.set(target.fsPath, item.uri.fsPath);
         } catch (error) {
@@ -502,7 +506,8 @@ export class FileOperations implements vscode.Disposable {
   /**
    * Drag and drop inside the file tree moves items; files dropped from
    * elsewhere, such as Finder, are copied in; dragging out hands over their
-   * file URIs.
+   * file URIs. With `explorer.enableDragAndDrop` off nothing can be dropped,
+   * but items can still be dragged out, as in the built-in Explorer.
    */
   readonly dragAndDrop: vscode.TreeDragAndDropController<ExplorerNode> = {
     dragMimeTypes: ['text/uri-list'],
@@ -513,6 +518,7 @@ export class FileOperations implements vscode.Disposable {
       dataTransfer.set('text/uri-list', new vscode.DataTransferItem(source.map(n => n.uri.toString()).join('\r\n')));
     },
     handleDrop: async (target, dataTransfer) => {
+      if (vscode.workspace.getConfiguration('explorer').get<boolean>('enableDragAndDrop') === false) return;
       // Dropped below the rows, it goes into the last workspace folder, as in the built-in Explorer.
       const folder = target ? folderOf(target) : localFolders().at(-1)?.uri;
       if (!folder) return;
@@ -547,4 +553,34 @@ async function validate(parent: vscode.Uri, value: string): Promise<string | und
   } catch {
     return undefined;
   }
+}
+
+type IncrementalNaming = 'simple' | 'smart' | 'disabled';
+
+function incrementalNaming(): IncrementalNaming {
+  const value = vscode.workspace.getConfiguration('explorer').get<string>('incrementalNaming');
+  return value === 'smart' || value === 'disabled' ? value : 'simple';
+}
+
+/**
+ * Where a copy of `name` goes in `folder`, as the built-in Explorer picks it
+ * (findValidPasteFileTarget): a free name per `explorer.incrementalNaming`,
+ * or with it `disabled`, the same name once you agree to replace what's there.
+ */
+async function pasteTarget(folder: vscode.Uri, name: string, isDir: boolean, naming: IncrementalNaming): Promise<vscode.Uri | undefined> {
+  let candidate = vscode.Uri.file(path.join(folder.fsPath, name));
+  if (naming === 'disabled') {
+    if (!(await exists(candidate))) return candidate;
+    const choice = await vscode.window.showWarningMessage(
+      `A file or folder with the name '${name}' already exists in the destination folder. Do you want to replace it?`,
+      { modal: true },
+      'Replace',
+    );
+    return choice === 'Replace' ? candidate : undefined;
+  }
+  while (await exists(candidate)) {
+    name = incrementFileName(name, isDir, naming);
+    candidate = vscode.Uri.file(path.join(folder.fsPath, name));
+  }
+  return candidate;
 }

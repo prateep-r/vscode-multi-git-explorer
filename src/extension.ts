@@ -10,6 +10,7 @@ import { CutDecorationProvider } from './views/cutDecorations';
 import { RepoDecorationProvider } from './views/decorations';
 import { HEAD_SCHEME, HeadContentProvider } from './views/headContent';
 import { IgnoredDecorationProvider } from './views/ignoredDecorations';
+import { ItemDecorationProvider } from './views/itemDecorations';
 import { ProblemDecorationProvider } from './views/problemDecorations';
 import { RepoExplorerProvider } from './views/repoExplorer';
 import { ReposViewProvider } from './views/reposView';
@@ -24,6 +25,7 @@ export interface MultiGitExplorerApi {
   problems: ProblemDecorationProvider;
   ignored: IgnoredDecorationProvider;
   cut: CutDecorationProvider;
+  items: ItemDecorationProvider;
   autoReveal: AutoReveal;
   files: FileOperations;
 }
@@ -40,6 +42,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   const problems = new ProblemDecorationProvider();
   const ignored = new IgnoredDecorationProvider(store);
   const cut = new CutDecorationProvider(files);
+  const items = new ItemDecorationProvider(explorer);
   const explorerTree = vscode.window.createTreeView('multiGitExplorer.explorer', {
     treeDataProvider: explorer,
     showCollapseAll: true,
@@ -58,7 +61,10 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     explorerTree,
     autoReveal,
     decorations,
-    // The provider registered last wins when colors clash: ignored, then git states, problems, and cut over all.
+    // The provider registered last wins when colors clash: the built-in Explorer's own marks,
+    // then ignored, git states, problems, and cut over all.
+    items,
+    vscode.window.registerFileDecorationProvider(items),
     ignored,
     vscode.window.registerFileDecorationProvider(ignored),
     vscode.window.registerFileDecorationProvider(decorations),
@@ -78,7 +84,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
   void copyOldSettings(context, log).then(() => store.discover());
   void offerToUninstallOld();
   void showOnStartup();
-  return { store, explorer, reposView, decorations, problems, ignored, cut, autoReveal, files };
+  return { store, explorer, reposView, decorations, problems, ignored, cut, items, autoReveal, files };
 }
 
 /**

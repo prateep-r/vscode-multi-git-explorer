@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import type { FileOperations } from '../fileCommands';
-import { VIEW_SCHEME } from './viewUri';
+import { isFilesTreeUri } from './viewUri';
 
 /**
  * Dims rows that were cut until they're pasted, like the built-in Explorer.
  * Extensions can only change the color, so the name is dimmed but not the icon.
+ * Like the built-in Explorer's, this ignores `explorer.decorations.colors`.
  */
 export class CutDecorationProvider implements vscode.FileDecorationProvider {
   readonly onDidChangeFileDecorations: vscode.Event<vscode.Uri[]>;
@@ -14,7 +15,7 @@ export class CutDecorationProvider implements vscode.FileDecorationProvider {
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    if (uri.scheme !== VIEW_SCHEME || !this.files.isCut(uri.fsPath)) return undefined;
+    if (!isFilesTreeUri(uri) || !this.files.isCut(uri.fsPath)) return undefined;
     return new vscode.FileDecoration(undefined, undefined, new vscode.ThemeColor('disabledForeground'));
   }
 }

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { GROUP_LABELS, GROUP_ORDER, type GroupKey } from '../core/state';
 import type { RepoEntry, RepoStore } from '../store';
-import { toViewUri } from './viewUri';
+import { toReposViewUri } from './viewUri';
 
 export type ReposNode = { type: 'group'; key: GroupKey } | { type: 'repo'; root: string };
 
@@ -95,7 +95,7 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
     }
 
     const repo = this.store.get(node.root)!;
-    const item = new vscode.TreeItem(toViewUri(repo.root), vscode.TreeItemCollapsibleState.None);
+    const item = new vscode.TreeItem(toReposViewUri(repo.root), vscode.TreeItemCollapsibleState.None);
     item.id = `repo:${repo.root}`;
     item.label = this.label(repo);
     item.iconPath = new vscode.ThemeIcon('repo');

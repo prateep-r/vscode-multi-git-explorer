@@ -68,7 +68,8 @@ Repos are found automatically, up to 10 folder levels deep. Each repo shows its 
 - **The status bar** shows the branch of the file you're editing on the left; click it to open that repo in Source Control. The item on the right counts repos by state; click it to jump to Git Repositories.
 - **Tooltips** on a repo show the full picture: upstream, ahead and behind counts, changed files, stashes, and when it was last fetched.
 - **The file you're editing is selected** in **Files**, with the folders above it opened, as the built-in Explorer does.
-- **Problems, ignored files and cut items** look as they do in the built-in Explorer: files with errors or warnings are colored with a count, and so are the folders above them; files in `.gitignore` are dimmed; cut items are dimmed until you paste them.
+- **Problems, ignored files and cut items** look as they do in the built-in Explorer: files with errors or warnings are colored with a count, and so are the folders above them; files in `.gitignore` are dimmed; cut items are dimmed until you paste them. Symbolic links show `⤷`.
+- **Reveal in Multi-Git Explorer** on an editor tab's right-click menu selects that file in **Files**, next to the built-in **Reveal in Explorer View**.
 
 ### Show only what changed
 
@@ -243,16 +244,19 @@ The built-in Explorer is left unchanged by default. Turn on `multiGitExplorer.de
 
 | Setting | What it does in Files |
 | --- | --- |
-| `files.exclude` | Hides matching items, with every glob pattern, `when` clauses and `!` exceptions. An excluded file stays shown while an editor shows it |
+| `files.exclude` | Hides matching items, with every glob pattern, `when` clauses and `!` exceptions. An excluded file stays shown, dimmed, while an editor shows it |
 | `explorer.excludeGitIgnore` | Also hides items that `.gitignore` ignores |
 | `explorer.sortOrder`, `explorer.sortOrderLexicographicOptions`, `explorer.sortOrderReverse` | How items are sorted |
 | `explorer.compactFolders` | A folder that holds only one folder shows as one row with it once opened, such as `src/main/java` |
 | `explorer.fileNesting.enabled`, `.patterns`, `.expand` | Nests related files under their parent, such as `package-lock.json` under `package.json` |
 | `explorer.autoReveal`, `explorer.autoRevealExclude` | Selects the file you're editing |
 | `explorer.confirmDelete`, `explorer.confirmDragAndDrop`, `files.enableTrash` | Whether deleting and dragging ask first, and whether deleted items go to the Trash |
+| `explorer.enableDragAndDrop` | Whether items can be dropped in the tree. Dragging items out still works |
+| `explorer.incrementalNaming` | How a pasted copy is named when its name is taken: `app copy.ts`, `app.1.ts`, or asking to replace |
 | `explorer.enableUndo`, `explorer.confirmUndo` | Undo and redo |
 | `explorer.autoOpenDroppedFile` | Opens a single file dropped from outside the tree |
-| `explorer.copyRelativePathSeparator` | The separator Copy Relative Path uses |
+| `explorer.copyPathSeparator`, `explorer.copyRelativePathSeparator` | The separator Copy Path and Copy Relative Path use |
+| `explorer.decorations.colors`, `explorer.decorations.badges` | Whether rows show colors and badges, such as git letters and problem counts. **Git Repositories** keeps both |
 | `problems.decorations.enabled`, `git.decorations.enabled` | Colors for problems, and dimming of ignored files |
 
 ### Light and dark themes
@@ -430,6 +434,7 @@ The Output log also shows how many repos were found and how long the search took
 - Holding <kbd>Option</kbd>/<kbd>Alt</kbd> while dragging doesn't copy, as VS Code doesn't tell extensions which keys are held. Use Copy and Paste. Files dropped from outside the tree are always copied.
 - Selecting the file you're editing doesn't move the tree's keyboard focus to it, and `explorer.autoReveal` set to `focusNoScroll` still scrolls to it.
 - Undo covers changes made in **Files**. Those made in the built-in Explorer are undone there.
+- Copy and Paste work within **Files**. Files copied in the built-in Explorer or in Finder can't be pasted here, since VS Code gives extensions only the clipboard's text. Drag them in instead.
 - Other extensions' items in the built-in Explorer's menu (such as *New Java File* or *Run Tests*) can't appear here. Use **Reveal in Explorer View**.
 - **Copy to AI Chat** writes `@path` mentions, which GitHub Copilot Chat doesn't read; it uses `#file:` instead.
 - **Find in Folder** can't search a folder whose name contains a comma, because the Search view splits its *files to include* field at commas.

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { problemBadge } from '../core/problems';
-import { VIEW_SCHEME, toViewUri } from './viewUri';
+import { affectsExplorerDecorations, asFilesTreeShows, isFilesTreeUri, toViewUri } from './viewUri';
 
 /**
  * Colors and counts files with errors or warnings in our views, and tints
@@ -18,7 +18,7 @@ export class ProblemDecorationProvider implements vscode.FileDecorationProvider,
       // Naming the files makes VS Code ask for them even off screen, so their folders get tinted too.
       vscode.languages.onDidChangeDiagnostics(e => this.fire(e.uris)),
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('problems')) this._onDidChange.fire(undefined);
+        if (e.affectsConfiguration('problems') || affectsExplorerDecorations(e)) this._onDidChange.fire(undefined);
       }),
     ];
     // Problems found before we started.
@@ -35,7 +35,7 @@ export class ProblemDecorationProvider implements vscode.FileDecorationProvider,
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    if (uri.scheme !== VIEW_SCHEME || !enabled()) return undefined;
+    if (!isFilesTreeUri(uri) || !enabled()) return undefined;
     let errors = 0;
     let warnings = 0;
     for (const d of vscode.languages.getDiagnostics(vscode.Uri.file(uri.fsPath))) {
@@ -50,7 +50,7 @@ export class ProblemDecorationProvider implements vscode.FileDecorationProvider,
       new vscode.ThemeColor(problem.isError ? 'list.errorForeground' : 'list.warningForeground'),
     );
     decoration.propagate = true;
-    return decoration;
+    return asFilesTreeShows(uri, decoration);
   }
 }
 

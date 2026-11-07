@@ -56,6 +56,16 @@ const FILTERED_REFRESH_MS = 300;
 export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNode>, vscode.Disposable {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<ExplorerNode | ExplorerNode[] | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  /** Links and unknown file types, from the last listing of their folder. */
+  private readonly entryTypes = new Map<string, 'symlink' | 'unknown'>();
+  /** Items `files.exclude` hides that are shown because an editor has them open. */
+  private readonly shownExcluded = new Set<string>();
+  /** Workspace folders that couldn't be read, with why. */
+  private readonly rootErrors = new Map<string, string>();
+  private readonly _onDidChangeMarks = new vscode.EventEmitter<vscode.Uri[]>();
+  /** Fires with the rows whose `markOf` changed. */
+  readonly onDidChangeMarks = this._onDidChangeMarks.event;
+  private changedMarks = new Set<string>();
   /** Folder nodes handed out so far, by their first folder, so updates can target them. */
   private readonly dirNodes = new Map<string, ExplorerNode>();
   /** Every folder of a compact row, to its row. */
@@ -128,6 +138,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
 
   dispose(): void {
     clearTimeout(this.refreshTimer);
+    this._onDidChangeMarks.dispose();
     this.disposables.forEach(d => d.dispose());
   }
 
@@ -276,9 +287,9 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
    * Selects a file or folder in the tree, expanding the folders above it.
    * Returns once the selection has changed, which VS Code reports after
    * `reveal` resolves. Like the built-in Explorer, it tries twice, since the
-   * tree may be refreshing meanwhile.
+   * tree may be refreshing meanwhile. With `focus`, keyboard focus moves to the row.
    */
-  async reveal(uri: vscode.Uri, isDir: boolean): Promise<void> {
+  async reveal(uri: vscode.Uri, isDir: boolean, focus = false): Promise<void> {
     const tree = this.treeView;
     if (!tree) return;
     const selected = () => tree.selection.some(n => n.uri.fsPath === uri.fsPath);
@@ -295,7 +306,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         }
       });
       try {
-        await tree.reveal(node, { select: true, focus: false, expand: isDir });
+        await tree.reveal(node, { select: true, focus, expand: isDir });
       } catch {
         // Not shown in the tree, for example because of the filter buttons.
         return;
@@ -520,12 +531,18 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
 
   private async readDir(uri: vscode.Uri): Promise<ExplorerNode[]> {
     let entries: [string, vscode.FileType][];
+    const dir = uri.fsPath;
     try {
       entries = await vscode.workspace.fs.readDirectory(uri);
-    } catch {
+    } catch (error) {
+      if (isWorkspaceFolder(dir)) this.setMark(this.rootErrors, dir, error instanceof Error ? error.message : String(error));
       return [];
     }
-    const dir = uri.fsPath;
+    this.setMark(this.rootErrors, dir, undefined);
+    for (const [name, type] of entries) {
+      const kind = type & vscode.FileType.SymbolicLink ? 'symlink' : type === vscode.FileType.Unknown ? 'unknown' : undefined;
+      this.setMark(this.entryTypes, path.join(dir, name), kind);
+    }
     const names = new Set(entries.map(([name]) => name));
     const hasSibling = (name: string) => names.has(name);
     if (names.has('.gitignore')) await this.loadIgnoreFile(dir);
@@ -587,6 +604,40 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     return [...all.values()];
   }
 
+  /**
+   * How the built-in Explorer marks a row by itself (its
+   * ExplorerDecorationsProvider), first match wins: a workspace folder that
+   * can't be read, a symbolic link, an unknown file type, or an excluded item
+   * shown because an editor has it open.
+   */
+  markOf(fsPath: string): { rootError: string } | 'symlink' | 'unknown' | 'excluded' | undefined {
+    const rootError = this.rootErrors.get(fsPath);
+    if (rootError !== undefined) return { rootError };
+    return this.entryTypes.get(fsPath) ?? (this.shownExcluded.has(fsPath) ? 'excluded' : undefined);
+  }
+
+  private setMark<T>(marks: Map<string, T> | Set<string>, fsPath: string, value: T | boolean | undefined): void {
+    const had = marks instanceof Set ? marks.has(fsPath) : marks.get(fsPath);
+    if (marks instanceof Set) {
+      if (value) marks.add(fsPath);
+      else marks.delete(fsPath);
+    } else if (value === undefined) {
+      marks.delete(fsPath);
+    } else {
+      marks.set(fsPath, value as T);
+    }
+    const has = marks instanceof Set ? marks.has(fsPath) : marks.get(fsPath);
+    if (had === has) return;
+    if (this.changedMarks.size === 0) {
+      setTimeout(() => {
+        const changed = [...this.changedMarks].map(p => toViewUri(p));
+        this.changedMarks.clear();
+        this._onDidChangeMarks.fire(changed);
+      }, 0);
+    }
+    this.changedMarks.add(fsPath);
+  }
+
   private dirNode(uri: vscode.Uri): ExplorerNode {
     const chained = this.chainMember.get(uri.fsPath);
     if (chained) return chained;
@@ -625,6 +676,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         hasEditorInside: () => this.noteEditorInside(fsPath, root),
       });
       this.visibility.set(fsPath, result.state);
+      this.setMark(this.shownExcluded, fsPath, result.shownForEditor);
       return result.visible;
     });
   }

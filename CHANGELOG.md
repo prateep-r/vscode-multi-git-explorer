@@ -3,6 +3,13 @@
 ## Unreleased
 
 - **Double-click a file to keep it open**, like the built-in Explorer. A single click still opens a preview that the next click replaces. `workbench.list.openMode` is followed too. The same goes for the diffs of changed files.
+- **Reveal in Multi-Git Explorer** on an editor tab's right-click menu, and in the Command Palette, selects the file in the file tree, like **Reveal in Explorer View**.
+- The file tree follows more of the built-in Explorer's settings:
+  - `explorer.incrementalNaming` names pasted copies `app copy.ts` or `app.1.ts`, or asks before replacing.
+  - `explorer.decorations.colors` and `explorer.decorations.badges` turn off row colors and badges. Git Repositories keeps them.
+  - `explorer.copyPathSeparator` sets the separator Copy Path uses. Several paths are copied with Windows line endings on Windows.
+  - `explorer.enableDragAndDrop` turns off dropping items in the tree.
+- Like the built-in Explorer, symbolic links show `⤷`, files of unknown type `?`, and workspace folders that can't be read `!`, and excluded items shown because an editor has them open are dimmed.
 
 ## 1.3.1
 

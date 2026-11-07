@@ -264,6 +264,11 @@
         "category": "Multi-Git Explorer"
       },
       {
+        "command": "multiGitExplorer.revealInFiles",
+        "title": "Reveal in Multi-Git Explorer",
+        "category": "Multi-Git Explorer"
+      },
+      {
         "command": "multiGitExplorer.findInFolder",
         "title": "Find in Folder...",
         "category": "Multi-Git Explorer"
@@ -671,6 +676,13 @@
           "group": "9_modify@2"
         }
       ],
+      "editor/title/context": [
+        {
+          "command": "multiGitExplorer.revealInFiles",
+          "when": "resourceScheme == file",
+          "group": "2_files@2"
+        }
+      ],
       "explorer/context": [
         {
           "submenu": "multiGitExplorer.repoMenu",
@@ -717,6 +729,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "multiGitExplorer.revealInFiles",
+          "when": "resourceScheme == file"
+        },
         {
           "command": "multiGitExplorer.openChanges",
           "when": "false"

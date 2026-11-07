@@ -147,3 +147,10 @@ test('Open With is on files, and workspace folder rows can add and remove folder
   assert.ok(root.includes('addRootFolder') && root.includes('removeRootFolder'));
   assert.ok(!menuFor(FILES, 'folder', { enterMultiRootWorkspaceSupport: true }).includes('removeRootFolder'));
 });
+
+test('an editor tab offers Reveal in Multi-Git Explorer next to Reveal in Explorer View', () => {
+  const tab = manifest.contributes.menus['editor/title/context'] as { command: string; when: string; group: string }[];
+  const item = tab.find(m => m.command === 'multiGitExplorer.revealInFiles');
+  assert.equal(item?.group, '2_files@2', 'after the built-in Reveal in Explorer View (2_files, order 1)');
+  assert.equal(item?.when, 'resourceScheme == file');
+});

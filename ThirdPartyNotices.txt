@@ -5,6 +5,7 @@ Visual Studio Code (https://github.com/microsoft/vscode), version 1.145.1:
   - src/vs/workbench/services/search/common/ignoreFile.ts             -> src/core/vs/ignoreFile.ts
   - src/vs/workbench/contrib/files/common/explorerFileNestingTrie.ts  -> src/core/vs/explorerFileNestingTrie.ts
   - src/vs/base/common/comparers.ts                                   -> src/core/vs/comparers.ts
+  - src/vs/workbench/contrib/files/browser/fileActions.ts (incrementFileName) -> src/core/vs/incrementFileName.ts
   - small helpers from src/vs/base/common                             -> src/core/vs/base.ts
   - their unit tests                                                  -> src/test/vs/
 

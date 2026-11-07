@@ -200,6 +200,31 @@ test('a click opens a preview the next click replaces, and a double-click keeps 
   await assertEventually('e2e-open to leave the tree', async () => (await row(page, 'e2e-open').count()) === 0);
 });
 
+test('Reveal in Multi-Git Explorer on an editor tab selects its file in the tree', async (page, workspace) => {
+  const dir = path.join(workspace, 'docs', 'e2e-tab');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'tab-file.txt'), 'x\n');
+  await expand(page, 'docs', 'e2e-tab');
+  await row(page, 'tab-file.txt').dblclick();
+  const tab = page.locator('.tabs-container .tab', { hasText: 'tab-file.txt' });
+  await tab.waitFor();
+  // Close its folder and select the folder instead, so revealing has to open it again.
+  await row(page, 'e2e-tab').click();
+  await assertEventually('e2e-tab to close', async () => (await row(page, 'tab-file.txt').count()) === 0);
+  await tab.click({ button: 'right' });
+  const labels = await menuLabels(page);
+  assert.ok(labels.indexOf('Reveal in Multi-Git Explorer') === labels.indexOf('Reveal in Explorer View') + 1, labels.join(' | '));
+  await page.locator('.context-view .monaco-menu .action-label', { hasText: /^Reveal in Multi-Git Explorer$/ }).click();
+  const r = row(page, 'tab-file.txt');
+  await r.waitFor();
+  await assertEventually('tab-file.txt to be selected', async () => (await r.getAttribute('aria-selected')) === 'true');
+  await assertEventually('the file tree to have focus', () => pane(page, 'Files').evaluate(el => el.contains(el.ownerDocument.activeElement)));
+  await page.keyboard.press(`${MOD}+K`);
+  await page.keyboard.press('W');
+  rmSync(dir, { recursive: true });
+  await assertEventually('e2e-tab to leave the tree', async () => (await row(page, 'e2e-tab').count()) === 0);
+});
+
 test('opening a file with Quick Open selects it in the tree, expanding the folders above it', async (page, workspace) => {
   const dir = path.join(workspace, 'docs', 'e2e-reveal', 'deep');
   mkdirSync(dir, { recursive: true });

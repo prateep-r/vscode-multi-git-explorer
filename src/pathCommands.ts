@@ -5,6 +5,7 @@ import { literalGlob, repoRelative } from './core/paths';
 import { resolveRemoteTarget, type RemoteTarget } from './core/remoteLink';
 import { guessHostKind, parseRemote, webUrl } from './core/remoteUrl';
 import type { RepoEntry, RepoStore } from './store';
+import { activeFile } from './views/autoReveal';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import { folderOf, gitPath, isKeyboard, isMultiRoot, onDisk, pickRows } from './workspace';
 
@@ -71,9 +72,21 @@ export function registerPathCommands(
 
     command('multiGitExplorer.revealInExplorer', nodes => vscode.commands.executeCommand('revealInExplorer', nodes[0].uri)),
 
-    command('multiGitExplorer.copyPath', nodes => copy(nodes.map(n => n.uri.fsPath), 'path'), false),
+    // From an editor tab's right-click menu, like Reveal in Explorer View; from the Command Palette, the active file.
+    vscode.commands.registerCommand('multiGitExplorer.revealInFiles', async (uri?: unknown) => {
+      const file = uri instanceof vscode.Uri ? uri : activeFile();
+      if (file?.scheme !== 'file') return;
+      const isDir = await vscode.workspace.fs.stat(file).then(
+        s => (s.type & vscode.FileType.Directory) !== 0,
+        () => false,
+      );
+      await vscode.commands.executeCommand('multiGitExplorer.explorer.focus');
+      await explorer.reveal(file, isDir, true);
+    }),
 
-    command('multiGitExplorer.copyRelativePath', nodes => copy(nodes.map(n => relativePath(n.uri)), 'relative path'), false),
+    command('multiGitExplorer.copyPath', nodes => copy(nodes.map(n => fullPath(n.uri)), 'path', PATH_LINES), false),
+
+    command('multiGitExplorer.copyRelativePath', nodes => copy(nodes.map(n => relativePath(n.uri)), 'relative path', PATH_LINES), false),
 
     command(
       'multiGitExplorer.copyRemoteUrl',
@@ -167,17 +180,29 @@ function compare(left: vscode.Uri, right: vscode.Uri): Thenable<unknown> {
 }
 
 /** Copies lines to the clipboard; `what` is singular and gets an "s" for several. */
-async function copy(lines: string[], what: string): Promise<void> {
-  await vscode.env.clipboard.writeText(lines.join('\n'));
+/** Several copied paths go one per line, with Windows' line ending there, as in the built-in Explorer. */
+const PATH_LINES = process.platform === 'win32' ? '\r\n' : '\n';
+
+async function copy(lines: string[], what: string, lineEnd = '\n'): Promise<void> {
+  await vscode.env.clipboard.writeText(lines.join(lineEnd));
   vscode.window.setStatusBarMessage(`Copied ${lines.length > 1 ? `${lines.length} ${what}s` : what}`, 2000);
+}
+
+/** A full path, with the separator `explorer.copyPathSeparator` asks for. */
+function fullPath(uri: vscode.Uri): string {
+  return uri.fsPath.split(path.sep).join(separator('copyPathSeparator'));
 }
 
 /** A path relative to its workspace folder, with the separator `explorer.copyRelativePathSeparator` asks for. */
 function relativePath(uri: vscode.Uri): string {
   const rel = vscode.workspace.asRelativePath(uri, isMultiRoot()) || path.basename(uri.fsPath);
-  const setting = vscode.workspace.getConfiguration('explorer').get<string>('copyRelativePathSeparator', 'auto');
-  const sep = setting === '/' || setting === '\\' ? setting : path.sep;
-  return rel.split('/').join(sep);
+  return rel.split('/').join(separator('copyRelativePathSeparator'));
+}
+
+/** `/` or a backslash when the setting asks for one, otherwise the system's separator. */
+function separator(setting: 'copyPathSeparator' | 'copyRelativePathSeparator'): string {
+  const value = vscode.workspace.getConfiguration('explorer').get<string>(setting, 'auto');
+  return value === '/' || value === '\\' ? value : path.sep;
 }
 
 /** A folder in the form the Search view's "files to include" expects, such as `./src/utils`. */

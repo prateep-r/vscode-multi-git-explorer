@@ -1,15 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checkNewName, checkNewPath, copyName } from '../core/fileNames';
-
-test('copyName names copies like the built-in Explorer', () => {
-  assert.equal(copyName('app.ts', false, 1), 'app copy.ts');
-  assert.equal(copyName('app.ts', false, 2), 'app copy 2.ts');
-  assert.equal(copyName('archive.tar.gz', false, 1), 'archive.tar copy.gz');
-  assert.equal(copyName('.env', false, 1), '.env copy');
-  assert.equal(copyName('Makefile', false, 3), 'Makefile copy 3');
-  assert.equal(copyName('src.old', true, 1), 'src.old copy');
-});
+import { checkNewName, checkNewPath } from '../core/fileNames';
 
 test('checkNewName accepts plain names only', () => {
   assert.equal(checkNewName('index.ts'), undefined);

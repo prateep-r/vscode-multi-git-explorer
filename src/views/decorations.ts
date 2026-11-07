@@ -5,7 +5,7 @@ import type { ChangeLetter, ChangedFile } from '../core/porcelain';
 import { Priority } from '../core/queue';
 import type { StateKind } from '../core/state';
 import type { RepoEntry, RepoStore } from '../store';
-import { VIEW_SCHEME, toViewUri } from './viewUri';
+import { VIEW_SCHEME, affectsExplorerDecorations, asFilesTreeShows, isFilesTreeUri, toReposViewUri, toViewUri } from './viewUri';
 
 const KIND_COLOR: Partial<Record<StateKind, string>> = {
   error: 'multiGitExplorer.errorForeground',
@@ -63,7 +63,7 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
       store.onDidChangeRepos(roots => this._onDidChange.fire(roots.flatMap(root => this.urisFor(root)))),
       store.onDidDiscover(() => this._onDidChange.fire(undefined)),
       vscode.workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('multiGitExplorer.decorateExplorer')) this._onDidChange.fire(undefined);
+        if (e.affectsConfiguration('multiGitExplorer.decorateExplorer') || affectsExplorerDecorations(e)) this._onDidChange.fire(undefined);
       }),
       this._onDidChange,
     ];
@@ -74,7 +74,8 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    if (uri.scheme === VIEW_SCHEME) return this.forRepo(uri.fsPath) ?? this.forChange(uri.fsPath);
+    if (uri.scheme === VIEW_SCHEME && !isFilesTreeUri(uri)) return this.forRepo(uri.fsPath);
+    if (uri.scheme === VIEW_SCHEME) return asFilesTreeShows(uri, this.forRepo(uri.fsPath) ?? this.forChange(uri.fsPath));
     if (uri.scheme === 'file' && decorateExplorer()) return this.forRepo(uri.fsPath);
     return undefined;
   }
@@ -107,7 +108,7 @@ export class RepoDecorationProvider implements vscode.FileDecorationProvider, vs
   private urisFor(root: string): vscode.Uri[] {
     const repo = this.store.get(root);
     const files = [...(repo?.changes?.keys() ?? [])].map(rel => toViewUri(path.join(root, rel.replace(/\/$/, ''))));
-    const uris = [toViewUri(root), ...files, ...(this.decoratedFiles.get(root) ?? [])];
+    const uris = [toViewUri(root), toReposViewUri(root), ...files, ...(this.decoratedFiles.get(root) ?? [])];
     this.decoratedFiles.set(root, files);
     if (decorateExplorer()) uris.push(vscode.Uri.file(root));
     return uris;

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'child_process';
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { MultiGitExplorerApi } from '../extension';
 import type { ExplorerNode } from '../views/repoExplorer';
-import { toViewUri } from '../views/viewUri';
+import { toReposViewUri, toViewUri } from '../views/viewUri';
 
 const sample = process.env.SAMPLE_WORKSPACE!;
 const at = (...parts: string[]) => path.join(sample, ...parts);
@@ -734,6 +734,86 @@ test('files dropped from outside the tree, such as from Finder, are copied in li
       assert.ok(existsSync(path.join(dir, 'folder')), 'dropped on a file, it goes into the file\'s folder');
     } finally {
       rmSync(outside, { recursive: true, force: true });
+    }
+  }));
+
+test('paste naming, decorations, copied paths, drag and drop and Reveal follow the built-in Explorer settings', ({ explorer, files, problems, items, decorations }) =>
+  withScratch(async (dir, node) => {
+    const explorerConfig = vscode.workspace.getConfiguration('explorer');
+    const filesConfig = vscode.workspace.getConfiguration('files');
+    const originalExclude = filesConfig.inspect('exclude')?.globalValue;
+    const set = (key: string, value: unknown) => explorerConfig.update(key, value, vscode.ConfigurationTarget.Global);
+    const names = async () => (await explorer.getChildren(node('.', true))).map(n => path.basename(n.uri.fsPath)).sort();
+    const diagnostics = vscode.languages.createDiagnosticCollection('integration');
+    try {
+      // explorer.incrementalNaming
+      await files.setClipboard([node('a.txt')], false);
+      await set('incrementalNaming', 'smart');
+      await files.paste(vscode.Uri.file(dir));
+      await files.paste(vscode.Uri.file(dir));
+      assert.ok(existsSync(path.join(dir, 'a.1.txt')) && existsSync(path.join(dir, 'a.2.txt')), 'smart: a.1.txt, a.2.txt');
+      await set('incrementalNaming', undefined);
+      await files.paste(vscode.Uri.file(dir));
+      assert.ok(existsSync(path.join(dir, 'a copy.txt')), 'simple: a copy.txt');
+      writeFileSync(path.join(dir, 'sub', 'a.txt'), 'old\n');
+      await set('incrementalNaming', 'disabled');
+      await files.paste(vscode.Uri.file(path.join(dir, 'sub')));
+      assert.match(dialogs.at(-1) ?? '', /'a\.txt' already exists in the destination folder\. Do you want to replace it\?/);
+      assert.equal(readFileSync(path.join(dir, 'sub', 'a.txt'), 'utf8'), 'a\n', 'disabled: replaced after asking');
+      await set('incrementalNaming', undefined);
+
+      // explorer.decorations.colors and .badges, for the file tree only
+      const file = vscode.Uri.file(path.join(dir, 'a.txt'));
+      diagnostics.set(file, [new vscode.Diagnostic(new vscode.Range(0, 0, 0, 1), 'error', vscode.DiagnosticSeverity.Error)]);
+      await set('decorations.colors', false);
+      let decoration = problems.provideFileDecoration(toViewUri(file.fsPath));
+      assert.equal(decoration?.badge, '1');
+      assert.equal(decoration?.color, undefined, 'no color with explorer.decorations.colors off');
+      await set('decorations.badges', false);
+      assert.equal(problems.provideFileDecoration(toViewUri(file.fsPath)), undefined, 'nothing left with badges off too');
+      await set('decorations.colors', undefined);
+      decoration = problems.provideFileDecoration(toViewUri(file.fsPath));
+      assert.equal(decoration?.badge, undefined, 'no badge with explorer.decorations.badges off');
+      assert.equal((decoration?.color as vscode.ThemeColor).id, 'list.errorForeground');
+      const repo = at('services', 'auth-service');
+      assert.equal(decorations.provideFileDecoration(toViewUri(repo))?.badge, undefined, 'a repo row in the file tree loses its badge');
+      assert.equal(decorations.provideFileDecoration(toReposViewUri(repo))?.badge, '↑2', 'the Git Repositories view keeps it');
+      await set('decorations.badges', undefined);
+
+      // The built-in Explorer's own marks: links, and excluded items shown for an open editor
+      symlinkSync(path.join(dir, 'a.txt'), path.join(dir, 'link.txt'));
+      writeFileSync(path.join(dir, 'secret.log'), '');
+      await filesConfig.update('exclude', { '**/.git': true, '**/*.log': true }, vscode.ConfigurationTarget.Global);
+      assert.ok(!(await names()).includes('secret.log'), 'hidden by files.exclude');
+      assert.equal(items.provideFileDecoration(toViewUri(path.join(dir, 'link.txt')))?.badge, '⤷');
+      assert.equal(items.provideFileDecoration(toViewUri(path.join(dir, 'link.txt')))?.tooltip, 'Symbolic Link');
+      await vscode.window.showTextDocument(vscode.Uri.file(path.join(dir, 'secret.log')));
+      for (let i = 0; i < 100 && !(await names()).includes('secret.log'); i++) await new Promise(r => setTimeout(r, 50));
+      assert.ok((await names()).includes('secret.log'), 'shown while open in an editor');
+      assert.equal((items.provideFileDecoration(toViewUri(path.join(dir, 'secret.log')))?.color as vscode.ThemeColor).id, 'list.deemphasizedForeground');
+      assert.equal(items.provideFileDecoration(file), undefined, 'only rows of the file tree');
+
+      // explorer.copyPathSeparator, and Reveal in Multi-Git Explorer from an editor tab
+      await set('copyPathSeparator', '\\');
+      await vscode.commands.executeCommand('multiGitExplorer.copyPath', node('a.txt'));
+      assert.equal(await vscode.env.clipboard.readText(), file.fsPath.split(path.sep).join('\\'));
+      await set('copyPathSeparator', undefined);
+      const tree = (explorer as unknown as { treeView: vscode.TreeView<ExplorerNode> }).treeView;
+      mkdirSync(path.join(dir, 'sub', 'deep'));
+      writeFileSync(path.join(dir, 'sub', 'deep', 'far.txt'), '');
+      await vscode.commands.executeCommand('multiGitExplorer.revealInFiles', vscode.Uri.file(path.join(dir, 'sub', 'deep', 'far.txt')));
+      assert.equal(tree.selection.map(n => n.uri.fsPath).join(), path.join(dir, 'sub', 'deep', 'far.txt'));
+
+      // explorer.enableDragAndDrop
+      await set('enableDragAndDrop', false);
+      const data = new vscode.DataTransfer();
+      data.set('application/vnd.code.tree.multigitexplorer.explorer', new vscode.DataTransferItem([node('a copy.txt')]));
+      await files.dragAndDrop.handleDrop!(node('sub', true), data, new vscode.CancellationTokenSource().token);
+      assert.ok(existsSync(path.join(dir, 'a copy.txt')) && !existsSync(path.join(dir, 'sub', 'a copy.txt')), 'nothing is dropped');
+    } finally {
+      diagnostics.dispose();
+      for (const key of ['incrementalNaming', 'decorations.colors', 'decorations.badges', 'copyPathSeparator', 'enableDragAndDrop']) await set(key, undefined);
+      await filesConfig.update('exclude', originalExclude, vscode.ConfigurationTarget.Global);
     }
   }));
 

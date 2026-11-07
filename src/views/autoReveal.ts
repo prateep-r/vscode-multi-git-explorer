@@ -84,7 +84,7 @@ export class AutoReveal implements vscode.Disposable {
 }
 
 /** The file in the active editor; for a diff, its modified side, as the built-in Explorer takes the primary side. */
-function activeFile(): vscode.Uri | undefined {
+export function activeFile(): vscode.Uri | undefined {
   const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
   let uri: vscode.Uri | undefined;
   if (input instanceof vscode.TabInputText || input instanceof vscode.TabInputCustom || input instanceof vscode.TabInputNotebook) {
