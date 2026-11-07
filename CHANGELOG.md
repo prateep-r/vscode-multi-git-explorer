@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.1
 
 - Fixed git commands failing now and then when git finished before reading its input, which stopped the 1.3.0 release from reaching the Marketplace. 1.3.1 is the first published release with the 1.3.0 changes.
 
