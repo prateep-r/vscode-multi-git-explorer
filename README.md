@@ -62,7 +62,7 @@ Repos are found automatically, up to 10 folder levels deep. Each repo shows its 
 
 ### See every repo's branch and status
 
-- **Files** works like the built-in Explorer. Expand folders, click files to open them, and use **New File** and **New Folder** in its title bar or on a folder's right-click menu. Typing a path such as `src/utils/date.ts` creates the folders on the way.
+- **Files** works like the built-in Explorer. Expand folders, click files to open them in a preview tab (double-click to keep a tab open), and use **New File** and **New Folder** in its title bar or on a folder's right-click menu. Typing a path such as `src/utils/date.ts` creates the folders on the way.
 - **Each repo** shows its branch and status after its name. Folders that contain repos show a summary such as `9 repos · !2 ●2 ↑2 ↓2`, so you can tell what's inside without expanding them. Changed files carry the same letters as Source Control (`M`, `A`, `U`, and so on).
 - **Git Repositories** lists every repo in groups: *Conflict / in progress*, *Uncommitted changes*, *Not pushed*, *Behind remote*, and *Clean*. Use the filter icon in its title bar to find a repo by path or branch name. Hover a row for buttons that open it in Source Control or in a terminal.
 - **The status bar** shows the branch of the file you're editing on the left; click it to open that repo in Source Control. The item on the right counts repos by state; click it to jump to Git Repositories.
@@ -97,7 +97,7 @@ With **Changed files** on, click a file to review it. A diff opens comparing the
 - Added lines are green and removed lines are red. Within a changed line, the exact part that changed is highlighted.
 - New files appear fully added and deleted files fully removed. Renamed files are compared with their old name.
 - Files with conflicts open as normal files, so you can resolve them.
-- The diff opens as a preview tab, so the next file you click replaces it instead of opening another tab.
+- The diff opens as a preview tab, so the next file you click replaces it instead of opening another tab. Double-click a file to keep its tab open.
 - To edit the file, use the **Open File** button on its row.
 - To review every changed file in a repo in one tab, right-click the repo and choose **View All Changes**.
 
@@ -181,7 +181,7 @@ The type of git host is detected from the host name: `github`, `bitbucket.org`, 
 
 ### Keyboard shortcuts
 
-These shortcuts work when the **Files** tree has focus. As in the built-in Explorer, they act on the row you moved to with the arrow keys, or on all selected rows when that row is one of them. Clicking a file opens a preview and keeps focus in the tree, so the shortcuts act on the row rather than the editor.
+These shortcuts work when the **Files** tree has focus. As in the built-in Explorer, they act on the row you moved to with the arrow keys, or on all selected rows when that row is one of them. Clicking a file opens a preview and keeps focus in the tree, so the shortcuts act on the row rather than the editor. Double-click a file to keep its tab open and move focus to the editor.
 
 | Command | macOS | Windows / Linux |
 | --- | --- | --- |

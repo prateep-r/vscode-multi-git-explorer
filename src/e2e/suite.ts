@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import type { Locator, Page } from 'playwright-core';
 
@@ -176,6 +176,28 @@ test('shortcuts follow the focused row: Enter renames on macOS, Space opens keep
   await assertEventually('focus to move to the editor', () => editors.evaluate(el => el.contains(el.ownerDocument.activeElement)));
   await page.keyboard.press(`${MOD}+K`);
   await page.keyboard.press('W');
+});
+
+test('a click opens a preview the next click replaces, and a double-click keeps the file open', async (page, workspace) => {
+  const dir = path.join(workspace, 'docs', 'e2e-open');
+  mkdirSync(dir, { recursive: true });
+  for (const name of ['one.txt', 'two.txt', 'three.txt']) writeFileSync(path.join(dir, name), `${name}\n`);
+  await expand(page, 'docs', 'e2e-open');
+  const tab = (name: string) => page.locator('.tabs-container .tab', { hasText: name });
+
+  await row(page, 'one.txt').dblclick();
+  await tab('one.txt').waitFor();
+  await row(page, 'two.txt').click();
+  await tab('two.txt').waitFor();
+  await row(page, 'three.txt').click();
+  await tab('three.txt').waitFor();
+  await assertEventually('the preview of two.txt to be replaced', async () => (await tab('two.txt').count()) === 0);
+  assert.equal(await tab('one.txt').count(), 1, 'the double-clicked file stays open');
+  await page.keyboard.press(`${MOD}+K`);
+  await page.keyboard.press('W');
+  // Leave the tree short enough that the next tests' folders show without scrolling.
+  rmSync(dir, { recursive: true });
+  await assertEventually('e2e-open to leave the tree', async () => (await row(page, 'e2e-open').count()) === 0);
 });
 
 test('opening a file with Quick Open selects it in the tree, expanding the folders above it', async (page, workspace) => {

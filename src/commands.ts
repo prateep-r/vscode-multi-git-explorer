@@ -1,14 +1,12 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { isValidBranchName, listBranches, stashChanges, switchBranch, type Branches } from './core/branches';
 import { GitError, runGit } from './core/git';
 import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
-import { repoRelative } from './core/paths';
 import { defaultRemote } from './core/remoteLink';
 import { Priority, runPool } from './core/queue';
 import type { RepoEntry, RepoStore } from './store';
 import { GitStatus, type GitAPI, type GitChange, type GitExtension, type GitRepository } from './typings/git';
-import { headUri } from './views/headContent';
+import { openChange } from './views/changeCommand';
 import { gitPath } from './workspace';
 import type { ExplorerNode, RepoExplorerProvider } from './views/repoExplorer';
 import type { ReposNode, ReposViewProvider } from './views/reposView';
@@ -213,31 +211,6 @@ async function pickExplorerFilters(explorer: RepoExplorerProvider): Promise<void
     canPickMany: true,
   });
   if (picked) explorer.setFilters(picked.map(item => item.filter));
-}
-
-const DIFF_LABELS: Record<string, string> = {
-  M: 'Working Tree',
-  R: 'Renamed',
-  A: 'Added',
-  U: 'Untracked',
-  D: 'Deleted',
-};
-
-/** Shows a changed file as a diff against HEAD; conflicted files open as-is so they can be resolved. */
-async function openChange(store: RepoStore, node: ExplorerNode, options?: vscode.TextDocumentShowOptions): Promise<void> {
-  const repo = store.repoContaining(node.uri.fsPath);
-  const change = node.change;
-  if (!repo || !change || change.letter === '!') {
-    await vscode.commands.executeCommand('vscode.open', node.uri, options);
-    return;
-  }
-  const relPath = repoRelative(repo.root, node.uri.fsPath);
-  // A file inside an untracked folder carries the folder's change, so it's new too.
-  const isNew = change.letter === 'A' || change.letter === 'U';
-  const left = headUri(node.uri, repo.root, isNew ? undefined : (change.origPath ?? relPath));
-  const right = change.letter === 'D' ? headUri(node.uri, repo.root, undefined) : node.uri;
-  const title = `${path.basename(node.uri.fsPath)} (${DIFF_LABELS[change.letter]})`;
-  await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true, ...options });
 }
 
 type BranchPick = vscode.QuickPickItem & {

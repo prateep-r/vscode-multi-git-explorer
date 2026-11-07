@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Double-click a file to keep it open**, like the built-in Explorer. A single click still opens a preview that the next click replaces. `workbench.list.openMode` is followed too. The same goes for the diffs of changed files.
+
 ## 1.3.1
 
 - Fixed git commands failing now and then when git finished before reading its input, which stopped the 1.3.0 release from reaching the Marketplace. 1.3.1 is the first published release with the 1.3.0 changes.

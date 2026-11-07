@@ -13,6 +13,7 @@ import { checkEntry, parseExcludes, ROOT_STATE, type ExcludeRules, type Visibili
 import { IgnoreFile } from '../core/vs/ignoreFile';
 import type { RepoEntry, RepoStore } from '../store';
 import { folderOf, isWorkspaceFolder, localFolders } from '../workspace';
+import { changeCommand } from './changeCommand';
 import { toViewUri } from './viewUri';
 
 export interface ExplorerNode {
@@ -44,13 +45,6 @@ const SUMMARY_SYMBOLS: [GroupKey[], string][] = [
 const FILTER_STATE_KEY = 'multiGitExplorer.explorerFilter';
 const FILTER_ORDER: ExplorerFilter[] = ['changes', 'unpushed', 'behind'];
 const FILTERED_REFRESH_MS = 300;
-/**
- * Clicking a file opens it as a preview and keeps focus in the tree, like the
- * built-in Explorer, so keyboard shortcuts such as Copy and Rename act on the
- * row instead of the editor.
- */
-const CLICK_OPEN: vscode.TextDocumentShowOptions = { preview: true, preserveFocus: true };
-
 /**
  * A file tree like the built-in Explorer, but with each repo's branch and
  * state written after its name. The built-in Explorer cannot show that text:
@@ -414,9 +408,12 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
         // Listed because it changed: clicking shows what changed, like Source Control.
         item.description = describeChange(node.change);
         item.contextValue = this.withHosted(node.change.letter === 'D' ? 'file change deleted' : 'file change', fsPath);
-        item.command = { command: 'multiGitExplorer.openChange', title: 'Open Changes', arguments: [node, CLICK_OPEN] };
+        item.command = changeCommand(this.store, node);
       } else {
-        item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri, CLICK_OPEN] };
+        // No options, so VS Code passes on how the row was opened, as for the
+        // built-in Explorer: a click opens a preview and keeps focus in the
+        // tree, a double-click keeps the editor open and focuses it.
+        item.command = { command: 'vscode.open', title: 'Open', arguments: [node.uri] };
       }
       return item;
     }

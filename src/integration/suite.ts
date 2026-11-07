@@ -184,7 +184,7 @@ test('clicking a changed file while filtered opens a diff against HEAD', async (
 
     const readme = await child(api, 'README.md');
     const item = explorer.getTreeItem(readme);
-    assert.equal(item.command?.command, 'multiGitExplorer.openChange');
+    assert.equal(item.command?.command, 'vscode.diff', 'opens through VS Code, which knows a click from a double-click');
     await vscode.commands.executeCommand(item.command!.command, ...item.command!.arguments!);
     let diff = activeDiff();
     assert.equal(diff.modified.fsPath, at('services/api-gateway/README.md'));
