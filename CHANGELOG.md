@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed git commands failing now and then when git finished before reading its input, which stopped the 1.3.0 release from reaching the Marketplace. 1.3.1 is the first published release with the 1.3.0 changes.
+
 ## 1.3.0
 
 - **Undo and redo** with <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> and <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd> in the file tree, for new files and folders, rename, move, paste, delete and dropped files, like the built-in Explorer: undoing a delete brings back files up to 5 MB, it asks first per `explorer.confirmUndo`, and `explorer.enableUndo` turns it off.

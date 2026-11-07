@@ -3,7 +3,7 @@ import { writeFileSync } from 'fs';
 import { after, before, test } from 'node:test';
 import * as path from 'path';
 import { discoverRepos } from '../core/discovery';
-import { checkIgnore, parseCheckIgnore, readStatus } from '../core/git';
+import { checkIgnore, parseCheckIgnore, readStatus, runGit } from '../core/git';
 import { readCheapState } from '../core/gitDir';
 import { git, makeRepo, makeTempDir, write } from './helpers';
 
@@ -42,6 +42,14 @@ test('readStatus reports changes and ahead/behind against a real remote', async 
   const cheap = await readCheapState(repo);
   assert.equal(cheap?.branch, 'main');
   assert.equal(cheap?.hasRemote, true);
+});
+
+test('runGit is unharmed when git exits before reading its input', async () => {
+  // Writing to a git that has already exited fails with EPIPE, which must not escape.
+  for (let i = 0; i < 5; i++) {
+    const output = await runGit(tmp.dir, ['--version'], { input: 'x'.repeat(4 * 1024 * 1024) });
+    assert.match(output, /^git version/);
+  }
 });
 
 test('readCheapState sees detached HEAD and unfinished operations without running git', async () => {

@@ -49,6 +49,9 @@ export function runGit(cwd: string, args: string[], options: GitOptions = {}): P
         }
       },
     );
+    // git may exit before reading its input, and writing to it then fails
+    // with EPIPE. Its exit code and output still say how it went.
+    child.stdin?.on('error', () => {});
     child.stdin?.end(options.input ?? '');
   });
 }
