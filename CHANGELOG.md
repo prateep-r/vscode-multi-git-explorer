@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.2
 
 - **Double-click a file to keep it open**, like the built-in Explorer. A single click still opens a preview that the next click replaces. `workbench.list.openMode` is followed too. The same goes for the diffs of changed files.
 - **Reveal in Multi-Git Explorer** on an editor tab's right-click menu, and in the Command Palette, selects the file in the file tree, like **Reveal in Explorer View**.
