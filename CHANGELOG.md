@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.3
 
 Lighter on workspaces of more than 100 repos, such as one with nearly a thousand. Smaller workspaces work as before.
 
