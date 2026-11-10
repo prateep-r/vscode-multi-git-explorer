@@ -1048,13 +1048,13 @@
         "multiGitExplorer.refreshOnFocus": {
           "type": "boolean",
           "default": true,
-          "description": "Re-check repos when the VS Code window gets focus, to pick up changes made outside VS Code."
+          "description": "Re-check repos when the VS Code window gets focus, to pick up changes made outside VS Code. In a workspace of more than 100 repos, only the repos whose commits, branches, index or stash changed are re-checked, plus the repo of the active editor; which ones changed is read from .git, without running git."
         },
         "multiGitExplorer.backgroundRefreshMinutes": {
           "type": "number",
           "default": 5,
           "minimum": 0,
-          "description": "Re-check every repo in the background this often. 0 turns it off. This never fetches from remotes."
+          "description": "Re-check every repo in the background this often, in minutes. 0 turns it off. This never fetches from remotes. In a workspace of more than 100 repos, it re-checks only the repos whose commits, branches, index or stash changed, and every repo once every 30 minutes."
         }
       }
     },

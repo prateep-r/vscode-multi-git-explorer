@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
 import { checkIgnore } from '../core/git';
+import { Limiter } from '../core/queue';
 import type { RepoStore } from '../store';
 import { gitPath } from '../workspace';
 import { affectsExplorerDecorations, asFilesTreeShows, isFilesTreeUri } from './viewUri';
 
 const DEBOUNCE_MS = 500;
+/**
+ * Repos checked at the same time, each with one git process, across all
+ * batches, so a tall screen of many repos doesn't start dozens at once.
+ */
+export const IGNORE_CONCURRENCY = 4;
 const DECORATION = new vscode.FileDecoration(undefined, undefined, new vscode.ThemeColor('gitDecoration.ignoredResourceForeground'));
 
 interface Pending {
@@ -25,9 +31,13 @@ export class IgnoredDecorationProvider implements vscode.FileDecorationProvider,
   readonly onDidChangeFileDecorations = this._onDidChange.event;
   private queue = new Map<string, Map<string, Pending>>();
   private timer?: NodeJS.Timeout;
+  private readonly limiter = new Limiter(IGNORE_CONCURRENCY);
   private readonly disposables: vscode.Disposable[];
 
-  constructor(private readonly store: RepoStore) {
+  constructor(
+    private readonly store: RepoStore,
+    private readonly check: typeof checkIgnore = checkIgnore,
+  ) {
     const refresh = () => this._onDidChange.fire(undefined);
     this.disposables = [
       this._onDidChange,
@@ -43,6 +53,8 @@ export class IgnoredDecorationProvider implements vscode.FileDecorationProvider,
 
   dispose(): void {
     clearTimeout(this.timer);
+    // Repos waiting their turn are answered as not ignored, without running git.
+    this.limiter.clear();
     for (const pending of this.queue.values()) for (const p of pending.values()) p.resolve(undefined);
     this.queue.clear();
     this.disposables.forEach(d => d.dispose());
@@ -75,14 +87,12 @@ export class IgnoredDecorationProvider implements vscode.FileDecorationProvider,
     const queue = this.queue;
     this.queue = new Map();
     for (const [root, pending] of queue) {
-      checkIgnore(root, [...pending.keys()], { gitPath: gitPath() }).then(
-        ignored => {
+      void this.limiter
+        .run(() => this.check(root, [...pending.keys()], { gitPath: gitPath() }))
+        .catch(() => new Set<string>())
+        .then(ignored => {
           for (const [fsPath, p] of pending) p.resolve(ignored.has(fsPath) ? DECORATION : undefined);
-        },
-        () => {
-          for (const p of pending.values()) p.resolve(undefined);
-        },
-      );
+        });
     }
   }
 }

@@ -76,6 +76,61 @@ export async function readCheapState(root: string): Promise<CheapState | undefin
   return state;
 }
 
+/** Files in a worktree's git directory that a status check depends on. */
+const WORKTREE_FILES = ['HEAD', 'index', 'FETCH_HEAD', 'ORIG_HEAD', 'MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply', 'logs/HEAD'];
+/** Files in the directory shared by all worktrees that a status check depends on. */
+const SHARED_FILES = ['config', 'packed-refs', 'reftable/tables.list', 'FETCH_HEAD', 'refs/stash', 'logs/refs/stash', 'info/exclude'];
+
+/**
+ * A summary of what a status check reads from `.git`: the time, size and
+ * inode of HEAD, the index, the branch and its upstream, the stash and the
+ * files of an operation in progress. It changes on a commit, checkout,
+ * reset, merge, rebase, stash, fetch or push, and reading it starts no
+ * process. Changes to the working tree don't show in it; the file watcher
+ * reports those. Undefined without `.git`.
+ */
+export async function readFingerprint(root: string): Promise<string | undefined> {
+  const dirs = await resolveGitDirs(root);
+  if (!dirs) return undefined;
+  const { gitDir, commonDir } = dirs;
+  const [head, config] = await Promise.all([readText(path.join(gitDir, 'HEAD')), readText(path.join(commonDir, 'config'))]);
+  const files = [...WORKTREE_FILES.map(f => path.join(gitDir, f)), ...SHARED_FILES.map(f => path.join(commonDir, f))];
+  const branch = /^ref:\s*(refs\/heads\/.+)$/m.exec(head)?.[1].trim();
+  if (branch) {
+    files.push(path.join(commonDir, branch));
+    const upstream = upstreamRef(config, branch.slice('refs/heads/'.length));
+    if (upstream) files.push(path.join(commonDir, upstream));
+  }
+  const stats = await Promise.all(files.map(f => fs.stat(f).catch(() => undefined)));
+  return stats.map(s => (s ? `${s.mtimeMs}:${s.size}:${s.ino}` : '-')).join(' ');
+}
+
+/**
+ * The ref a branch's upstream is kept in, from the branch's `remote` and
+ * `merge` in the git config. Section and key names are matched without
+ * case, and comments and quotes are dropped, as git does. Files the config
+ * includes aren't read.
+ */
+function upstreamRef(config: string, branch: string): string | undefined {
+  let inBranch = false;
+  let remote: string | undefined;
+  let merge: string | undefined;
+  for (const line of config.split('\n')) {
+    const section = /^\s*\[([^\]]*)\]/.exec(line);
+    if (section) {
+      inBranch = /^\s*branch\s+"(.*)"\s*$/i.exec(section[1])?.[1] === branch;
+      continue;
+    }
+    const entry = inBranch && /^\s*(remote|merge)\s*=\s*("[^"]*"|[^#;]*)/i.exec(line);
+    if (!entry) continue;
+    const value = entry[2].trim().replace(/^"(.*)"$/, '$1');
+    if (entry[1].toLowerCase() === 'remote') remote = value;
+    else merge = value;
+  }
+  if (!remote || !merge?.startsWith('refs/heads/')) return undefined;
+  return remote === '.' ? merge : `refs/remotes/${remote}/${merge.slice('refs/heads/'.length)}`;
+}
+
 async function readOperation(gitDir: string): Promise<Operation | undefined> {
   const rebaseMerge = path.join(gitDir, 'rebase-merge');
   if (await exists(rebaseMerge)) {

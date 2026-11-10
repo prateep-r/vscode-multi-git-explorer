@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+Lighter on workspaces of more than 100 repos, such as one with nearly a thousand. Smaller workspaces work as before.
+
+- Coming back to the VS Code window, and the check every `backgroundRefreshMinutes`, re-check only the repos whose commits, branches, index or stash changed, and the repo of the active editor, instead of running `git status` in every repo. Which repos changed is read from `.git`, without running git. Every repo is still checked every 30 minutes, and by **Refresh**.
+- When the workspace opens, the repos on screen are checked at once and the rest 5 seconds later, so VS Code and other extensions can start first.
+
+For every workspace:
+
+- Dimming `.gitignore`d files runs git in at most 4 repos at a time, instead of one per repo on screen all at once, and stops when the extension does.
+- A change in a submodule, such as a new commit or an edited file, now also updates the repo it's in.
+
 ## 1.3.2
 
 - **Double-click a file to keep it open**, like the built-in Explorer. A single click still opens a preview that the next click replaces. `workbench.list.openMode` is followed too. The same goes for the diffs of changed files.

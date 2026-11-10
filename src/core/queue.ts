@@ -115,3 +115,34 @@ export async function runPool<T>(items: readonly T[], limit: number, fn: (item: 
   });
   await Promise.all(workers);
 }
+
+/**
+ * Runs async calls with at most `limit` in flight, however many places call
+ * it, in the order they were made. `clear` cancels the calls that haven't
+ * started: their promises reject.
+ */
+export class Limiter {
+  private active = 0;
+  private waiting: { start: () => void; cancel: () => void }[] = [];
+
+  constructor(private readonly limit: number) {}
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.active < this.limit) this.active++;
+    // A call that finishes hands its place straight to the next, so none can slip in between.
+    else await new Promise<void>((start, cancel) => this.waiting.push({ start, cancel: () => cancel(new Error('cancelled')) }));
+    try {
+      return await fn();
+    } finally {
+      const next = this.waiting.shift();
+      if (next) next.start();
+      else this.active--;
+    }
+  }
+
+  clear(): void {
+    const waiting = this.waiting;
+    this.waiting = [];
+    waiting.forEach(w => w.cancel());
+  }
+}

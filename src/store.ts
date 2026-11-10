@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { discoverRepos } from './core/discovery';
 import { readStatus } from './core/git';
-import { readCheapState, type CheapState } from './core/gitDir';
+import { readCheapState, readFingerprint, type CheapState } from './core/gitDir';
 import { isInside, withSep } from './core/paths';
 import { gitPath, localFolders } from './workspace';
 import type { ChangedFile, StatusSummary } from './core/porcelain';
@@ -18,6 +18,8 @@ export interface RepoEntry {
   /** Changed files by path relative to the root (forward slashes; untracked folders end with "/"). */
   changes?: Map<string, ChangedFile>;
   error?: string;
+  /** What `.git` looked like when the last check started (see `readFingerprint`). */
+  fingerprint?: string;
   /** True once a status check has been asked for since the last change. */
   requested: boolean;
   view: RepoView;
@@ -29,6 +31,21 @@ const CHANGE_DEBOUNCE_MS = 400;
 const DISCOVER_DEBOUNCE_MS = 500;
 const EMIT_BATCH_MS = 100;
 const FOCUS_THROTTLE_MS = 10_000;
+/**
+ * Workspaces with more repos than this are checked more sparingly, since a
+ * git process per repo adds up: on focus and in the background only the
+ * repos whose `.git` changed are checked, every repo only every
+ * FULL_REFRESH_MS, and at startup the repos off screen wait STARTUP_PAUSE_MS.
+ */
+export const LARGE_WORKSPACE_REPOS = 100;
+/**
+ * How long the first search for repos in a large workspace waits before
+ * checking the repos that aren't on screen, so VS Code and other extensions
+ * can start up first.
+ */
+export const STARTUP_PAUSE_MS = 5_000;
+/** How often the background refresh checks every repo of a large workspace, to catch what the file watcher missed. */
+const FULL_REFRESH_MS = 30 * 60_000;
 /** Files inside .git whose changes affect what we show. */
 const RELEVANT_GIT_FILES = /^(HEAD|index|FETCH_HEAD|MERGE_HEAD|CHERRY_PICK_HEAD|REVERT_HEAD|ORIG_HEAD|config|packed-refs|refs|logs|rebase-merge|rebase-apply)$/;
 
@@ -56,7 +73,11 @@ export class RepoStore implements vscode.Disposable {
   private emitTimer?: NodeJS.Timeout;
   private discoverTimer?: NodeJS.Timeout;
   private lastFocusRefresh = 0;
+  /** When every repo was last checked; the first checks count. */
+  private lastFullRefresh = Date.now();
   private backgroundTimer?: NodeJS.Timeout;
+  private startupTimer?: NodeJS.Timeout;
+  private discovered = false;
   private discovering?: Promise<void>;
   private readonly disposables: vscode.Disposable[] = [];
 
@@ -95,6 +116,7 @@ export class RepoStore implements vscode.Disposable {
     this.debounce.forEach(clearTimeout);
     clearTimeout(this.emitTimer);
     clearTimeout(this.discoverTimer);
+    clearTimeout(this.startupTimer);
     clearInterval(this.backgroundTimer);
   }
 
@@ -187,7 +209,14 @@ export class RepoStore implements vscode.Disposable {
 
     await this.readCheapStates(added);
     this._onDidDiscover.fire();
-    for (const entry of added) this.requestStatus(entry, Priority.Background);
+    // Only repos still here: another search may have dropped some meanwhile.
+    const checkAdded = () => {
+      for (const entry of added) if (this.repos.get(entry.root) === entry) this.requestStatus(entry, Priority.Background);
+    };
+    // In a large workspace, repos drawn on screen are asked for during the pause, by the decorations.
+    if (this.discovered || !this.isLarge()) checkAdded();
+    else this.startupTimer = setTimeout(checkAdded, STARTUP_PAUSE_MS);
+    this.discovered = true;
   }
 
   /** Searches one folder that was past the depth limit. */
@@ -256,10 +285,35 @@ export class RepoStore implements vscode.Disposable {
   }
 
   refreshAll(priority: number = Priority.Background): void {
+    this.lastFullRefresh = Date.now();
     const active = this.activeRepo();
     for (const root of this.repos.keys()) {
       this.refresh(root, root === active?.root ? Priority.Active : priority);
     }
+  }
+
+  /**
+   * Re-checks the repos whose `.git` changed since their last check, those
+   * whose check failed, and the active editor's repo. Telling which changed
+   * reads a few files per repo and starts no process, so it suits large
+   * workspaces, where `refreshAll` would start a git process for every repo.
+   * The working tree isn't looked at: the file watcher reports changes there.
+   * Repos not checked yet are left to the check that's coming.
+   */
+  async refreshChanged(): Promise<void> {
+    const active = this.activeRepo();
+    if (active) this.refresh(active.root, Priority.Active);
+    await runPool(this.all(), CHEAP_READ_CONCURRENCY, async entry => {
+      if (entry === active || (!entry.status && entry.error === undefined)) return;
+      if (entry.error !== undefined || (await readFingerprint(entry.root)) !== entry.fingerprint) {
+        this.refresh(entry.root, Priority.Background);
+      }
+    });
+  }
+
+  /** Whether the workspace has more than LARGE_WORKSPACE_REPOS repos, and so is checked more sparingly. */
+  isLarge(): boolean {
+    return this.repos.size > LARGE_WORKSPACE_REPOS;
   }
 
   /** The repo of the file in the active editor. */
@@ -270,6 +324,8 @@ export class RepoStore implements vscode.Disposable {
 
   private async check(entry: RepoEntry): Promise<void> {
     const { root } = entry;
+    // Read before git runs, so a change made while it runs is seen next time.
+    entry.fingerprint = await readFingerprint(root);
     try {
       const [cheap, status] = await Promise.all([
         readCheapState(root),
@@ -290,6 +346,10 @@ export class RepoStore implements vscode.Disposable {
     }
     entry.view = this.describe(entry);
     this.markChanged(root);
+    // The repo a submodule is in lists it as changed when it has new commits or changes,
+    // which neither the watcher (it reports a file to its innermost repo) nor the parent's .git shows.
+    const parent = entry.isSubmodule ? this.repoContaining(path.dirname(root)) : undefined;
+    if (parent) this.refresh(parent.root, Priority.Background);
   }
 
   private describe(entry: RepoEntry): RepoView {
@@ -368,7 +428,13 @@ export class RepoStore implements vscode.Disposable {
     const now = Date.now();
     if (now - this.lastFocusRefresh < FOCUS_THROTTLE_MS) return;
     this.lastFocusRefresh = now;
-    this.refreshAll(Priority.Background);
+    if (this.isLarge()) void this.refreshChanged();
+    else this.refreshAll(Priority.Background);
+  }
+
+  private onBackgroundTick(): void {
+    if (this.isLarge() && Date.now() - this.lastFullRefresh < FULL_REFRESH_MS) void this.refreshChanged();
+    else this.refreshAll(Priority.Background);
   }
 
   private onConfigChange(e: vscode.ConfigurationChangeEvent): void {
@@ -386,7 +452,7 @@ export class RepoStore implements vscode.Disposable {
     clearInterval(this.backgroundTimer);
     const minutes = config().get('backgroundRefreshMinutes', 5);
     if (minutes > 0) {
-      this.backgroundTimer = setInterval(() => this.refreshAll(Priority.Background), minutes * 60_000);
+      this.backgroundTimer = setInterval(() => this.onBackgroundTick(), minutes * 60_000);
     }
   }
 }

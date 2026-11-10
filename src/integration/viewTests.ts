@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import type { RepoEntry, RepoStore } from '../store';
 import { HeadContentProvider, headUri } from '../views/headContent';
-import { IgnoredDecorationProvider } from '../views/ignoredDecorations';
+import { IGNORE_CONCURRENCY, IgnoredDecorationProvider } from '../views/ignoredDecorations';
 import { ReposViewProvider } from '../views/reposView';
 import { StatusBar } from '../views/statusBar';
 import { toReposViewUri, toViewUri } from '../views/viewUri';
@@ -104,6 +104,44 @@ export function registerViewTests(): void {
     const provider = new HeadContentProvider();
     const uri = headUri(vscode.Uri.file(at('services/search/none.ts')), at('services/search'), 'none.ts');
     assert.equal(await provider.provideTextDocumentContent(uri), '');
+  });
+
+  test('ignored files: rows in many repos are checked a few repos at a time, even when batches overlap', async ({ store }) => {
+    await waitFor('the repos', () => store.all().length >= IGNORE_CONCURRENCY * 4);
+    const repos = store.all().filter(r => !r.isSubmodule).slice(0, IGNORE_CONCURRENCY * 4);
+    let active = 0;
+    let peak = 0;
+    const asked: string[] = [];
+    const provider = new IgnoredDecorationProvider(store, async (root, paths) => {
+      asked.push(root);
+      peak = Math.max(peak, ++active);
+      // Slower than the half second rows are collected for, so the next batch starts meanwhile.
+      await new Promise(r => setTimeout(r, 400));
+      active--;
+      return new Set(paths);
+    });
+    const ask = (rs: RepoEntry[]) => Promise.all(rs.map(r => provider.provideFileDecoration(toViewUri(path.join(r.root, 'x.log')))));
+    try {
+      const half = repos.length / 2;
+      const first = ask(repos.slice(0, half));
+      await waitFor('the first batch to start', () => asked.length > 0);
+      const second = ask(repos.slice(half));
+      const answers = [...(await first), ...(await second)];
+      assert.ok(answers.every(a => a?.color), 'every row answered');
+      assert.equal(asked.length, repos.length, 'once per repo');
+      assert.equal(peak, IGNORE_CONCURRENCY);
+
+      // Repos still waiting when it's disposed are answered without running git.
+      asked.length = 0;
+      const pending = ask(repos);
+      await waitFor('a batch to start', () => asked.length > 0);
+      provider.dispose();
+      const after = await pending;
+      assert.equal(asked.length, IGNORE_CONCURRENCY, 'only those already running ran git');
+      assert.equal(after.filter(Boolean).length, IGNORE_CONCURRENCY, 'the rest answered as not ignored');
+    } finally {
+      provider.dispose();
+    }
   });
 
   test('ignored files: refreshed on saving .gitignore, left alone when git fails or decorations are off', async ({ store, items, problems, explorer }) => {

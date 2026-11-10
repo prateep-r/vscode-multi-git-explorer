@@ -363,8 +363,8 @@ code --uninstall-extension prateep-r.multi-git-explorer
 | `multiGitExplorer.remoteHosts` | `{}` | The type of each git host, for remote links ([details](#links-to-the-remote-website)) |
 | `multiGitExplorer.maxConcurrency` | `6` | Maximum number of git processes running at the same time |
 | `multiGitExplorer.countUntracked` | `true` | Count untracked files. Turn off for faster checks in very large repos |
-| `multiGitExplorer.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus |
-| `multiGitExplorer.backgroundRefreshMinutes` | `5` | How often to re-check all repos, in minutes. `0` turns it off |
+| `multiGitExplorer.refreshOnFocus` | `true` | Re-check repos when the VS Code window gets focus. With more than 100 repos, only those whose `.git` changed, and the repo of the active editor |
+| `multiGitExplorer.backgroundRefreshMinutes` | `5` | How often to re-check all repos, in minutes. `0` turns it off. With more than 100 repos, only those whose `.git` changed, and all of them every 30 minutes |
 
 ### Colors
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { TaskQueue } from '../core/queue';
+import { Limiter, TaskQueue } from '../core/queue';
 
 function deferred() {
   let resolve!: () => void;
@@ -94,4 +94,38 @@ test('a raised concurrency limit starts waiting jobs at once, and an idle queue 
   queue.setConcurrency(0);
   release();
   await queue.onIdle();
+});
+
+test('a Limiter keeps its limit across separate calls', async () => {
+  const limiter = new Limiter(2);
+  let active = 0;
+  let peak = 0;
+  const job = async () => {
+    peak = Math.max(peak, ++active);
+    await new Promise(r => setTimeout(r, 5));
+    active--;
+    return 'done';
+  };
+  const first = [limiter.run(job), limiter.run(job)];
+  const later = [limiter.run(job), limiter.run(job), limiter.run(job)];
+  assert.deepEqual(await Promise.all([...first, ...later]), ['done', 'done', 'done', 'done', 'done']);
+  assert.equal(peak, 2);
+});
+
+test('a Limiter passes on failures, and clear cancels what has not started', async () => {
+  const limiter = new Limiter(1);
+  const gate = deferred();
+  let started = 0;
+  const running = limiter.run(async () => {
+    started++;
+    await gate.promise;
+    throw new Error('git failed');
+  });
+  const waiting = limiter.run(async () => void started++);
+  limiter.clear();
+  gate.resolve();
+  await assert.rejects(running, /git failed/);
+  await assert.rejects(waiting, /cancelled/);
+  assert.equal(started, 1);
+  assert.equal(await limiter.run(async () => 'after'), 'after', 'still usable');
 });
