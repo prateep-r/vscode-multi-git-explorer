@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
 - **Fetch All, Pull All, Push All and Refresh All on a folder or group.** Right-click a folder that holds repos but isn't one, or a group in **Git Repositories** such as *Behind remote*, to run git in every repo it counts, a few at a time (`maxConcurrency`), with progress you can cancel.
   - **Pull All** only fast-forwards (`git pull --ff-only`). A repo that would need a merge, or whose changes are in the way, is skipped and left as it was.
