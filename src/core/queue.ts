@@ -47,8 +47,9 @@ export class TaskQueue {
     this.pump();
   }
 
-  has(key: string): boolean {
-    return this.waiting.has(key) || this.running.has(key);
+  /** Whether a job for `key` waits to start; once it runs, this is false again. */
+  isWaiting(key: string): boolean {
+    return this.waiting.has(key);
   }
 
   /** Jobs waiting or running. */

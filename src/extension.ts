@@ -73,7 +73,7 @@ export function activate(context: vscode.ExtensionContext): MultiGitExplorerApi 
     vscode.window.registerFileDecorationProvider(cut),
     vscode.workspace.registerTextDocumentContentProvider(HEAD_SCHEME, new HeadContentProvider()),
     new StatusBar(store),
-    ...registerCommands(store, reposView, explorer),
+    ...registerCommands(store, reposView, explorer, log),
     ...registerChatTargets(explorerTree),
     files,
     ...registerFileCommands(files, explorer, explorerTree),

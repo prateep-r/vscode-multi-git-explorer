@@ -100,7 +100,7 @@ export class RepoStore implements vscode.Disposable {
       watcher.onDidChange(uri => this.onFileEvent(uri, 'change')),
       watcher.onDidCreate(uri => this.onFileEvent(uri, 'create')),
       watcher.onDidDelete(uri => this.onFileEvent(uri, 'delete')),
-      vscode.window.onDidChangeWindowState(state => state.focused && this.onWindowFocus()),
+      vscode.window.onDidChangeWindowState(state => this.onWindowState(state)),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.discover()),
       vscode.workspace.onDidChangeConfiguration(e => this.onConfigChange(e)),
       this._onDidChangeRepos,
@@ -269,9 +269,14 @@ export class RepoStore implements vscode.Disposable {
 
   // ---- Refreshing ---------------------------------------------------------
 
-  /** Asks for a status check unless one was already asked for. Cheap to call often. */
+  /**
+   * Asks for a status check unless one was already asked for. Cheap to call
+   * often. A check still waiting moves up to `priority`; a check already
+   * running isn't asked for again, as rows drawn while it runs would have it
+   * run twice.
+   */
   requestStatus(entry: RepoEntry, priority: number): void {
-    if (entry.requested && !this.queue.has(entry.root)) return;
+    if (entry.requested && !this.queue.isWaiting(entry.root)) return;
     entry.requested = true;
     this.queue.enqueue(entry.root, priority, () => this.check(entry));
   }
@@ -282,6 +287,16 @@ export class RepoStore implements vscode.Disposable {
     if (!entry) return;
     entry.requested = true;
     this.queue.enqueue(root, priority, () => this.check(entry));
+  }
+
+  /**
+   * Checks the repos never checked yet, such as those off screen in a large
+   * workspace, and waits for them; the others are left as they are. At most
+   * maxConcurrency at once, outside the queue, so the user waits for nothing else.
+   */
+  async checkUnchecked(entries: readonly RepoEntry[]): Promise<void> {
+    const unchecked = entries.filter(entry => !entry.status && entry.error === undefined);
+    await runPool(unchecked, config().get('maxConcurrency', 6), entry => this.check(entry));
   }
 
   refreshAll(priority: number = Priority.Background): void {
@@ -423,8 +438,9 @@ export class RepoStore implements vscode.Disposable {
     this.discoverTimer = setTimeout(() => void this.discover(), DISCOVER_DEBOUNCE_MS);
   }
 
-  private onWindowFocus(): void {
-    if (!config().get('refreshOnFocus', true)) return;
+  /** Coming back to the window looks for changes made elsewhere, such as in a terminal. */
+  private onWindowState(state: vscode.WindowState): void {
+    if (!state.focused || !config().get('refreshOnFocus', true)) return;
     const now = Date.now();
     if (now - this.lastFocusRefresh < FOCUS_THROTTLE_MS) return;
     this.lastFocusRefresh = now;

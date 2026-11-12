@@ -444,7 +444,7 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
       item.description = repo.view.description;
       item.tooltip = repo.view.tooltip;
       item.contextValue = this.withHosted(repo.view.contextValue, fsPath);
-      if (this.filtering && !this.showsFilesOf(repo) && !this.matchingRepos().some(r => isInside(r.root, fsPath))) {
+      if (this.filtering && !this.showsFilesOf(repo) && !this.store.reposUnder(fsPath).some(r => this.matches(r))) {
         item.collapsibleState = vscode.TreeItemCollapsibleState.None;
       }
       return item;
@@ -454,9 +454,10 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     if (node.change) item.description = 'untracked';
     if (this.store.repoContaining(fsPath)) return item;
 
-    const below = this.filtering ? this.matchingRepos().filter(r => isInside(r.root, fsPath)) : this.store.reposUnder(fsPath);
+    const below = this.reposShownUnder(fsPath);
     if (below.length > 0) {
       item.description = summarize(below);
+      item.contextValue += ' repos';
     } else if (this.store.isScanned(fsPath)) {
       item.description = 'no git';
     } else if (this.isExcluded(fsPath)) {
@@ -503,8 +504,24 @@ export class RepoExplorerProvider implements vscode.TreeDataProvider<ExplorerNod
     void this.store.scanFolder(fsPath);
   }
 
+  /**
+   * The repos a folder row outside any repo stands for: the repos below it,
+   * or while filtering, those of them that match. Its summary counts them,
+   * and Fetch All and the like act on them. Empty for a folder in a repo.
+   * Found by a binary search, so drawing a row doesn't go through every repo.
+   */
+  reposShownUnder(fsPath: string): RepoEntry[] {
+    if (this.store.repoContaining(fsPath)) return [];
+    const below = this.store.reposUnder(fsPath);
+    return this.filtering ? below.filter(r => this.matches(r)) : below;
+  }
+
+  private matches(repo: RepoEntry): boolean {
+    return matchesFilter(repo.status, this.filters, repo.cheap?.hasRemote);
+  }
+
   private matchingRepos(): RepoEntry[] {
-    return this.store.all().filter(r => matchesFilter(r.status, this.filters, r.cheap?.hasRemote));
+    return this.store.all().filter(r => this.matches(r));
   }
 
   /** Whether a repo's changed files are listed under it while filtering. */

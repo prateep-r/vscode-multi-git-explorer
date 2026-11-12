@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { isValidBranchName, listBranches, stashChanges, switchBranch, type Branches } from './core/branches';
+import { classifyError, countRepos, nameList, reposFor, summarize, type BulkAction, type BulkOutcome } from './core/bulk';
 import { GitError, runGit } from './core/git';
 import { FILTER_LABELS, type ExplorerFilter } from './core/filter';
 import { defaultRemote } from './core/remoteLink';
@@ -14,11 +15,14 @@ import type { ReposNode, ReposViewProvider } from './views/reposView';
 const NETWORK_TIMEOUT_MS = 120_000;
 
 type CommandArg = vscode.Uri | ExplorerNode | ReposNode | undefined;
+/** The bulk commands are only on folder and group rows. */
+type RowArg = ExplorerNode | ReposNode | undefined;
 
 export function registerCommands(
   store: RepoStore,
   reposView: ReposViewProvider,
   explorer: RepoExplorerProvider,
+  log: vscode.OutputChannel,
 ): vscode.Disposable[] {
   /** Finds the repo a command was invoked on: a view row, an Explorer folder, or the active file. */
   const repoFrom = (arg: CommandArg): RepoEntry | undefined => {
@@ -37,6 +41,67 @@ export function registerCommands(
   };
 
   const git = (repo: RepoEntry, args: string[], timeoutMs?: number) => runGit(repo.root, args, { gitPath: gitPath(), timeoutMs });
+
+  /**
+   * What to push: a branch with no upstream gets one on the default remote,
+   * as Source Control does. Undefined when there's no remote to push to.
+   */
+  const pushArgs = async (repo: RepoEntry): Promise<string[] | undefined> => {
+    if (repo.status && !repo.status.branch.upstream && !repo.status.branch.detached) {
+      const remote = defaultRemote((await git(repo, ['remote']).catch(() => '')).split('\n').filter(Boolean));
+      return remote ? ['push', '--set-upstream', remote, 'HEAD'] : undefined;
+    }
+    return ['push'];
+  };
+
+  /** The repos a folder row (outside any repo) or a group row stands for. */
+  const reposOf = (arg: RowArg): RepoEntry[] => {
+    if (arg && 'uri' in arg) return explorer.reposShownUnder(arg.uri.fsPath);
+    if (arg?.type === 'group') return reposView.reposInGroup(arg.key);
+    return [];
+  };
+
+  const BULK_GIT: Record<Exclude<BulkAction, 'refresh'>, (repo: RepoEntry) => Promise<unknown>> = {
+    fetch: repo => git(repo, ['fetch'], NETWORK_TIMEOUT_MS),
+    // Never a merge commit, a rebase or a stash: only what can't go wrong in a repo nobody is looking at.
+    pull: repo => git(repo, ['pull', '--no-rebase', '--no-autostash', '--ff-only'], NETWORK_TIMEOUT_MS),
+    push: async repo => {
+      const args = await pushArgs(repo);
+      if (!args) throw new Error('no remote to push to');
+      return git(repo, args, NETWORK_TIMEOUT_MS);
+    },
+  };
+
+  /** Fetch All, Pull All, Push All and Refresh All on a folder or group row. */
+  const runBulk = async (action: BulkAction, arg: RowArg) => {
+    const below = reposOf(arg);
+    if (action === 'refresh') {
+      for (const repo of below) store.refresh(repo.root, Priority.User);
+      vscode.window.setStatusBarMessage(`Refreshing ${countRepos(below.length)}`, 3000);
+      return;
+    }
+    // Whether a repo has something to push comes from its status, which a large workspace reads only for repos on screen.
+    if (action === 'push') {
+      await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Checking repos' }, () => store.checkUnchecked(below));
+    }
+    const repos = reposFor(action, below);
+    if (repos.length === 0) {
+      void vscode.window.showInformationMessage(`Multi-Git Explorer: no repos here to ${action}.`);
+      return;
+    }
+    if (action === 'push' && !(await confirmPush(repos))) return;
+    const outcomes = await runOnRepos(store, action, BULK_TITLES[action], repos, BULK_GIT[action]);
+    const { text, warn } = summarize(action, outcomes, repos.length);
+    if (!warn) {
+      vscode.window.setStatusBarMessage(`$(check) ${text}`, 5000);
+      return;
+    }
+    const problems = outcomes.filter(o => o.result !== 'done');
+    for (const o of problems) log.appendLine(`${BULK_TITLES[action]}: ${o.detail}`);
+    void vscode.window.showWarningMessage(text, ...(problems.length ? ['Show Details'] : [])).then(choice => {
+      if (choice) log.show(true);
+    });
+  };
 
   /** Runs a git command with a progress notification, then re-checks the repo. */
   const runWithProgress = async (repo: RepoEntry, title: string, args: string[]) => {
@@ -147,15 +212,12 @@ export function registerCommands(
     vscode.commands.registerCommand(
       'multiGitExplorer.push',
       withRepo(async repo => {
-        if (repo.status && !repo.status.branch.upstream && !repo.status.branch.detached) {
-          const remote = defaultRemote((await git(repo, ['remote']).catch(() => '')).split('\n').filter(Boolean));
-          if (!remote) {
-            void vscode.window.showWarningMessage(`${repo.name} has no remote to push to.`);
-            return;
-          }
-          return runWithProgress(repo, 'Pushing', ['push', '--set-upstream', remote, 'HEAD']);
+        const args = await pushArgs(repo);
+        if (!args) {
+          void vscode.window.showWarningMessage(`${repo.name} has no remote to push to.`);
+          return;
         }
-        return runWithProgress(repo, 'Pushing', ['push']);
+        return runWithProgress(repo, 'Pushing', args);
       }),
     ),
 
@@ -175,6 +237,10 @@ export function registerCommands(
         await vscode.env.clipboard.writeText(repo.view.branchLabel.replace(/ \(detached\)$/, ''));
         vscode.window.setStatusBarMessage(`Copied "${repo.view.branchLabel}"`, 2000);
       }),
+    ),
+
+    ...(['fetch', 'pull', 'push', 'refresh'] as const).map(action =>
+      vscode.commands.registerCommand(`multiGitExplorer.${action}AllHere`, (arg: RowArg) => runBulk(action, arg)),
     ),
 
     vscode.commands.registerCommand('multiGitExplorer.scanFolder', (arg: CommandArg) => {
@@ -324,34 +390,65 @@ async function pickAndSwitchBranch(store: RepoStore, repo: RepoEntry): Promise<v
 }
 
 async function fetchAll(store: RepoStore): Promise<void> {
-  const repos = store.all().filter(r => r.cheap?.hasRemote);
+  const repos = reposFor('fetch', store.all());
   if (repos.length === 0) {
     void vscode.window.showInformationMessage('Multi-Git Explorer: no repos with a remote to fetch.');
     return;
   }
-  const concurrency = vscode.workspace.getConfiguration('multiGitExplorer').get('maxConcurrency', 6);
-  const failed: string[] = [];
-  await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'Fetching repos', cancellable: true },
-    async (progress, token) => {
-      let done = 0;
-      await runPool(repos, concurrency, async repo => {
-        if (token.isCancellationRequested) return;
-        try {
-          await runGit(repo.root, ['fetch'], { gitPath: gitPath(), timeoutMs: NETWORK_TIMEOUT_MS });
-        } catch {
-          failed.push(repo.name);
-        }
-        store.refresh(repo.root, Priority.Background);
-        done++;
-        progress.report({ message: `${done} of ${repos.length}`, increment: 100 / repos.length });
-      });
-    },
+  const outcomes = await runOnRepos(store, 'fetch', 'Fetching repos', repos, repo =>
+    runGit(repo.root, ['fetch'], { gitPath: gitPath(), timeoutMs: NETWORK_TIMEOUT_MS }),
   );
+  const failed = outcomes.filter(o => o.result === 'failed').map(o => o.name);
   if (failed.length) {
-    const shown = failed.slice(0, 5).join(', ') + (failed.length > 5 ? `, and ${failed.length - 5} more` : '');
-    void vscode.window.showWarningMessage(`Couldn't fetch ${failed.length} ${failed.length === 1 ? 'repo' : 'repos'}: ${shown}`);
+    void vscode.window.showWarningMessage(`Couldn't fetch ${failed.length} ${failed.length === 1 ? 'repo' : 'repos'}: ${nameList(failed)}`);
   }
+}
+
+const BULK_TITLES: Record<Exclude<BulkAction, 'refresh'>, string> = {
+  fetch: 'Fetching repos',
+  pull: 'Pulling repos',
+  push: 'Pushing repos',
+};
+
+/**
+ * Runs `run` in each repo, at most maxConcurrency at once, with a progress
+ * notification that can stop the repos not started yet. A failure doesn't
+ * stop the others. Each repo is re-checked as it finishes, so its row
+ * updates while the rest run.
+ */
+async function runOnRepos(
+  store: RepoStore,
+  action: BulkAction,
+  title: string,
+  repos: readonly RepoEntry[],
+  run: (repo: RepoEntry) => Promise<unknown>,
+): Promise<BulkOutcome[]> {
+  const concurrency = vscode.workspace.getConfiguration('multiGitExplorer').get('maxConcurrency', 6);
+  const outcomes: BulkOutcome[] = [];
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title, cancellable: true }, async (progress, token) => {
+    await runPool(repos, concurrency, async repo => {
+      if (token.isCancellationRequested) return;
+      try {
+        await run(repo);
+        outcomes.push({ name: repo.name, result: 'done' });
+      } catch (error) {
+        const { message } = error as Error;
+        const stderr = error instanceof GitError ? error.stderr.trim() : '';
+        outcomes.push({ name: repo.name, result: classifyError(action, `${message}\n${stderr}`), detail: `${repo.root}: ${stderr || message}` });
+      }
+      store.refresh(repo.root, Priority.Background);
+      progress.report({ message: `${outcomes.length} of ${repos.length}`, increment: 100 / repos.length });
+    });
+  });
+  return outcomes;
+}
+
+/** Asks before pushing many repos at once, naming them; the first push of a branch also sets its upstream. */
+async function confirmPush(repos: readonly RepoEntry[]): Promise<boolean> {
+  const shown = repos.slice(0, 10).map(r => `${r.name}${r.status?.branch.upstream ? '' : ' (first push, sets an upstream)'}`);
+  if (repos.length > 10) shown.push(`and ${repos.length - 10} more`);
+  const choice = await vscode.window.showWarningMessage(`Push ${countRepos(repos.length)}?`, { modal: true, detail: shown.join('\n') }, 'Push');
+  return choice === 'Push';
 }
 
 async function gitApi(): Promise<GitAPI | undefined> {

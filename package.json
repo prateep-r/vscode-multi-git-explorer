@@ -185,6 +185,26 @@
         "category": "Multi-Git Explorer"
       },
       {
+        "command": "multiGitExplorer.fetchAllHere",
+        "title": "Fetch All",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.pullAllHere",
+        "title": "Pull All (Fast-Forward)",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.pushAllHere",
+        "title": "Push All...",
+        "category": "Multi-Git Explorer"
+      },
+      {
+        "command": "multiGitExplorer.refreshAllHere",
+        "title": "Refresh All",
+        "category": "Multi-Git Explorer"
+      },
+      {
         "command": "multiGitExplorer.openTerminal",
         "title": "Open Terminal Here",
         "category": "Multi-Git Explorer",
@@ -521,6 +541,26 @@
           "group": "2_sync@3"
         },
         {
+          "command": "multiGitExplorer.fetchAllHere",
+          "when": "view =~ /^multiGitExplorer\\./ && viewItem =~ /\\brepos\\b/",
+          "group": "2_sync@11"
+        },
+        {
+          "command": "multiGitExplorer.pullAllHere",
+          "when": "view =~ /^multiGitExplorer\\./ && viewItem =~ /\\brepos\\b/",
+          "group": "2_sync@12"
+        },
+        {
+          "command": "multiGitExplorer.pushAllHere",
+          "when": "view =~ /^multiGitExplorer\\./ && viewItem =~ /\\brepos\\b/",
+          "group": "2_sync@13"
+        },
+        {
+          "command": "multiGitExplorer.refreshAllHere",
+          "when": "view =~ /^multiGitExplorer\\./ && viewItem =~ /\\brepos\\b/",
+          "group": "2_sync@14"
+        },
+        {
           "command": "multiGitExplorer.openTerminal",
           "when": "view == multiGitExplorer.repos && viewItem =~ /\\brepo\\b/",
           "group": "3_open@1"
@@ -743,6 +783,22 @@
         },
         {
           "command": "multiGitExplorer.pull",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.fetchAllHere",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.pullAllHere",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.pushAllHere",
+          "when": "false"
+        },
+        {
+          "command": "multiGitExplorer.refreshAllHere",
           "when": "false"
         },
         {

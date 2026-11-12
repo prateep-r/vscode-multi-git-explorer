@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Fetch All, Pull All, Push All and Refresh All on a folder or group.** Right-click a folder that holds repos but isn't one, or a group in **Git Repositories** such as *Behind remote*, to run git in every repo it counts, a few at a time (`maxConcurrency`), with progress you can cancel.
+  - **Pull All** only fast-forwards (`git pull --ff-only`). A repo that would need a merge, or whose changes are in the way, is skipped and left as it was.
+  - **Push All** asks first and names the repos. A branch pushed for the first time gets an upstream, as with **Push**.
+  - A repo that fails or is skipped doesn't stop the others. The message at the end lists them, and **Show Details** shows git's output in the *Multi-Git Explorer* output.
+  - Choosing the repos runs no git, except that **Push All** checks the repos not checked yet (in a large workspace, those off screen) to see what they have to push.
+- While filtering, folder and repo rows find the repos below them by a binary search instead of going through every repo.
+- A repo whose row is drawn while its status is being checked, such as one shown in an editor's breadcrumbs, is no longer checked a second time right after.
+
 ## 1.3.3
 
 Lighter on workspaces of more than 100 repos, such as one with nearly a thousand. Smaller workspaces work as before.

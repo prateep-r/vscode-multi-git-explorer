@@ -5,6 +5,7 @@ import { execFileSync } from 'child_process';
 import { mkdirSync, rmSync } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { Priority } from '../core/queue';
 import { LARGE_WORKSPACE_REPOS, RepoStore, STARTUP_PAUSE_MS, type RepoEntry } from '../store';
 import { RepoDecorationProvider } from '../views/decorations';
 import { toViewUri } from '../views/viewUri';
@@ -74,6 +75,34 @@ export function registerStoreTests(): void {
     }
   });
 
+  test('a repo asked for while its check runs, as by a row drawn meanwhile, isn\'t checked again', async ({ store }) => {
+    const entry = await waitFor('search to be checked', () => store.get(at('services', 'search'))?.status && store.get(at('services', 'search')));
+    const queue = (store as unknown as { queue: { onIdle(): Promise<void> } }).queue;
+    await queue.onIdle();
+    const inner = store as unknown as { check(entry: RepoEntry): Promise<void> };
+    const check = inner.check;
+    let checks = 0;
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => (release = resolve));
+    const restore = stub(inner, 'check', async (e: RepoEntry) => {
+      if (e === entry) {
+        checks++;
+        await gate;
+      }
+      return check.call(store, e);
+    });
+    try {
+      store.refresh(entry.root, Priority.User);
+      await waitFor('the check to start', () => checks === 1);
+      store.requestStatus(entry, Priority.Visible);
+      release();
+      await queue.onIdle();
+      assert.equal(checks, 1);
+    } finally {
+      restore();
+    }
+  });
+
   test('in a large workspace, the first search checks the repos on screen at once, and the rest after a pause', async () => {
     const lines: string[] = [];
     const fresh = new RepoStore({ appendLine: (l: string) => void lines.push(l) } as unknown as vscode.OutputChannel);
@@ -128,14 +157,14 @@ export function registerStoreTests(): void {
   test('focus and the background tick re-check every repo as before, and in a large workspace only the changed ones, with all every 30 minutes', async ({ store }) => {
     await waitFor('the repos', () => store.isLarge());
     const calls: string[] = [];
-    const inner = store as unknown as { onWindowFocus(): void; onBackgroundTick(): void; lastFocusRefresh: number; lastFullRefresh: number };
+    const inner = store as unknown as { onWindowState(state: { focused: boolean }): void; onBackgroundTick(): void; lastFocusRefresh: number; lastFullRefresh: number };
     const restore = [
       stub(store, 'refreshAll', () => void calls.push('all')),
       stub(store, 'refreshChanged', async () => void calls.push('changed')),
     ];
     const focus = () => {
       inner.lastFocusRefresh = 0;
-      inner.onWindowFocus();
+      inner.onWindowState({ focused: true });
     };
     try {
       restore.push(stub(store, 'isLarge', () => false));
@@ -207,12 +236,16 @@ export function registerStoreTests(): void {
   });
 
   test('coming back to the window looks for changes, at most every 10 seconds, per refreshOnFocus', async ({ store }) => {
+    await waitFor('the repos', () => store.isLarge());
     let refreshed = 0;
     const restore = stub(store, 'refreshChanged', async () => void refreshed++);
-    const focus = () => (store as unknown as { onWindowFocus(): void }).onWindowFocus();
+    const windowState = (focused: boolean) => (store as unknown as { onWindowState(state: { focused: boolean }): void }).onWindowState({ focused });
+    const focus = () => windowState(true);
     const config = vscode.workspace.getConfiguration('multiGitExplorer');
     try {
       (store as unknown as { lastFocusRefresh: number }).lastFocusRefresh = 0;
+      windowState(false);
+      assert.equal(refreshed, 0, 'leaving the window looks for nothing');
       focus();
       focus();
       assert.equal(refreshed, 1, 'not again within 10 seconds');

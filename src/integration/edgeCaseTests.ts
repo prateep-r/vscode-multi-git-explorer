@@ -181,6 +181,12 @@ export function registerEdgeCaseTests(): void {
       const config = vscode.workspace.getConfiguration('explorer');
       await config.update('excludeGitIgnore', true, vscode.ConfigurationTarget.Global);
       const list = async (rel = '.') => (await explorer.getChildren({ uri: vscode.Uri.file(path.join(dir, rel)), isDir: true })).map(n => path.basename(n.uri.fsPath));
+      // VS Code drops a file's creation and removal when it reports both at once,
+      // so the removal below waits until the creation has been reported, to a
+      // watcher of the extension's own pattern, which gets the same events.
+      const watcher = vscode.workspace.createFileSystemWatcher('**/.gitignore');
+      let reported = false;
+      watcher.onDidCreate(uri => (reported ||= uri.fsPath === path.join(dir, '.gitignore')));
       try {
         writeFileSync(path.join(dir, '.gitignore'), 'hidden.txt\n');
         writeFileSync(path.join(dir, 'sub', '.gitignore'), 'x\n');
@@ -191,9 +197,11 @@ export function registerEdgeCaseTests(): void {
         const known = () => [...(files.values().next().value?.keys() ?? [])];
         assert.ok(known().includes(path.join(dir, 'sub')));
         // Without listing the folder again, so it's the watcher that has them forgotten.
+        await waitFor('the watcher to report .gitignore', () => reported, 10_000);
         rmSync(path.join(dir, '.gitignore'));
         await waitFor('both to be forgotten', () => !known().includes(dir) && !known().includes(path.join(dir, 'sub')), 10_000);
       } finally {
+        watcher.dispose();
         await config.update('excludeGitIgnore', undefined, vscode.ConfigurationTarget.Global);
       }
     }));

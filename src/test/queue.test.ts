@@ -37,6 +37,18 @@ test('runs higher priority jobs first', async () => {
   assert.deepEqual(order, ['high', 'mid', 'low']);
 });
 
+test('isWaiting tells a job still waiting from one running or done', async () => {
+  const queue = new TaskQueue(1);
+  const gate = deferred();
+  queue.enqueue('running', 0, () => gate.promise);
+  queue.enqueue('waiting', 0, async () => undefined);
+  assert.equal(queue.isWaiting('running'), false, 'started');
+  assert.equal(queue.isWaiting('waiting'), true);
+  gate.resolve();
+  await queue.onIdle();
+  assert.equal(queue.isWaiting('waiting'), false, 'done');
+});
+
 test('re-enqueuing a waiting key raises its priority without running it twice', async () => {
   const queue = new TaskQueue(1);
   const gate = deferred();

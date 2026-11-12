@@ -163,6 +163,7 @@ While **Changed files** is on, rows for deleted files offer only the commands th
 - **Drag and drop** items onto a folder to move them. You're asked first unless `explorer.confirmDragAndDrop` is off. Editors and imports follow the move, just as in the built-in Explorer.
 - **Drop files from Finder** (or from anywhere outside the tree) to copy them in. As in the built-in Explorer, you're asked before a file with the same name is replaced, folders dropped on a workspace folder can be added to the workspace instead, and a single dropped file opens (`explorer.autoOpenDroppedFile`).
 - **Scan This Folder** appears on folders deeper than the scan limit. Expanding the folder does the same.
+- **Fetch All**, **Pull All (Fast-Forward)**, **Push All…** and **Refresh All** appear on folders that hold repos but aren't one, and on the groups in **Git Repositories** (such as *Behind remote*). They run in every repo the row counts, a few at a time, and a filter that is on narrows them down. Pull only fast-forwards: a repo that would need a merge, or whose changes are in the way, is skipped and left as it was. Push asks first and names the repos. A repo that fails or is skipped doesn't stop the others; the message at the end lists them, and **Show Details** has git's output.
 - **Git Repositories** has **Fetch All Repos**, **Filter Repos**, and **Refresh** in its title bar. Its rows have the repo commands above, plus **Open Terminal Here** and **Copy to AI Chat**.
 - **The Command Palette** lists every command under *Multi-Git Explorer*.
 
@@ -388,7 +389,7 @@ Changes happen only when you run a command:
 | Area | Commands | Safeguards |
 | --- | --- | --- |
 | Branches | **Switch Branch…**, and **Stash and Switch** when you confirm it | Not allowed during a merge or rebase. Uncommitted changes that would be overwritten are stashed only if you agree |
-| Remotes | **Fetch**, **Pull**, **Push**, **Fetch All Repos** | Push sets an upstream only for a branch that has none |
+| Remotes | **Fetch**, **Pull**, **Push**, **Fetch All Repos**, and **Fetch All**, **Pull All**, **Push All** on a folder or group | Push sets an upstream only for a branch that has none. **Pull All** only fast-forwards, never merges, rebases or stashes. **Push All** asks first |
 | Files | **New File/Folder**, **Rename**, **Paste**, drag and drop, **Delete** | Taken names are refused or given a copy name; moving onto a taken name asks first. Dragging asks first unless `explorer.confirmDragAndDrop` is off |
 
 **Delete** follows the built-in Explorer's settings. With `files.enableTrash` on (the default), items go to the Trash (the Recycle Bin on Windows), and you're asked first unless `explorer.confirmDelete` is off. With it off, items are deleted permanently and you're always asked first. Workspace folders can't be renamed, moved, or deleted from the tree.

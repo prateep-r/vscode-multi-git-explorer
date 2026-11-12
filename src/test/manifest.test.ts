@@ -107,6 +107,21 @@ test('a workspace folder row can be copied but not renamed, cut or deleted', () 
   for (const c of ['rename', 'delete', 'cut']) assert.ok(!menu.includes(c), c);
 });
 
+test('a folder or group holding repos runs git in all of them, and no other row does', () => {
+  const all = ['fetchAllHere', 'pullAllHere', 'pushAllHere', 'refreshAllHere'];
+  for (const [view, row] of [[FILES, 'folder repos'], [FILES, 'folder root repos'], [REPOS, 'group repos']]) {
+    const menu = menuFor(view, row);
+    for (const c of all) assert.ok(menu.includes(c), `${c} on ${row}`);
+    assert.deepEqual(menu.filter((c, i) => menu.indexOf(c) !== i), [], `${row} in ${view}`);
+  }
+  for (const [view, row] of [[FILES, 'folder'], [FILES, `${repoRow} hosted`], [REPOS, repoRow], [FILES, 'file']]) {
+    const menu = menuFor(view, row);
+    for (const c of all) assert.ok(!menu.includes(c), `${c} not on ${row}`);
+  }
+  const palette = contributes.menus.commandPalette as MenuItem[];
+  for (const c of all) assert.equal(palette.find(i => i.command === `multiGitExplorer.${c}`)?.when, 'false', `${c} needs a row`);
+});
+
 test('a folder past the depth limit offers Scan This Folder', () => {
   assert.ok(menuFor(FILES, 'folder unscanned').includes('scanFolder'));
   assert.ok(!menuFor(FILES, 'folder').includes('scanFolder'));

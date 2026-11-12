@@ -67,8 +67,7 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
       return GROUP_ORDER.filter(key => repos.some(r => r.view.group === key)).map(key => this.groupNodes.get(key)!);
     }
     if (node.type === 'repo') return [];
-    return repos
-      .filter(r => r.view.group === node.key)
+    return this.inGroup(repos, node.key)
       .sort((a, b) => this.label(a).localeCompare(this.label(b), undefined, { numeric: true }))
       .map(r => this.repoNode(r.root));
   }
@@ -81,7 +80,7 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
 
   getTreeItem(node: ReposNode): vscode.TreeItem {
     if (node.type === 'group') {
-      const count = this.visibleRepos().filter(r => r.view.group === node.key).length;
+      const count = this.reposInGroup(node.key).length;
       const item = new vscode.TreeItem(
         GROUP_LABELS[node.key],
         COLLAPSED_GROUPS.has(node.key) ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.Expanded,
@@ -90,7 +89,7 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
       item.description = String(count);
       const [icon, color] = GROUP_ICONS[node.key];
       item.iconPath = new vscode.ThemeIcon(icon, new vscode.ThemeColor(color));
-      item.contextValue = 'group';
+      item.contextValue = 'group repos';
       return item;
     }
 
@@ -103,6 +102,15 @@ export class ReposViewProvider implements vscode.TreeDataProvider<ReposNode>, vs
     item.tooltip = repo.view.tooltip;
     item.contextValue = repo.view.contextValue;
     return item;
+  }
+
+  /** The repos a group row shows, that Fetch All and the like act on: those in the group that pass the filter. */
+  reposInGroup(key: GroupKey): RepoEntry[] {
+    return this.inGroup(this.visibleRepos(), key);
+  }
+
+  private inGroup(repos: RepoEntry[], key: GroupKey): RepoEntry[] {
+    return repos.filter(r => r.view.group === key);
   }
 
   private visibleRepos(): RepoEntry[] {

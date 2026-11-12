@@ -3,7 +3,8 @@
 // the sample repos (switching branches and pushing), so they run last.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'child_process';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Priority } from '../core/queue';
@@ -372,5 +373,144 @@ export function registerGitCommandTests(): void {
     }
     assert.ok(pickerItems[0].some(i => /↓4 behind origin\/main/.test(i.description ?? '')), 'how far behind its upstream');
     assert.ok(existsSync(at(repo)));
+  });
+
+  test('Fetch All, Pull All, Push All and Refresh All run git in every repo of a folder or group', async ({ store, explorer, reposView }) => {
+    const parent = at('bulk');
+    const remotes = mkdtempSync(path.join(tmpdir(), 'multi-git-explorer-bulk-'));
+    const sh = (cwd: string, ...args: string[]) =>
+      execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
+    const commit = (cwd: string, file: string) => {
+      writeFileSync(path.join(cwd, file), `${file} ${Math.random()}\n`);
+      sh(cwd, 'add', file);
+      sh(cwd, 'commit', '-q', '-m', file);
+    };
+    /** A clone in bulk/ of a remote of its own, and `other`, someone else's clone, to push from. */
+    const clone = (name: string) => {
+      const bare = path.join(remotes, `${name}.git`);
+      const other = path.join(remotes, name);
+      sh(remotes, 'init', '-q', '--bare', '-b', 'main', bare);
+      mkdirSync(other);
+      sh(other, 'init', '-q', '-b', 'main');
+      commit(other, 'README.md');
+      sh(other, 'remote', 'add', 'origin', bare);
+      sh(other, 'push', '-q', '-u', 'origin', 'main');
+      const dir = path.join(parent, name);
+      mkdirSync(parent, { recursive: true });
+      sh(remotes, 'clone', '-q', bare, dir);
+      return { dir, other };
+    };
+    const bar: string[] = [];
+    const restoreBar = stub(vscode.window, 'setStatusBarMessage', ((text: string) => {
+      bar.push(text);
+      return { dispose: () => undefined };
+    }) as never);
+    try {
+      const behind = clone('behind');
+      commit(behind.other, 'theirs.txt');
+      sh(behind.other, 'push', '-q');
+      const diverged = clone('diverged');
+      commit(diverged.other, 'theirs.txt');
+      sh(diverged.other, 'push', '-q');
+      commit(diverged.dir, 'mine.txt');
+      const ahead = clone('ahead');
+      commit(ahead.dir, 'mine.txt');
+      mkdirSync(path.join(ahead.dir, 'src'));
+      const fresh = clone('fresh');
+      sh(fresh.dir, 'switch', '-q', '-c', 'feature');
+      const local = path.join(parent, 'local');
+      mkdirSync(local);
+      sh(local, 'init', '-q', '-b', 'main');
+      commit(local, 'a.txt');
+      const names = ['ahead', 'behind', 'diverged', 'fresh', 'local'];
+      const entry = (name: string) => store.get(path.join(parent, name))!;
+      await store.discover();
+      for (const name of names) await waitFor(`${name} status`, () => store.get(path.join(parent, name))?.status);
+
+      // Rows that hold repos, and the repos each stands for.
+      const folder: ExplorerNode = { uri: vscode.Uri.file(parent), isDir: true };
+      assert.equal(explorer.getTreeItem(folder).contextValue, 'folder repos');
+      assert.deepEqual(explorer.reposShownUnder(parent).map(r => r.name), names);
+      const inside: ExplorerNode = { uri: vscode.Uri.file(path.join(ahead.dir, 'src')), isDir: true };
+      assert.doesNotMatch(String(explorer.getTreeItem(inside).contextValue), /\brepos\b/, 'a folder in a repo');
+      assert.deepEqual(explorer.reposShownUnder(ahead.dir), [], 'a repo row');
+      const group: ReposNode = { type: 'group', key: 'clean' };
+      assert.equal(reposView.getTreeItem(group).contextValue, 'group repos');
+      assert.equal(reposView.getChildren(group).length, reposView.reposInGroup('clean').length);
+      assert.ok(reposView.reposInGroup('clean').every(r => r.view.group === 'clean'));
+
+      // Fetch: every repo with a remote; all went well, so only the status bar says so.
+      let shown = await messages({}, () => run('multiGitExplorer.fetchAllHere', folder));
+      assert.deepEqual(shown, []);
+      assert.equal(bar.pop(), '$(check) Fetched 4 repos.');
+      assert.equal(sh(behind.dir, 'rev-list', '--count', 'HEAD..@{upstream}'), '1');
+
+      // Pull: fast-forwards, and leaves a repo that would need a merge as it was.
+      const divergedHead = sh(diverged.dir, 'rev-parse', 'HEAD');
+      shown = await messages({ warning: 'Show Details' }, () => run('multiGitExplorer.pullAllHere', folder));
+      assert.deepEqual(shown.map(m => m.text), ['Pulled 2 repos. Skipped 1 that would need a merge or has changes in the way: diverged.']);
+      assert.deepEqual(shown[0].buttons, ['Show Details']);
+      assert.equal(sh(behind.dir, 'rev-list', '--count', 'HEAD..@{upstream}'), '0', 'fast-forwarded');
+      assert.equal(sh(diverged.dir, 'rev-parse', 'HEAD'), divergedHead, 'no merge');
+
+      // Push asks first, naming at most 10 repos, and does nothing when dismissed.
+      let restore = stub(explorer, 'reposShownUnder', () => Array(11).fill(entry('ahead')));
+      try {
+        shown = await messages({}, () => run('multiGitExplorer.pushAllHere', folder));
+      } finally {
+        restore();
+      }
+      assert.deepEqual(shown.map(m => m.text), ['Push 11 repos?']);
+      assert.equal(sh(ahead.dir, 'rev-list', '--count', '@{upstream}..HEAD'), '1', 'not pushed');
+
+      // A repo whose remotes can't be listed has nowhere to push.
+      restore = stub(explorer, 'reposShownUnder', () => [entry('fresh')]);
+      try {
+        await withBrokenGit(async () => {
+          shown = await messages({ warning: 'Push' }, () => run('multiGitExplorer.pushAllHere', folder));
+        });
+      } finally {
+        restore();
+      }
+      assert.deepEqual(shown.map(m => m.text), ['Push 1 repo?', 'Pushed no repos. Failed 1: fresh.']);
+      for (const name of names) store.refresh(path.join(parent, name), Priority.User);
+      await waitFor('checks with git back', () => names.every(n => entry(n).status && entry(n).error === undefined));
+
+      // A repo never checked, as off screen in a large workspace, is checked before choosing.
+      entry('fresh').status = undefined;
+      entry('fresh').view = { ...entry('fresh').view, contextValue: 'repo checking' };
+      shown = await messages({ warning: 'Push' }, () => run('multiGitExplorer.pushAllHere', folder));
+      assert.deepEqual(shown.map(m => m.text), [
+        'Push 3 repos?',
+        'Pushed 2 repos. Skipped 1 that the remote has newer commits for (pull them first): diverged.',
+      ]);
+      assert.equal(sh(fresh.dir, 'rev-parse', '--abbrev-ref', '@{upstream}'), 'origin/feature', 'a first push sets the upstream');
+      assert.equal(sh(ahead.dir, 'rev-list', '--count', '@{upstream}..HEAD'), '0', 'pushed');
+
+      // Stopped before any repo ran.
+      const progress = vscode.window.withProgress;
+      restore = stub(vscode.window, 'withProgress', ((options, task) =>
+        progress(options, (p, token) => task(p, { ...token, isCancellationRequested: true }))) as typeof vscode.window.withProgress);
+      try {
+        shown = await messages({}, () => run('multiGitExplorer.fetchAllHere', folder));
+      } finally {
+        restore();
+      }
+      assert.deepEqual(shown, [{ kind: 'warning', text: 'Stopped after 0 of 4 repos. Fetched no repos.', buttons: [] }]);
+
+      // Refresh re-checks the repos, of a folder or a group, without asking or telling.
+      await run('multiGitExplorer.refreshAllHere', folder);
+      assert.equal(bar.pop(), 'Refreshing 5 repos');
+      await run('multiGitExplorer.refreshAllHere', group);
+      assert.match(bar.pop()!, /^Refreshing \d+ repos$/);
+
+      shown = await messages({}, () => run('multiGitExplorer.pullAllHere'));
+      assert.deepEqual(shown.map(m => m.text), ['Multi-Git Explorer: no repos here to pull.'], 'not from a row');
+    } finally {
+      restoreBar();
+      rmSync(parent, { recursive: true, force: true });
+      rmSync(remotes, { recursive: true, force: true });
+      await store.discover();
+    }
   });
 }
